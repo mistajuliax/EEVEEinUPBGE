@@ -345,6 +345,9 @@ public:
 	~KX_Scene();
 
 	/******************EEVEE INTEGRATION************************/
+	void InitEeveeData();
+	void FreeEeveeData();
+
 	void InitScenePasses(EEVEE_PassList *psl);
 	std::vector<DRWPass *>GetMaterialPasses();
 

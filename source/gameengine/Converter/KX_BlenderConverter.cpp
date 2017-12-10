@@ -250,10 +250,10 @@ void KX_BlenderConverter::ConvertScene(KX_Scene *destinationscene, RAS_Rasterize
  */
 void KX_BlenderConverter::RemoveScene(KX_Scene *scene)
 {
-	KX_WorldInfo *world = scene->GetWorldInfo();
+	/*KX_WorldInfo *world = scene->GetWorldInfo();
 	if (world) {
 		delete world;
-	}
+	}*/
 
 #ifdef WITH_PYTHON
 	Texture::FreeAllTextures(scene);

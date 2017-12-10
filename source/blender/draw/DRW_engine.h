@@ -118,6 +118,7 @@ void PAINT_VERTEX_collection_settings_create(struct IDProperty *properties);
 void DRW_game_render_loop_begin(struct GPUOffScreen *ofs, struct Main *bmain,
 	struct Scene *scene, struct ViewLayer *view_layer, struct Object *maincam, int viewportsize[2]);
 void DRW_game_render_loop_end(void);
+void DRW_flush_base_flags(struct Depsgraph *depsgraph, struct ViewLayer *view_layer, struct Main *bmain);
 /********************************************End of game engine**********************************************/
 
 #endif /* __DRW_ENGINE_H__ */

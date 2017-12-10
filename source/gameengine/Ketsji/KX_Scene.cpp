@@ -238,9 +238,10 @@ KX_Scene::KX_Scene(SCA_IInputDevice *inputDevice,
 	m_animationPool = BLI_task_pool_create(KX_GetActiveEngine()->GetTaskScheduler(), &m_animationPoolData);
 
 	/*************************************************EEVEE INTEGRATION***********************************************************/
+	InitEeveeData();
+
 	ViewLayer *view_layer = BKE_view_layer_from_scene_get(m_blenderScene);
 	m_idProperty = BKE_view_layer_engine_evaluated_get(view_layer, COLLECTION_MODE_NONE, RE_engine_id_BLENDER_EEVEE);
-
 	EEVEE_PassList *psl = EEVEE_engine_data_get()->psl;
 
 	InitScenePasses(psl);
@@ -322,6 +323,8 @@ KX_Scene::~KX_Scene()
 		delete m_boundingBoxManager;
 	}
 
+	FreeEeveeData();
+
 #ifdef WITH_PYTHON
 	if (m_attr_dict) {
 		PyDict_Clear(m_attr_dict);
@@ -337,6 +340,24 @@ KX_Scene::~KX_Scene()
 }
 
 /*******************EEVEE INTEGRATION******************/
+
+void KX_Scene::InitEeveeData()
+{
+	Main *bmain = KX_GetActiveEngine()->GetConverter()->GetMain();
+	RAS_ICanvas *canvas = KX_GetActiveEngine()->GetCanvas();
+	Scene *scene = GetBlenderScene();
+	ViewLayer *cur_view_layer = BKE_view_layer_from_scene_get(scene);
+	Object *maincam = BKE_view_layer_camera_find(cur_view_layer);
+	GPUOffScreen *tempgpuofs = GPU_offscreen_create(canvas->GetWidth(), canvas->GetHeight(), 0, nullptr);
+	int viewportsize[2] = { canvas->GetWidth(), canvas->GetHeight() };
+	DRW_game_render_loop_begin(tempgpuofs, bmain, scene,
+		cur_view_layer, maincam, viewportsize);
+}
+
+void KX_Scene::FreeEeveeData()
+{
+	DRW_game_render_loop_end();
+}
 
 void KX_Scene::InitScenePasses(EEVEE_PassList *psl)
 {

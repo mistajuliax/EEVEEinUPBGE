@@ -1249,14 +1249,12 @@ int main(
 						Scene *scene = bfd->curscene;
 						G.main = maggie;
 
-						ViewLayer *view_layer = BKE_view_layer_from_scene_get(scene);
-						Depsgraph *depsgraph = BKE_scene_get_depsgraph(scene, view_layer, true);
-						DEG_graph_relations_update(depsgraph, maggie, scene, view_layer);
-						InitProperties(view_layer, scene);
-
-						for (Object *ob = (Object *)maggie->object.first; ob; ob = (Object *)ob->id.next) {
-							Base *base = BKE_view_layer_base_find(view_layer, ob);
-							BKE_object_eval_flush_base_flags(maggie->eval_ctx, ob, base, true);
+						for (Scene *sc = (Scene *)maggie->scene.first; sc; sc = (Scene *)sc->id.next) {
+							ViewLayer *view_layer = BKE_view_layer_from_scene_get(sc);
+							Depsgraph *depsgraph = BKE_scene_get_depsgraph(sc, view_layer, true);
+							DEG_graph_relations_update(depsgraph, maggie, sc, view_layer);
+							InitProperties(view_layer, sc);
+							DRW_flush_base_flags(depsgraph, view_layer, maggie);
 						}
 
 						if (firstTimeRunning) {

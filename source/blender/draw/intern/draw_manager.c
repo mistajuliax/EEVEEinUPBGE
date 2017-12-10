@@ -4079,6 +4079,16 @@ static void game_camera_border(
 	r_viewborder->ymax = ((rect_camera.ymax - rect_view.ymin) / BLI_rctf_size_y(&rect_view)) * ar->winy;
 }
 
+void DRW_flush_base_flags(Depsgraph *depsgraph, ViewLayer *view_layer, Main *maggie)
+{
+	DEG_OBJECT_ITER(depsgraph, ob, DEG_ITER_OBJECT_FLAG_ALL);
+	{
+		Base *base = BKE_view_layer_base_find(view_layer, ob);
+		BKE_object_eval_flush_base_flags(maggie->eval_ctx, ob, base, true);
+	}
+	DEG_OBJECT_ITER_END
+}
+
 static void disable_double_buffer_check()
 {
 	/* When uniforms are passed to the shaders, there is a control if
@@ -4203,6 +4213,10 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 
 	/* Start Drawing */
 	DRW_state_reset();
+	drw_engines_draw_background();
+	drw_engines_draw_scene();
+	DRW_state_reset();
+
 	drw_engines_disable();
 }
 

@@ -258,10 +258,10 @@ void RAS_Rasterizer::InitScreenShaders()
 
 void RAS_Rasterizer::ExitScreenShaders()
 {
-	DRW_shgroup_free(m_screenShaders.normal);
+	/*DRW_shgroup_free(m_screenShaders.normal);
 	DRW_shgroup_free(m_screenShaders.anaglyph);
 	DRW_shgroup_free(m_screenShaders.interlace);
-	DRW_shgroup_free(m_screenShaders.vinterlace);
+	DRW_shgroup_free(m_screenShaders.vinterlace);*/
 }
 
 void RAS_Rasterizer::Enable(RAS_Rasterizer::EnableBit bit)
@@ -301,7 +301,7 @@ void RAS_Rasterizer::Init()
 
 	SetColorMask(true, true, true, true);
 
-	InitScreenShaders();
+	//InitScreenShaders();
 }
 
 void RAS_Rasterizer::Exit()
@@ -322,7 +322,7 @@ void RAS_Rasterizer::Exit()
 	DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
 	DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
 
-	DRW_game_render_loop_end();
+	//DRW_game_render_loop_end();
 }
 
 void RAS_Rasterizer::BeginFrame(double time)
