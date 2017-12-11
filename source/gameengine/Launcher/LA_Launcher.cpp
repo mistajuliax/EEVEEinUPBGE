@@ -163,7 +163,6 @@ void LA_Launcher::InitEngine()
 		(profile ? KX_KetsjiEngine::SHOW_PROFILE : 0));
 
 	m_rasterizer = new RAS_Rasterizer();
-	m_rasterizer->SetDrawingMode(GetRasterizerDrawMode());
 
 	// Copy current anisotropic level to restore it at the game end.
 	m_savedData.anisotropic = m_rasterizer->GetAnisotropicFiltering();

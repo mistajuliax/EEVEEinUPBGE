@@ -98,7 +98,7 @@ bool RAS_DisplayArrayBucket::UseBatching() const
 	return (m_displayArray && m_displayArray->GetType() == RAS_IDisplayArray::BATCHING);
 }
 
-void RAS_DisplayArrayBucket::UpdateActiveMeshSlots(RAS_Rasterizer::DrawType drawingMode, RAS_MaterialShader *shader)
+void RAS_DisplayArrayBucket::UpdateActiveMeshSlots(RAS_MaterialShader *shader)
 {
 	bool arrayModified = false;
 
