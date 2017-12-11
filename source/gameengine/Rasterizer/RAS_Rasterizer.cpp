@@ -193,8 +193,6 @@ RAS_Rasterizer::RAS_Rasterizer()
 	m_last_frontface(true)
 {
 	m_impl.reset(new RAS_OpenGLRasterizer(this));
-
-	m_numgllights = m_impl->GetNumLights();
 }
 
 RAS_Rasterizer::~RAS_Rasterizer()

@@ -184,17 +184,6 @@ RAS_OpenGLRasterizer::~RAS_OpenGLRasterizer()
 {
 }
 
-unsigned short RAS_OpenGLRasterizer::GetNumLights() const
-{
-	int numlights = 0;
-	glGetIntegerv(GL_MAX_LIGHTS, (GLint *)&numlights);
-
-	if (numlights > 8) {
-		return 8;
-	}
-	return numlights;
-}
-
 void RAS_OpenGLRasterizer::Enable(RAS_Rasterizer::EnableBit bit)
 {
 	glEnable(openGLEnableBitEnums[bit]);

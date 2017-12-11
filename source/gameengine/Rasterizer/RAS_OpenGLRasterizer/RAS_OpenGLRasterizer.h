@@ -67,8 +67,6 @@ public:
 	RAS_OpenGLRasterizer(RAS_Rasterizer *rasterizer);
 	virtual ~RAS_OpenGLRasterizer();
 
-	unsigned short GetNumLights() const;
-
 	void Enable(RAS_Rasterizer::EnableBit bit);
 	void Disable(RAS_Rasterizer::EnableBit bit);
 

@@ -236,7 +236,6 @@ private:
 	int m_lastlightlayer;
 	bool m_lastlighting;
 	void *m_lastauxinfo;
-	unsigned int m_numgllights;
 
 	/// Class used to manage off screens used by the rasterizer.
 	FrameBuffers m_frameBuffers;
