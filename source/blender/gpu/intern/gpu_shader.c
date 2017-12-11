@@ -155,8 +155,6 @@ extern char datatoc_gpu_shader_fx_depth_resolve_glsl[];
 extern char datatoc_gpu_shader_fx_lib_glsl[];
 
 /********************Game engine*********************/
-extern char datatoc_gpu_shader_black_frag_glsl[];
-extern char datatoc_gpu_shader_black_vert_glsl[];
 extern char datatoc_gpu_shader_frame_buffer_frag_glsl[];
 extern char datatoc_gpu_shader_frame_buffer_vert_glsl[];
 /*****************End of Game engine*****************/
@@ -876,11 +874,6 @@ GPUShader *GPU_shader_get_builtin_shader(GPUBuiltinShader shader)
 
 		/****************************************************Game Engine********************************************************/
 		[GPU_SHADER_DRAW_FRAME_BUFFER] = { datatoc_gpu_shader_frame_buffer_vert_glsl, datatoc_gpu_shader_frame_buffer_frag_glsl },
-		[GPU_SHADER_VSM_STORE_INSTANCING] = { datatoc_gpu_shader_vsm_store_vert_glsl, datatoc_gpu_shader_vsm_store_frag_glsl },
-		[GPU_SHADER_BLACK] = { datatoc_gpu_shader_black_vert_glsl, datatoc_gpu_shader_black_frag_glsl },
-		[GPU_SHADER_BLACK_INSTANCING] = { datatoc_gpu_shader_black_vert_glsl, datatoc_gpu_shader_black_frag_glsl },
-		[GPU_SHADER_STEREO_STIPPLE] = { datatoc_gpu_shader_frame_buffer_vert_glsl, datatoc_gpu_shader_frame_buffer_frag_glsl },
-		[GPU_SHADER_STEREO_ANAGLYPH] = { datatoc_gpu_shader_frame_buffer_vert_glsl, datatoc_gpu_shader_frame_buffer_frag_glsl },
 		/*************************************************End of Game engine****************************************************/
 	};
 
