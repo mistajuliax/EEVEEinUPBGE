@@ -218,8 +218,6 @@ bool ImageRender::Render()
 		frustum.camnear = -mirrorOffset[2];
 		frustum.camfar = -mirrorOffset[2]+m_clip;
 	}
-	// Store settings to be restored later
-	const RAS_Rasterizer::StereoMode stereomode = m_rasterizer->GetStereoMode();
 
 	m_rasterizer->BeginFrame(m_engine->GetClockTime());
 
@@ -229,15 +227,12 @@ bool ImageRender::Render()
 	m_rasterizer->Clear(RAS_Rasterizer::RAS_DEPTH_BUFFER_BIT);
 
 	m_rasterizer->SetAuxilaryClientInfo(m_scene);
-	//m_rasterizer->DisplayFog();
-	// matrix calculation, don't apply any of the stereo mode
-	m_rasterizer->SetStereoMode(RAS_Rasterizer::RAS_STEREO_NOSTEREO);
 
 	if (m_mirror)
 	{
 		// frustum was computed above
 		// get frustum matrix and set projection matrix
-		MT_Matrix4x4 projmat = m_rasterizer->GetFrustumMatrix(RAS_Rasterizer::RAS_STEREO_LEFTEYE,
+		MT_Matrix4x4 projmat = m_rasterizer->GetFrustumMatrix(
 		            frustum.x1, frustum.x2, frustum.y1, frustum.y2, frustum.camnear, frustum.camfar);
 
 		m_camera->SetProjectionMatrix(projmat);
@@ -289,7 +284,7 @@ bool ImageRender::Render()
 			            aspect_ratio,
 			            frustum);
 			
-			projmat = m_rasterizer->GetFrustumMatrix(RAS_Rasterizer::RAS_STEREO_LEFTEYE,
+			projmat = m_rasterizer->GetFrustumMatrix(
 			            frustum.x1, frustum.x2, frustum.y1, frustum.y2, frustum.camnear, frustum.camfar);
 		}
 		m_camera->SetProjectionMatrix(projmat);
@@ -300,17 +295,6 @@ bool ImageRender::Render()
 	
 	m_rasterizer->SetMatrix(viewmat, m_camera->GetProjectionMatrix(), m_camera->NodeGetWorldPosition(), m_camera->NodeGetLocalScaling());
 	m_camera->SetModelviewMatrix(viewmat);
-
-	// restore the stereo mode now that the matrix is computed
-	m_rasterizer->SetStereoMode(stereomode);
-
-	if (m_rasterizer->Stereo())	{
-		// stereo mode change render settings that disturb this render, cancel them all
-		// we don't need to restore them as they are set before each frame render.
-		glDrawBuffer(GL_BACK_LEFT);
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-		glDisable(GL_POLYGON_STIPPLE);
-	}
 
 	KX_CullingNodeList nodes;
 	m_scene->CalculateVisibleMeshes(nodes, m_camera, 0);

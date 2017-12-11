@@ -88,9 +88,6 @@ protected:
 	/// The number of render samples.
 	int m_samples;
 
-	/// The render stereo mode passed in constructor.
-	RAS_Rasterizer::StereoMode m_stereoMode;
-
 	/// argc and argv need to be passed on to python
 	int m_argc;
 	char **m_argv;
@@ -133,7 +130,7 @@ protected:
 
 public:
 	LA_Launcher(GHOST_ISystem *system, Main *maggie, Scene *scene, GlobalSettings *gs,
-				RAS_Rasterizer::StereoMode stereoMode, int samples, int argc, char **argv);
+				int samples, int argc, char **argv);
 	virtual ~LA_Launcher();
 
 #ifdef WITH_PYTHON

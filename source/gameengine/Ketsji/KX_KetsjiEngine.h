@@ -107,16 +107,14 @@ private:
 
 	struct CameraRenderData
 	{
-		CameraRenderData(KX_Camera *rendercam, KX_Camera *cullingcam, const RAS_Rect& area, const RAS_Rect& viewport, RAS_Rasterizer::StereoEye eye);
+		CameraRenderData(KX_Camera *rendercam, KX_Camera *cullingcam, const RAS_Rect& area, const RAS_Rect& viewport);
 		CameraRenderData(const CameraRenderData& other);
 		~CameraRenderData();
 
-		/// Rendered camera, could be a temporary camera in case of stereo.
 		KX_Camera *m_renderCamera;
 		KX_Camera *m_cullingCamera;
 		RAS_Rect m_area;
 		RAS_Rect m_viewport;
-		RAS_Rasterizer::StereoEye m_eye;
 	};
 
 	struct SceneRenderData
@@ -254,11 +252,10 @@ private:
 	void UpdateSuspendedScenes(double framestep);
 
 	/// Update and return the projection matrix of a camera depending on the viewport.
-	MT_Matrix4x4 GetCameraProjectionMatrix(KX_Scene *scene, KX_Camera *cam, RAS_Rasterizer::StereoEye eye,
+	MT_Matrix4x4 GetCameraProjectionMatrix(KX_Scene *scene, KX_Camera *cam,
 										   const RAS_Rect& viewport, const RAS_Rect& area) const;
-	CameraRenderData GetCameraRenderData(KX_Scene *scene, KX_Camera *camera, KX_Camera *overrideCullingCam, const RAS_Rect& displayArea,
-											  RAS_Rasterizer::StereoEye eye, bool usestereo);
-	/// Compute frame render data per eyes (in case of stereo), scenes and camera.
+	CameraRenderData GetCameraRenderData(KX_Scene *scene, KX_Camera *camera, KX_Camera *overrideCullingCam, const RAS_Rect& displayArea);
+	/// Compute frame render data, scenes and camera.
 	bool GetFrameRenderData(std::vector<FrameRenderData>& frameDataList);
 
 	/// EEVEE scene rendering

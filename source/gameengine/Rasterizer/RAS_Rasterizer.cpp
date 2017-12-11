@@ -121,8 +121,7 @@ inline RAS_FrameBuffer *RAS_Rasterizer::FrameBuffers::GetFrameBuffer(FrameBuffer
 		// The offscreen need to be created now.
 
 		// Check if the off screen type can support samples.
-		const bool sampleofs = fbtype == RAS_FRAMEBUFFER_EYE_LEFT0 ||
-							   fbtype == RAS_FRAMEBUFFER_EYE_RIGHT0;
+		const bool sampleofs = false;
 
 		/* Some GPUs doesn't support high multisample value with GL_RGBA16F or GL_RGBA32F.
 		 * To avoid crashing we check if the off screen was created and if not decremente
@@ -171,14 +170,6 @@ RAS_Rasterizer::FrameBufferType RAS_Rasterizer::NextRenderFrameBuffer(FrameBuffe
 		{
 			return RAS_FRAMEBUFFER_EYE_LEFT0;
 		}
-		case RAS_FRAMEBUFFER_EYE_RIGHT0:
-		{
-			return RAS_FRAMEBUFFER_EYE_RIGHT1;
-		}
-		case RAS_FRAMEBUFFER_EYE_RIGHT1:
-		{
-			return RAS_FRAMEBUFFER_EYE_RIGHT0;
-		}
 		// Passing a non-eye frame buffer is disallowed.
 		default:
 		{
@@ -195,9 +186,6 @@ RAS_Rasterizer::RAS_Rasterizer()
 	m_campos(0.0f, 0.0f, 0.0f),
 	m_camortho(false),
 	m_camnegscale(false),
-	m_stereomode(RAS_STEREO_NOSTEREO),
-	m_curreye(RAS_STEREO_LEFTEYE),
-	m_eyeseparation(0.0f),
 	m_focallength(0.0f),
 	m_setfocallength(false),
 	m_noOfScanlines(32),
@@ -215,53 +203,6 @@ RAS_Rasterizer::RAS_Rasterizer()
 
 RAS_Rasterizer::~RAS_Rasterizer()
 {
-}
-
-void RAS_Rasterizer::InitScreenShaders()
-{
-	static int zero = 0;
-	static int one = 1;
-
-	{
-		DRWShadingGroup *shgrp = DRW_shgroup_create(GPU_shader_get_builtin_shader(GPU_SHADER_DRAW_FRAME_BUFFER), nullptr);
-		DRW_shgroup_uniform_int(shgrp, "colortex", &zero, 1);
-
-		m_screenShaders.normal = shgrp;
-	}
-
-	{
-		DRWShadingGroup *shgrp = DRW_shgroup_create(GPU_shader_get_builtin_shader(GPU_SHADER_STEREO_ANAGLYPH), nullptr);
-		DRW_shgroup_uniform_int(shgrp, "lefteyetex", &zero, 1);
-		DRW_shgroup_uniform_int(shgrp, "righteyetex", &one, 1);
-
-		m_screenShaders.anaglyph = shgrp;
-	}
-
-	{
-		DRWShadingGroup *shgrp = DRW_shgroup_create(GPU_shader_get_builtin_shader(GPU_SHADER_STEREO_STIPPLE), nullptr);
-		DRW_shgroup_uniform_int(shgrp, "lefteyetex", &zero, 1);
-		DRW_shgroup_uniform_int(shgrp, "righteyetex", &one, 1);
-		DRW_shgroup_uniform_int(shgrp, "stippleid", &one, 1);
-
-		m_screenShaders.interlace = shgrp;
-	}
-
-	{
-		DRWShadingGroup *shgrp = DRW_shgroup_create(GPU_shader_get_builtin_shader(GPU_SHADER_STEREO_STIPPLE), nullptr);
-		DRW_shgroup_uniform_int(shgrp, "lefteyetex", &zero, 1);
-		DRW_shgroup_uniform_int(shgrp, "righteyetex", &one, 1);
-		DRW_shgroup_uniform_int(shgrp, "stippleid", &zero, 1);
-
-		m_screenShaders.vinterlace = shgrp;
-	}
-}
-
-void RAS_Rasterizer::ExitScreenShaders()
-{
-	/*DRW_shgroup_free(m_screenShaders.normal);
-	DRW_shgroup_free(m_screenShaders.anaglyph);
-	DRW_shgroup_free(m_screenShaders.interlace);
-	DRW_shgroup_free(m_screenShaders.vinterlace);*/
 }
 
 void RAS_Rasterizer::Enable(RAS_Rasterizer::EnableBit bit)
@@ -300,8 +241,6 @@ void RAS_Rasterizer::Init()
 	SetFrontFace(true);
 
 	SetColorMask(true, true, true, true);
-
-	//InitScreenShaders();
 }
 
 void RAS_Rasterizer::Exit()
@@ -313,16 +252,12 @@ void RAS_Rasterizer::Exit()
 
 	Clear(RAS_COLOR_BUFFER_BIT | RAS_DEPTH_BUFFER_BIT);
 
-	ExitScreenShaders();
-
 	DRW_viewport_matrix_override_unset(DRW_MAT_VIEW);
 	DRW_viewport_matrix_override_unset(DRW_MAT_VIEWINV);
 	DRW_viewport_matrix_override_unset(DRW_MAT_WIN);
 	DRW_viewport_matrix_override_unset(DRW_MAT_WININV);
 	DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
 	DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
-
-	//DRW_game_render_loop_end();
 }
 
 void RAS_Rasterizer::BeginFrame(double time)
@@ -449,204 +384,17 @@ void RAS_Rasterizer::DrawFrameBuffer(RAS_ICanvas *canvas, RAS_FrameBuffer *frame
 	DrawFrameBuffer(frameBuffer, nullptr);
 }
 
-void RAS_Rasterizer::DrawStereoFrameBuffer(RAS_ICanvas *canvas, RAS_FrameBuffer *leftFb, RAS_FrameBuffer *rightFb)
-{
-	//if (leftFb->GetSamples() > 0) {
-	//	// Then leftFb == RAS_FrameBuffer_EYE_LEFT0.
-	//	leftFb = leftFb->Blit(GetFrameBuffer(RAS_FrameBuffer_EYE_LEFT1), true, false);
-	//}
-
-	//if (rightFb->GetSamples() > 0) {
-	//	// Then rightFb == RAS_FrameBuffer_EYE_RIGHT0.
-	//	rightFb = rightFb->Blit(GetFrameBuffer(RAS_FrameBuffer_EYE_RIGHT1), true, false);
-	//}
-
-	const RAS_Rect& viewport = canvas->GetViewportArea();
-	SetViewport(viewport.GetLeft(), viewport.GetBottom(), viewport.GetWidth() + 1, viewport.GetHeight() + 1);
-	SetScissor(viewport.GetLeft(), viewport.GetBottom(), viewport.GetWidth() + 1, viewport.GetHeight() + 1);
-
-// 	Disable(RAS_CULL_FACE);
-// 	SetDepthFunc(RAS_ALWAYS);
-
-	GPU_framebuffer_restore();
-	GPU_texture_bind(GPU_framebuffer_color_texture(leftFb->GetFrameBuffer()), 0);
-	GPU_texture_bind(GPU_framebuffer_color_texture(rightFb->GetFrameBuffer()), 1);
-
-	switch (m_stereomode) {
-		case RAS_STEREO_INTERLACED:
-		{
-			DRW_game_bind_shgroup_shader(m_screenShaders.interlace/*, (DRWState)(DRW_STATE_WRITE_COLOR | DRW_STATE_DEPTH_ALWAYS)*/);
-			break;
-		}
-		case RAS_STEREO_VINTERLACE:
-		{
-			DRW_game_bind_shgroup_shader(m_screenShaders.interlace/*, (DRWState)(DRW_STATE_WRITE_COLOR | DRW_STATE_DEPTH_ALWAYS)*/);
-			break;
-		}
-		case RAS_STEREO_ANAGLYPH:
-		{
-			DRW_game_bind_shgroup_shader(m_screenShaders.anaglyph/*, (DRWState)(DRW_STATE_WRITE_COLOR | DRW_STATE_DEPTH_ALWAYS)*/);
-			break;
-		}
-		default:
-		{
-			BLI_assert(false);
-		}
-	}
-	
-	DrawOverlayPlane();
-
-	GPU_texture_unbind(GPU_framebuffer_color_texture(leftFb->GetFrameBuffer()));
-	GPU_texture_unbind(GPU_framebuffer_color_texture(rightFb->GetFrameBuffer()));
-
-// 	SetDepthFunc(RAS_LEQUAL);
-// 	Enable(RAS_CULL_FACE);
-}
-
-RAS_Rect RAS_Rasterizer::GetRenderArea(RAS_ICanvas *canvas, StereoEye eye)
+RAS_Rect RAS_Rasterizer::GetRenderArea(RAS_ICanvas *canvas)
 {
 	RAS_Rect area;
-	// only above/below stereo method needs viewport adjustment
-	switch (m_stereomode)
-	{
-		case RAS_STEREO_ABOVEBELOW:
-		{
-			switch (eye) {
-				case RAS_STEREO_LEFTEYE:
-				{
-					// upper half of window
-					area.SetLeft(0);
-					area.SetBottom(canvas->GetHeight() -
-								   int(canvas->GetHeight() - m_noOfScanlines) / 2);
 
-					area.SetRight(int(canvas->GetWidth()));
-					area.SetTop(int(canvas->GetHeight()));
-					break;
-				}
-				case RAS_STEREO_RIGHTEYE:
-				{
-					// lower half of window
-					area.SetLeft(0);
-					area.SetBottom(0);
-					area.SetRight(int(canvas->GetWidth()));
-					area.SetTop(int(canvas->GetHeight() - m_noOfScanlines) / 2);
-					break;
-				}
-			}
-			break;
-		}
-		case RAS_STEREO_3DTVTOPBOTTOM:
-		{
-			switch (eye) {
-				case RAS_STEREO_LEFTEYE:
-				{
-					// upper half of window
-					area.SetLeft(0);
-					area.SetBottom(canvas->GetHeight() -
-								   canvas->GetHeight() / 2);
-
-					area.SetRight(canvas->GetWidth());
-					area.SetTop(canvas->GetHeight());
-					break;
-				}
-				case RAS_STEREO_RIGHTEYE:
-				{
-					// lower half of window
-					area.SetLeft(0);
-					area.SetBottom(0);
-					area.SetRight(canvas->GetWidth());
-					area.SetTop(canvas->GetHeight() / 2);
-					break;
-				}
-			}
-			break;
-		}
-		case RAS_STEREO_SIDEBYSIDE:
-		{
-			switch (eye)
-			{
-				case RAS_STEREO_LEFTEYE:
-				{
-					// Left half of window
-					area.SetLeft(0);
-					area.SetBottom(0);
-					area.SetRight(canvas->GetWidth() / 2);
-					area.SetTop(canvas->GetHeight());
-					break;
-				}
-				case RAS_STEREO_RIGHTEYE:
-				{
-					// Right half of window
-					area.SetLeft(canvas->GetWidth() / 2);
-					area.SetBottom(0);
-					area.SetRight(canvas->GetWidth());
-					area.SetTop(canvas->GetHeight());
-					break;
-				}
-			}
-			break;
-		}
-		default:
-		{
-			// every available pixel
-			area.SetLeft(0);
-			area.SetBottom(0);
-			area.SetRight(int(canvas->GetWidth()));
-			area.SetTop(int(canvas->GetHeight()));
-			break;
-		}
-	}
+	// every available pixel
+	area.SetLeft(0);
+	area.SetBottom(0);
+	area.SetRight(int(canvas->GetWidth()));
+	area.SetTop(int(canvas->GetHeight()));
 
 	return area;
-}
-
-void RAS_Rasterizer::SetStereoMode(const StereoMode stereomode)
-{
-	m_stereomode = stereomode;
-}
-
-RAS_Rasterizer::StereoMode RAS_Rasterizer::GetStereoMode()
-{
-	return m_stereomode;
-}
-
-bool RAS_Rasterizer::Stereo()
-{
-	if (m_stereomode > RAS_STEREO_NOSTEREO) // > 0
-		return true;
-	else
-		return false;
-}
-
-void RAS_Rasterizer::SetEye(const StereoEye eye)
-{
-	m_curreye = eye;
-}
-
-RAS_Rasterizer::StereoEye RAS_Rasterizer::GetEye()
-{
-	return m_curreye;
-}
-
-void RAS_Rasterizer::SetEyeSeparation(const float eyeseparation)
-{
-	m_eyeseparation = eyeseparation;
-}
-
-float RAS_Rasterizer::GetEyeSeparation()
-{
-	return m_eyeseparation;
-}
-
-void RAS_Rasterizer::SetFocalLength(const float focallength)
-{
-	m_focallength = focallength;
-	m_setfocallength = true;
-}
-
-float RAS_Rasterizer::GetFocalLength()
-{
-	return m_focallength;
 }
 
 const MT_Matrix4x4& RAS_Rasterizer::GetViewMatrix() const
@@ -705,50 +453,14 @@ void RAS_Rasterizer::IndexPrimitivesText(RAS_MeshSlot *ms)
 }
 
 MT_Matrix4x4 RAS_Rasterizer::GetFrustumMatrix(
-	StereoEye eye,
     float left,
     float right,
     float bottom,
     float top,
     float frustnear,
     float frustfar,
-    float focallength,
     bool perspective)
 {
-	// correction for stereo
-	if (Stereo()) {
-		// if Rasterizer.setFocalLength is not called we use the camera focallength
-		if (!m_setfocallength) {
-			// if focallength is null we use a value known to be reasonable
-			m_focallength = (focallength == 0.0f) ? m_eyeseparation * 30.0f
-							: focallength;
-		}
-
-		const float near_div_focallength = frustnear / m_focallength;
-		const float offset = 0.5f * m_eyeseparation * near_div_focallength;
-		switch (eye) {
-			case RAS_STEREO_LEFTEYE:
-			{
-				left += offset;
-				right += offset;
-				break;
-			}
-			case RAS_STEREO_RIGHTEYE:
-			{
-				left -= offset;
-				right -= offset;
-				break;
-			}
-		}
-		// leave bottom and top untouched
-		if (m_stereomode == RAS_STEREO_3DTVTOPBOTTOM) {
-			// restore the vertical frustum because the 3DTV will
-			// expand the top and bottom part to the full size of the screen
-			bottom *= 2.0f;
-			top *= 2.0f;
-		}
-	}
-
 	float mat[4][4];
 	perspective_m4(mat, left, right, bottom, top, frustnear, frustfar);
 
@@ -770,45 +482,8 @@ MT_Matrix4x4 RAS_Rasterizer::GetOrthoMatrix(
 }
 
 // next arguments probably contain redundant info, for later...
-MT_Matrix4x4 RAS_Rasterizer::GetViewMatrix(StereoEye eye, const MT_Transform &camtrans, bool perspective)
+MT_Matrix4x4 RAS_Rasterizer::GetViewMatrix(const MT_Transform &camtrans, bool perspective)
 {
-	// correction for stereo
-	if (Stereo() && perspective) {
-		static const MT_Vector3 unitViewDir(0.0f, -1.0f, 0.0f);  // minus y direction, Blender convention
-		static const MT_Vector3 unitViewupVec(0.0f, 0.0f, 1.0f);
-
-		const MT_Matrix3x3& camOrientMat3x3 = camtrans.getBasis().transposed();
-		// actual viewDir
-		const MT_Vector3 viewDir = camOrientMat3x3 * unitViewDir;  // this is the moto convention, vector on right hand side
-		// actual viewup vec
-		const MT_Vector3 viewupVec = camOrientMat3x3 * unitViewupVec;
-
-		// vector between eyes
-		const MT_Vector3 eyeline = viewDir.cross(viewupVec);
-
-		MT_Transform trans = camtrans;
-		switch (eye) {
-			case RAS_STEREO_LEFTEYE:
-			{
-				// translate to left by half the eye distance
-				MT_Transform transform = MT_Transform::Identity();
-				transform.translate(-(eyeline * m_eyeseparation / 2.0f));
-				trans *= transform;
-				break;
-			}
-			case RAS_STEREO_RIGHTEYE:
-			{
-				// translate to right by half the eye distance
-				MT_Transform transform = MT_Transform::Identity();
-				transform.translate(eyeline * m_eyeseparation / 2.0f);
-				trans *= transform;
-				break;
-			}
-		}
-
-		return trans.toMatrix();
-	}
-
 	return camtrans.toMatrix();
 }
 

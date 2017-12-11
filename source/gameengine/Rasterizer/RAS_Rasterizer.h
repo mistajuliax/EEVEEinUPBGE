@@ -71,9 +71,7 @@ public:
 		RAS_FRAMEBUFFER_FILTER0 = 0,
 		RAS_FRAMEBUFFER_FILTER1,
 		RAS_FRAMEBUFFER_EYE_LEFT0,
-		RAS_FRAMEBUFFER_EYE_RIGHT0,
 		RAS_FRAMEBUFFER_EYE_LEFT1,
-		RAS_FRAMEBUFFER_EYE_RIGHT1,
 		RAS_FRAMEBUFFER_BLIT_DEPTH,
 		RAS_FRAMEBUFFER_MAX,
 
@@ -105,31 +103,6 @@ public:
 	 */
 	enum {
 		RAS_BACKCULL = 16, // GEMAT_BACKCULL
-	};
-
-	/**
-	 * Stereo mode types
-	 */
-	enum StereoMode {
-		RAS_STEREO_NOSTEREO = 1,
-		// WARNING: Not yet supported.
-		RAS_STEREO_QUADBUFFERED,
-		RAS_STEREO_ABOVEBELOW,
-		RAS_STEREO_INTERLACED,
-		RAS_STEREO_ANAGLYPH,
-		RAS_STEREO_SIDEBYSIDE,
-		RAS_STEREO_VINTERLACE,
-		RAS_STEREO_3DTVTOPBOTTOM,
-
-		RAS_STEREO_MAXSTEREO
-	};
-
-	/**
-	 * Render pass identifiers for stereo.
-	 */
-	enum StereoEye {
-		RAS_STEREO_LEFTEYE = 0,
-		RAS_STEREO_RIGHTEYE,
 	};
 
 	/**
@@ -292,9 +265,6 @@ private:
 	bool m_camortho;
 	bool m_camnegscale;
 
-	StereoMode m_stereomode;
-	StereoEye m_curreye;
-	float m_eyeseparation;
 	float m_focallength;
 	bool m_setfocallength;
 	int m_noOfScanlines;
@@ -317,9 +287,6 @@ private:
 	bool m_last_frontface;
 
 	std::unique_ptr<RAS_OpenGLRasterizer> m_impl;
-
-	void InitScreenShaders();
-	void ExitScreenShaders();
 
 public:
 	RAS_Rasterizer();
@@ -428,54 +395,11 @@ public:
 	 */
 	void DrawFrameBuffer(RAS_ICanvas *canvas, RAS_FrameBuffer *frameBuffer);
 
-	/** Draw each stereo off screen to screen.
-	 * \param canvas The canvas containing the screen viewport.
-	 * \param lefteyeindex The left off screen index.
-	 * \param righteyeindex The right off screen index.
-	 */
-	void DrawStereoFrameBuffer(RAS_ICanvas *canvas, RAS_FrameBuffer *leftFb, RAS_FrameBuffer *rightFb);
-
-	/**
-	 * GetRenderArea computes the render area from the 2d canvas.
-	 */
-	RAS_Rect GetRenderArea(RAS_ICanvas *canvas, StereoEye eye);
-
-	// Stereo Functions
-	/**
-	 * SetStereoMode will set the stereo mode
-	 */
-	void SetStereoMode(const StereoMode stereomode);
-
-	/**
-	 * Stereo can be used to query if the rasterizer is in stereo mode.
-	 * \return true if stereo mode is enabled.
-	 */
-	bool Stereo();
-	StereoMode GetStereoMode();
-
-	/**
-	 * Sets which eye buffer subsequent primitives will be rendered to.
-	 */
-	void SetEye(const StereoEye eye);
-	StereoEye GetEye();
-
-	/**
-	 * Sets the distance between eyes for stereo mode.
-	 */
-	void SetEyeSeparation(const float eyeseparation);
-	float GetEyeSeparation();
-
-	/**
-	 * Sets the focal length for stereo mode.
-	 */
-	void SetFocalLength(const float focallength);
-	float GetFocalLength();
-
 	/// Render text mesh slot using BLF functions.
 	void IndexPrimitivesText(RAS_MeshSlot *ms);
  
-	/// Get the modelview matrix according to the stereo settings.
-	MT_Matrix4x4 GetViewMatrix(StereoEye eye, const MT_Transform &camtrans, bool perspective);
+	/// Get the modelview matrix.
+	MT_Matrix4x4 GetViewMatrix(const MT_Transform &camtrans, bool perspective);
 	/**
 	 * Sets the modelview matrix.
 	 */
@@ -542,10 +466,9 @@ public:
 	 * \return a 4x4 matrix representing the projection transform.
 	 */
 	MT_Matrix4x4 GetFrustumMatrix(
-			StereoEye eye,
 	        float left, float right, float bottom, float top,
 	        float frustnear, float frustfar,
-	        float focallength = 0.0f, bool perspective = true);
+	        bool perspective = true);
 
 	/**
 	 * Generates a orthographic projection matrix from the specified frustum.
@@ -560,6 +483,11 @@ public:
 	MT_Matrix4x4 GetOrthoMatrix(
 	        float left, float right, float bottom, float top,
 	        float frustnear, float frustfar);
+
+	/**
+	* GetRenderArea computes the render area from the 2d canvas.
+	*/
+	RAS_Rect GetRenderArea(RAS_ICanvas *canvas);
 
 	void SetAmbientColor(const MT_Vector3& color);
 

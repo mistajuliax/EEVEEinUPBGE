@@ -85,7 +85,7 @@ extern "C" {
 #endif
 
 LA_Launcher::LA_Launcher(GHOST_ISystem *system, Main *maggie, Scene *scene, GlobalSettings *gs,
-						 RAS_Rasterizer::StereoMode stereoMode, int samples, int argc, char **argv)
+						 int samples, int argc, char **argv)
 	:m_startSceneName(scene->id.name + 2), 
 	m_startScene(scene),
 	m_maggie(maggie),
@@ -105,7 +105,6 @@ LA_Launcher::LA_Launcher(GHOST_ISystem *system, Main *maggie, Scene *scene, Glob
 	m_gameLogic(nullptr),
 #endif  // WITH_PYTHON
 	m_samples(samples),
-	m_stereoMode(stereoMode),
 	m_argc(argc),
 	m_argv(argv)
 {
@@ -164,10 +163,6 @@ void LA_Launcher::InitEngine()
 		(profile ? KX_KetsjiEngine::SHOW_PROFILE : 0));
 
 	m_rasterizer = new RAS_Rasterizer();
-
-	// Stereo parameters - Eye Separation from the UI - stereomode from the command-line/UI
-	m_rasterizer->SetStereoMode(m_stereoMode);
-	m_rasterizer->SetEyeSeparation(m_startScene->gm.eyeseparation);
 	m_rasterizer->SetDrawingMode(GetRasterizerDrawMode());
 
 	// Copy current anisotropic level to restore it at the game end.

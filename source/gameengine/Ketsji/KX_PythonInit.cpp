@@ -902,77 +902,6 @@ static PyObject *gPySetMousePosition(PyObject *, PyObject *args)
 	Py_RETURN_NONE;
 }
 
-static PyObject *gPySetEyeSeparation(PyObject *, PyObject *args)
-{
-	float sep;
-	if (!PyArg_ParseTuple(args, "f:setEyeSeparation", &sep))
-		return nullptr;
-
-	if (!KX_GetActiveEngine()->GetRasterizer()) {
-		PyErr_SetString(PyExc_RuntimeError, "Rasterizer.setEyeSeparation(float), Rasterizer not available");
-		return nullptr;
-	}
-	
-	KX_GetActiveEngine()->GetRasterizer()->SetEyeSeparation(sep);
-	
-	Py_RETURN_NONE;
-}
-
-static PyObject *gPyGetEyeSeparation(PyObject *)
-{
-	if (!KX_GetActiveEngine()->GetRasterizer()) {
-		PyErr_SetString(PyExc_RuntimeError, "Rasterizer.getEyeSeparation(), Rasterizer not available");
-		return nullptr;
-	}
-	
-	return PyFloat_FromDouble(KX_GetActiveEngine()->GetRasterizer()->GetEyeSeparation());
-}
-
-static PyObject *gPySetFocalLength(PyObject *, PyObject *args)
-{
-	float focus;
-	if (!PyArg_ParseTuple(args, "f:setFocalLength", &focus))
-		return nullptr;
-	
-	if (!KX_GetActiveEngine()->GetRasterizer()) {
-		PyErr_SetString(PyExc_RuntimeError, "Rasterizer.setFocalLength(float), Rasterizer not available");
-		return nullptr;
-	}
-
-	KX_GetActiveEngine()->GetRasterizer()->SetFocalLength(focus);
-	
-	Py_RETURN_NONE;
-}
-
-static PyObject *gPyGetFocalLength(PyObject *, PyObject *, PyObject *)
-{
-	if (!KX_GetActiveEngine()->GetRasterizer()) {
-		PyErr_SetString(PyExc_RuntimeError, "Rasterizer.getFocalLength(), Rasterizer not available");
-		return nullptr;
-	}
-	
-	return PyFloat_FromDouble(KX_GetActiveEngine()->GetRasterizer()->GetFocalLength());
-	
-	Py_RETURN_NONE;
-}
-
-static PyObject *gPyGetStereoEye(PyObject *, PyObject *, PyObject *)
-{
-	int flag = RAS_Rasterizer::RAS_STEREO_LEFTEYE;
-
-	RAS_Rasterizer *rasterizer = KX_GetActiveEngine()->GetRasterizer();
-
-	if (!rasterizer) {
-		PyErr_SetString(PyExc_RuntimeError, "Rasterizer.getStereoEye(), Rasterizer not available");
-		return nullptr;
-	}
-
-	if (rasterizer->Stereo())
-		flag = rasterizer->GetEye();
-
-	return PyLong_FromLong(flag);
-}
-
 static PyObject *gPyMakeScreenshot(PyObject *, PyObject *args)
 {
 	char* filename;
@@ -1320,11 +1249,6 @@ static struct PyMethodDef rasterizer_methods[] = {
 	{"setMousePosition",(PyCFunction) gPySetMousePosition,
 	 METH_VARARGS, "setMousePosition(int x,int y)"},
 
-	{"setEyeSeparation", (PyCFunction) gPySetEyeSeparation, METH_VARARGS, "set the eye separation for stereo mode"},
-	{"getEyeSeparation", (PyCFunction) gPyGetEyeSeparation, METH_NOARGS, "get the eye separation for stereo mode"},
-	{"setFocalLength", (PyCFunction) gPySetFocalLength, METH_VARARGS, "set the focal length for stereo mode"},
-	{"getFocalLength", (PyCFunction) gPyGetFocalLength, METH_VARARGS, "get the focal length for stereo mode"},
-	{"getStereoEye", (PyCFunction) gPyGetStereoEye, METH_VARARGS, "get the current stereoscopy eye being rendered"},
 	{"setMaterialMode",(PyCFunction) gPySetMaterialType,
 	 METH_VARARGS, "set the material mode to use for OpenGL rendering"},
 	{"getMaterialMode",(PyCFunction) gPyGetMaterialType,
@@ -1517,7 +1441,6 @@ PyMODINIT_FUNC initGameLogicPythonBinding()
 	KX_MACRO_addTypesToDict(d, VIEWMATRIX_INVERSETRANSPOSE, RAS_Shader::VIEWMATRIX_INVERSETRANSPOSE);
 	KX_MACRO_addTypesToDict(d, CAM_POS, RAS_Shader::CAM_POS);
 	KX_MACRO_addTypesToDict(d, CONSTANT_TIMER, RAS_Shader::CONSTANT_TIMER);
-	KX_MACRO_addTypesToDict(d, EYE, RAS_Shader::EYE);
 
 	/* 9. state actuator */
 	KX_MACRO_addTypesToDict(d, KX_STATE1, (1<<0));
@@ -2186,10 +2109,6 @@ PyMODINIT_FUNC initRasterizerPythonBinding()
 	KX_MACRO_addTypesToDict(d, VSYNC_OFF, VSYNC_OFF);
 	KX_MACRO_addTypesToDict(d, VSYNC_ON, VSYNC_ON);
 	KX_MACRO_addTypesToDict(d, VSYNC_ADAPTIVE, VSYNC_ADAPTIVE);
-
-	/* stereoscopy */
-	KX_MACRO_addTypesToDict(d, LEFT_EYE, RAS_Rasterizer::RAS_STEREO_LEFTEYE);
-	KX_MACRO_addTypesToDict(d, RIGHT_EYE, RAS_Rasterizer::RAS_STEREO_RIGHTEYE);
 
 	// HDR
 	KX_MACRO_addTypesToDict(d, HDR_NONE, RAS_Rasterizer::RAS_HDR_NONE);

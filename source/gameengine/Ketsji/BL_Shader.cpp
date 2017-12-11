@@ -470,7 +470,6 @@ KX_PYMETHODDEF_DOC(BL_Shader, setUniformEyef, "setUniformEyef(name)")
 
 			RAS_DefUniform *uni = new RAS_DefUniform();
 			uni->m_loc = loc;
-			uni->m_type = EYE;
 			uni->m_flag = 0;
 			m_preDef.push_back(uni);
 		}
