@@ -51,8 +51,6 @@ public:
 	/// constructors
 	ImageRender(KX_Scene *scene, KX_Camera *camera, unsigned int width, unsigned int height,
 		unsigned short samples);
-	ImageRender(KX_Scene *scene, KX_GameObject *observer, KX_GameObject *mirror, RAS_IPolyMaterial * mat,
-		unsigned int width, unsigned int height, unsigned short samples);
 
 	/// destructor
 	virtual ~ImageRender (void);

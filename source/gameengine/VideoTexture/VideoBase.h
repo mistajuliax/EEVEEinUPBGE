@@ -201,7 +201,6 @@ int       Video_setFrameRate(PyImage *self, PyObject *value, void *closure);
 
 /* py api */
 extern PyTypeObject ImageRenderType;
-extern PyTypeObject ImageMirrorType;
 extern PyTypeObject ImageViewportType;
 
 #endif  /* __VIDEOBASE_H__ */
