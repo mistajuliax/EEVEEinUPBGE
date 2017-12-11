@@ -189,7 +189,6 @@ RAS_Rasterizer::RAS_Rasterizer()
 	m_noOfScanlines(32),
 	m_clientobject(nullptr),
 	m_auxilaryClientInfo(nullptr),
-	m_shadowMode(RAS_SHADOW_NONE),
 	m_invertFrontFace(false),
 	m_last_frontface(true)
 {
@@ -274,16 +273,6 @@ void RAS_Rasterizer::EndFrame()
 	SetColorMask(true, true, true, true);
 
 	Disable(RAS_MULTISAMPLE);
-}
-
-void RAS_Rasterizer::SetShadowMode(RAS_Rasterizer::ShadowType shadowmode)
-{
-	m_shadowMode = shadowmode;
-}
-
-RAS_Rasterizer::ShadowType RAS_Rasterizer::GetShadowMode()
-{
-	return m_shadowMode;
 }
 
 void RAS_Rasterizer::SetDepthMask(DepthMask depthmask)

@@ -103,12 +103,6 @@ public:
 		RAS_MIPMAP_MAX,  /* Should always be last */
 	};
 
-	enum ShadowType {
-		RAS_SHADOW_NONE,
-		RAS_SHADOW_SIMPLE,
-		RAS_SHADOW_VARIANCE,
-	};
-
 	enum EnableBit {
 		RAS_DEPTH_TEST = 0,
 		RAS_ALPHA_TEST,
@@ -148,13 +142,6 @@ public:
 		RAS_DST_ALPHA,
 		RAS_ONE_MINUS_DST_ALPHA,
 		RAS_SRC_ALPHA_SATURATE
-	};
-
-	enum MatrixMode {
-		RAS_PROJECTION = 0,
-		RAS_MODELVIEW,
-		RAS_TEXTURE,
-		RAS_MATRIX_MODE_MAX
 	};
 
 	enum ClearBit {
@@ -219,14 +206,6 @@ private:
 		float *mat;
 	};
 
-	struct ScreenShaders
-	{
-		DRWShadingGroup *normal;
-		DRWShadingGroup *anaglyph;
-		DRWShadingGroup *interlace;
-		DRWShadingGroup *vinterlace;
-	} m_screenShaders;
-
 	struct Matrices
 	{
 		MT_Matrix4x4 view;
@@ -261,8 +240,6 @@ private:
 
 	/// Class used to manage off screens used by the rasterizer.
 	FrameBuffers m_frameBuffers;
-
-	ShadowType m_shadowMode;
 
 	bool m_invertFrontFace;
 	bool m_last_frontface;
@@ -400,12 +377,6 @@ public:
 	 */
 	const MT_Vector3& GetCameraPosition();
 	bool GetCameraOrtho();
-
-	/// \param shadowmode = RAS_SHADOW_SIMPLE, RAS_SHADOW_VARIANCE.
-	void SetShadowMode(ShadowType shadowmode);
-
-	/// \return the current drawing mode: RAS_SHADOW_SIMPLE, RAS_SHADOW_VARIANCE.
-	ShadowType GetShadowMode();
 
 	/**
 	 * Sets face culling
