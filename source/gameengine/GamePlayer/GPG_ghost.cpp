@@ -1253,8 +1253,8 @@ int main(
 							ViewLayer *view_layer = BKE_view_layer_from_scene_get(sc);
 							Depsgraph *depsgraph = BKE_scene_get_depsgraph(sc, view_layer, true);
 							DEG_graph_relations_update(depsgraph, maggie, sc, view_layer);
-							InitProperties(view_layer, sc);
-							DRW_flush_base_flags(depsgraph, view_layer, maggie);
+							DRW_game_init_properties(view_layer, sc);
+							DRW_game_flush_base_flags(depsgraph, view_layer, maggie);
 						}
 
 						if (firstTimeRunning) {

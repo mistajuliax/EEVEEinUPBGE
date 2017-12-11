@@ -3928,7 +3928,7 @@ void DRW_engines_free(void)
 
 /***********************************Game engine transition*******************************************/
 
-bool DRW_batch_belongs_to_gameobject(DRWShadingGroup *shgroup, Gwn_Batch *batch)
+bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
 		if (call->geometry == batch) {
@@ -3938,7 +3938,7 @@ bool DRW_batch_belongs_to_gameobject(DRWShadingGroup *shgroup, Gwn_Batch *batch)
 	return false;
 }
 
-void DRW_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, float obmat[4][4])
+void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, float obmat[4][4])
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
 		if (call->geometry == batch) {
@@ -3947,7 +3947,7 @@ void DRW_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, float obm
 	}
 }
 
-void DRW_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch)
+void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
 		if (call->geometry == batch) {
@@ -3956,7 +3956,7 @@ void DRW_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch)
 	}
 }
 
-void DRW_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, float obmat[4][4])
+void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, float obmat[4][4])
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
 		if (call->geometry == batch) {
@@ -3965,86 +3965,17 @@ void DRW_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, float
 	}
 }
 
-DRWShadingGroup *DRW_shgroups_from_pass_get(DRWPass *pass)
+DRWShadingGroup *DRW_game_shgroups_from_pass_get(DRWPass *pass)
 {
 	return pass->shgroups;
 }
 
-DRWShadingGroup *DRW_shgroup_next(DRWShadingGroup *current)
+DRWShadingGroup *DRW_game_shgroup_next(DRWShadingGroup *current)
 {
 	return current->next;
 }
 
-static void bind_shader(DRWShadingGroup *shgroup)
-{
-	BLI_assert(shgroup->shader);
-
-	if (DST.shader != shgroup->shader) {
-		if (DST.shader) GPU_shader_unbind();
-		GPU_shader_bind(shgroup->shader);
-		DST.shader = shgroup->shader;
-	}
-}
-
-static void bind_uniforms(DRWShadingGroup *shgroup)
-{
-	BLI_assert(&shgroup->interface);
-	DRWInterface *interface = &shgroup->interface;
-	GPUTexture *tex;
-	GPUUniformBuffer *ubo;
-	int val;
-	float fval;
-
-	/* Binding Uniform */
-	/* Don't check anything, Interface should already contain the least uniform as possible */
-	for (DRWUniform *uni = interface->uniforms; uni; uni = uni->next) {
-		switch (uni->type) {
-		case DRW_UNIFORM_SHORT_TO_INT:
-			val = (int)*((short *)uni->value);
-			GPU_shader_uniform_vector_int(
-				shgroup->shader, uni->location, uni->length, uni->arraysize, (int *)&val);
-			break;
-		case DRW_UNIFORM_SHORT_TO_FLOAT:
-			fval = (float)*((short *)uni->value);
-			GPU_shader_uniform_vector(
-				shgroup->shader, uni->location, uni->length, uni->arraysize, (float *)&fval);
-			break;
-		case DRW_UNIFORM_BOOL:
-		case DRW_UNIFORM_INT:
-			GPU_shader_uniform_vector_int(
-				shgroup->shader, uni->location, uni->length, uni->arraysize, (int *)uni->value);
-			break;
-		case DRW_UNIFORM_FLOAT:
-		case DRW_UNIFORM_MAT3:
-		case DRW_UNIFORM_MAT4:
-			GPU_shader_uniform_vector(
-				shgroup->shader, uni->location, uni->length, uni->arraysize, (float *)uni->value);
-			break;
-		case DRW_UNIFORM_TEXTURE:
-			tex = (GPUTexture *)uni->value;
-			BLI_assert(tex);
-			bind_texture(tex);
-			GPU_shader_uniform_texture(shgroup->shader, uni->location, tex);
-			break;
-		case DRW_UNIFORM_BUFFER:
-			if (!DRW_state_is_fbo()) {
-				break;
-			}
-			tex = *((GPUTexture **)uni->value);
-			BLI_assert(tex);
-			bind_texture(tex);
-			GPU_shader_uniform_texture(shgroup->shader, uni->location, tex);
-			break;
-		case DRW_UNIFORM_BLOCK:
-			ubo = (GPUUniformBuffer *)uni->value;
-			bind_ubo(ubo);
-			GPU_shader_uniform_buffer(shgroup->shader, uni->location, ubo);
-			break;
-		}
-	}
-}
-
-static void game_camera_border(
+static void drw_game_camera_border(
 	const Scene *scene, const ARegion *ar, const View3D *v3d, const RegionView3D *rv3d,
 	rctf *r_viewborder, const bool no_shift, const bool no_zoom)
 {
@@ -4079,7 +4010,36 @@ static void game_camera_border(
 	r_viewborder->ymax = ((rect_camera.ymax - rect_view.ymin) / BLI_rctf_size_y(&rect_view)) * ar->winy;
 }
 
-void DRW_flush_base_flags(Depsgraph *depsgraph, ViewLayer *view_layer, Main *maggie)
+static void drw_game_idproperty_reset(IDProperty **props, IDProperty *props_ref)
+{
+	IDPropertyTemplate val = { 0 };
+
+	if (*props) {
+		IDP_FreeProperty(*props);
+		MEM_freeN(*props);
+	}
+	*props = IDP_New(IDP_GROUP, &val, ROOT_PROP);
+
+	if (props_ref) {
+		IDP_MergeGroup(*props, props_ref, true);
+	}
+}
+
+void DRW_game_init_properties(ViewLayer *view_layer, Scene *scene)
+{
+	for (Base *base = (Base *)view_layer->object_bases.first; base != NULL; base = base->next) {
+		drw_game_idproperty_reset(&base->collection_properties, scene ? scene->collection_properties : NULL);
+	}
+
+	/* Sync properties from scene to scene layer. */
+	drw_game_idproperty_reset(&view_layer->properties_evaluated, scene ? scene->layer_properties : NULL);
+	IDP_MergeGroup(view_layer->properties_evaluated, view_layer->properties, true);
+
+	/* TODO(sergey): Is it always required? */
+	view_layer->flag |= VIEW_LAYER_ENGINE_DIRTY;
+}
+
+void DRW_game_flush_base_flags(Depsgraph *depsgraph, ViewLayer *view_layer, Main *maggie)
 {
 	DEG_OBJECT_ITER(depsgraph, ob, DEG_ITER_OBJECT_FLAG_ALL);
 	{
@@ -4089,7 +4049,7 @@ void DRW_flush_base_flags(Depsgraph *depsgraph, ViewLayer *view_layer, Main *mag
 	DEG_OBJECT_ITER_END
 }
 
-static void disable_double_buffer_check()
+static void drw_game_disable_double_buffer_check()
 {
 	/* When uniforms are passed to the shaders, there is a control if
 	* stl->g_data->valid_double_buffer is true if we want to enable SSR
@@ -4101,7 +4061,7 @@ static void disable_double_buffer_check()
 	stl->g_data->valid_double_buffer = true;
 }
 
-static void motion_blur_init()
+static void drw_game_motion_blur_init()
 {
 	EEVEE_Data *vedata = EEVEE_engine_data_get();
 	EEVEE_StorageList *stl = vedata->stl;
@@ -4163,7 +4123,7 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	rv3d.persp = RV3D_CAMOB;
 	rv3d.is_persp = true;
 	rctf cameraborder;
-	game_camera_border(scene, &ar, &v3d, &rv3d, &cameraborder, false, false);
+	drw_game_camera_border(scene, &ar, &v3d, &rv3d, &cameraborder, false, false);
 	rv3d.viewcamtexcofac[0] = (float)ar.winx / BLI_rctf_size_x(&cameraborder);
 
 	DST.draw_ctx.ar = &ar;
@@ -4186,8 +4146,8 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	/* Init engines */
 	drw_engines_init();
 
-	disable_double_buffer_check();
-	motion_blur_init();
+	drw_game_disable_double_buffer_check();
+	drw_game_motion_blur_init();
 
 	drw_engines_cache_init();
 
@@ -4233,31 +4193,78 @@ void DRW_game_render_loop_end()
 	memset(&DST, 0xFF, sizeof(DST));
 }
 
-void DRW_bind_shader_shgroup(DRWShadingGroup *shgroup)
+static void drw_game_bind_shader(DRWShadingGroup *shgroup)
 {
-	bind_shader(shgroup);
-	bind_uniforms(shgroup);
+	BLI_assert(shgroup->shader);
+
+	if (DST.shader != shgroup->shader) {
+		if (DST.shader) GPU_shader_unbind();
+		GPU_shader_bind(shgroup->shader);
+		DST.shader = shgroup->shader;
+	}
 }
 
-struct GPUShader *DRW_shgroup_shader_get(DRWShadingGroup *shgroup)
+static void drw_game_bind_uniforms(DRWShadingGroup *shgroup)
 {
-	return shgroup->shader;
-}
+	BLI_assert(&shgroup->interface);
+	DRWInterface *interface = &shgroup->interface;
+	GPUTexture *tex;
+	GPUUniformBuffer *ubo;
+	int val;
+	float fval;
 
-void DRW_end_shgroup(void)
-{
-	/* Clear Bound textures */
-	for (int i = 0; i < GPU_max_textures(); i++) {
-		if (RST.bound_texs[i] != NULL) {
-			GPU_texture_unbind(RST.bound_texs[i]);
-			RST.bound_texs[i] = NULL;
+	/* Binding Uniform */
+	/* Don't check anything, Interface should already contain the least uniform as possible */
+	for (DRWUniform *uni = interface->uniforms; uni; uni = uni->next) {
+		switch (uni->type) {
+		case DRW_UNIFORM_SHORT_TO_INT:
+			val = (int)*((short *)uni->value);
+			GPU_shader_uniform_vector_int(
+				shgroup->shader, uni->location, uni->length, uni->arraysize, (int *)&val);
+			break;
+		case DRW_UNIFORM_SHORT_TO_FLOAT:
+			fval = (float)*((short *)uni->value);
+			GPU_shader_uniform_vector(
+				shgroup->shader, uni->location, uni->length, uni->arraysize, (float *)&fval);
+			break;
+		case DRW_UNIFORM_BOOL:
+		case DRW_UNIFORM_INT:
+			GPU_shader_uniform_vector_int(
+				shgroup->shader, uni->location, uni->length, uni->arraysize, (int *)uni->value);
+			break;
+		case DRW_UNIFORM_FLOAT:
+		case DRW_UNIFORM_MAT3:
+		case DRW_UNIFORM_MAT4:
+			GPU_shader_uniform_vector(
+				shgroup->shader, uni->location, uni->length, uni->arraysize, (float *)uni->value);
+			break;
+		case DRW_UNIFORM_TEXTURE:
+			tex = (GPUTexture *)uni->value;
+			BLI_assert(tex);
+			bind_texture(tex);
+			GPU_shader_uniform_texture(shgroup->shader, uni->location, tex);
+			break;
+		case DRW_UNIFORM_BUFFER:
+			if (!DRW_state_is_fbo()) {
+				break;
+			}
+			tex = *((GPUTexture **)uni->value);
+			BLI_assert(tex);
+			bind_texture(tex);
+			GPU_shader_uniform_texture(shgroup->shader, uni->location, tex);
+			break;
+		case DRW_UNIFORM_BLOCK:
+			ubo = (GPUUniformBuffer *)uni->value;
+			bind_ubo(ubo);
+			GPU_shader_uniform_buffer(shgroup->shader, uni->location, ubo);
+			break;
 		}
 	}
-
-	if (DST.shader) {
-		GPU_shader_unbind();
-		DST.shader = NULL;
-	}
 }
 
+void DRW_game_bind_shgroup_shader(DRWShadingGroup *shgroup)
+{
+	drw_game_bind_shader(shgroup);
+	drw_game_bind_uniforms(shgroup);
+}
 /***************************Enf of Game engine transition***************************/

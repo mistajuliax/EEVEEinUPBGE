@@ -475,17 +475,17 @@ void RAS_Rasterizer::DrawStereoFrameBuffer(RAS_ICanvas *canvas, RAS_FrameBuffer 
 	switch (m_stereomode) {
 		case RAS_STEREO_INTERLACED:
 		{
-			DRW_bind_shader_shgroup(m_screenShaders.interlace/*, (DRWState)(DRW_STATE_WRITE_COLOR | DRW_STATE_DEPTH_ALWAYS)*/);
+			DRW_game_bind_shgroup_shader(m_screenShaders.interlace/*, (DRWState)(DRW_STATE_WRITE_COLOR | DRW_STATE_DEPTH_ALWAYS)*/);
 			break;
 		}
 		case RAS_STEREO_VINTERLACE:
 		{
-			DRW_bind_shader_shgroup(m_screenShaders.interlace/*, (DRWState)(DRW_STATE_WRITE_COLOR | DRW_STATE_DEPTH_ALWAYS)*/);
+			DRW_game_bind_shgroup_shader(m_screenShaders.interlace/*, (DRWState)(DRW_STATE_WRITE_COLOR | DRW_STATE_DEPTH_ALWAYS)*/);
 			break;
 		}
 		case RAS_STEREO_ANAGLYPH:
 		{
-			DRW_bind_shader_shgroup(m_screenShaders.anaglyph/*, (DRWState)(DRW_STATE_WRITE_COLOR | DRW_STATE_DEPTH_ALWAYS)*/);
+			DRW_game_bind_shgroup_shader(m_screenShaders.anaglyph/*, (DRWState)(DRW_STATE_WRITE_COLOR | DRW_STATE_DEPTH_ALWAYS)*/);
 			break;
 		}
 		default:

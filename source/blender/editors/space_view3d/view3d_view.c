@@ -43,7 +43,6 @@
 #include "BKE_action.h"
 #include "BKE_camera.h"
 #include "BKE_context.h"
-#include "BKE_idprop.h" // Game engine transition
 #include "BKE_object.h"
 #include "BKE_global.h"
 #include "BKE_layer.h" // Game engine transition
@@ -1502,37 +1501,6 @@ bool ED_view3d_context_activate(bContext *C)
 	return true;
 }
 
-/* Game engine transition */
-static void idproperty_reset(IDProperty **props, IDProperty *props_ref)
-{
-	IDPropertyTemplate val = { 0 };
-
-	if (*props) {
-		IDP_FreeProperty(*props);
-		MEM_freeN(*props);
-	}
-	*props = IDP_New(IDP_GROUP, &val, ROOT_PROP);
-
-	if (props_ref) {
-		IDP_MergeGroup(*props, props_ref, true);
-	}
-}
-
-static void InitProperties(ViewLayer *view_layer, Scene *scene)
-{
-	for (Base *base = (Base *)view_layer->object_bases.first; base != NULL; base = base->next) {
-		idproperty_reset(&base->collection_properties, scene ? scene->collection_properties : NULL);
-	}
-
-	/* Sync properties from scene to scene layer. */
-	idproperty_reset(&view_layer->properties_evaluated, scene ? scene->layer_properties : NULL);
-	IDP_MergeGroup(view_layer->properties_evaluated, view_layer->properties, true);
-
-	/* TODO(sergey): Is it always required? */
-	view_layer->flag |= VIEW_LAYER_ENGINE_DIRTY;
-}
-/* End of Game engine transition */
-
 static int game_engine_exec(bContext *C, wmOperator *op)
 {
 #ifdef WITH_GAMEENGINE
@@ -1555,8 +1523,8 @@ static int game_engine_exec(bContext *C, wmOperator *op)
 		ViewLayer *view_layer = BKE_view_layer_from_scene_get(sc);
 		Depsgraph *depsgraph = BKE_scene_get_depsgraph(sc, view_layer, true);
 		DEG_graph_relations_update(depsgraph, bmain, sc, view_layer);
-		InitProperties(view_layer, sc);
-		DRW_flush_base_flags(depsgraph, view_layer, bmain);
+		DRW_game_init_properties(view_layer, sc);
+		DRW_game_flush_base_flags(depsgraph, view_layer, bmain);
 	}
 	
 	/* redraw to hide any menus/popups, we don't go back to

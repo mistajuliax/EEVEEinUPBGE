@@ -270,14 +270,13 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 	KX_Scene *scene = GetScene();
 	std::vector<DRWPass *>allPasses = scene->GetMaterialPasses();
 	for (DRWPass *pass : allPasses) {
-		DRWShadingGroup *shgroups = DRW_shgroups_from_pass_get(pass);
-		for (DRWShadingGroup *shgroup = DRW_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_shgroup_next(shgroup)) {
+		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
 			std::vector<DRWShadingGroup *>::iterator it = std::find(m_materialShGroups.begin(), m_materialShGroups.end(), shgroup);
 			if (it != m_materialShGroups.end()) {
 				continue;
 			}
 			for (Gwn_Batch *batch : m_materialBatches) {
-				if (DRW_batch_belongs_to_gameobject(shgroup, batch)) {
+				if (DRW_game_batch_belongs_to_shgroup(shgroup, batch)) {
 					m_materialShGroups.push_back(shgroup);
 					break;
 				}
@@ -292,8 +291,8 @@ void KX_GameObject::DiscardMaterialBatches()
 {
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-			if (DRW_batch_belongs_to_gameobject(sh, b)) {
-				DRW_call_discard_geometry(sh, b);
+			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
+				DRW_game_call_discard_geometry(sh, b);
 			}
 		}
 	}
@@ -304,7 +303,7 @@ void KX_GameObject::RestoreMaterialBatches(float obmat[4][4])
 {
 	for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
 		for (int i = 0; i < m_materialBatches.size(); i++) {
-			DRW_call_restore_geometry(sh, m_materialBatches[i], obmat);
+			DRW_game_call_restore_geometry(sh, m_materialBatches[i], obmat);
 		}
 	}
 }
@@ -326,7 +325,7 @@ void KX_GameObject::AddNewMaterialBatchesToPasses(float obmat[4][4]) // works in
 	for (DRWShadingGroup *shgroup : m_materialShGroups) {
 		for (int i = 0; i < m_materialBatches.size(); i++) {
 			Gwn_Batch *oldBatch = m_materialBatches[i];
-			if (DRW_batch_belongs_to_gameobject(shgroup, oldBatch)) {
+			if (DRW_game_batch_belongs_to_shgroup(shgroup, oldBatch)) {
 				DRW_shgroup_call_add(shgroup, m_newBatches[i], obmat);
 			}
 		}
@@ -862,7 +861,7 @@ void KX_GameObject::TagForUpdate() // Used for shadow culling
 	else {
 		for (Gwn_Batch *batch : m_materialBatches) {
 			for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-				DRW_call_update_obmat(sh, batch, obmat);
+				DRW_game_call_update_obmat(sh, batch, obmat);
 			}
 		}
 		m_needShadowUpdate = true;
