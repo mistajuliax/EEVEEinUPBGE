@@ -457,7 +457,6 @@ const DRWContextState *DRW_context_state_get(void);
 
 /*****************************GAME ENGINE***********************************/
 void *DRW_viewport_engine_data_ensure(void *engine_type);
-void DRW_game_bind_shgroup_shader(DRWShadingGroup *shgroup);
 DRWShadingGroup *DRW_game_shgroups_from_pass_get(DRWPass *pass);
 DRWShadingGroup *DRW_game_shgroup_next(DRWShadingGroup *current);
 void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, struct Gwn_Batch *batch, float obmat[4][4]);
