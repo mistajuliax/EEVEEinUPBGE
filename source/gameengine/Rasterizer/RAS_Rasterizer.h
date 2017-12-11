@@ -131,7 +131,6 @@ public:
 		RAS_BLEND,
 		RAS_COLOR_MATERIAL,
 		RAS_CULL_FACE,
-		RAS_FOG,
 		RAS_LIGHTING,
 		RAS_MULTISAMPLE,
 		RAS_POLYGON_STIPPLE,
@@ -254,11 +253,7 @@ private:
 	// We store each debug shape by scene.
 	std::map<SCA_IScene *, RAS_DebugDraw> m_debugDraws;
 
-	/* fogging vars */
-	bool m_fogenabled;
-
 	double m_time;
-	MT_Vector3 m_ambient;
 	MT_Matrix4x4 m_viewmatrix;
 	MT_Matrix4x4 m_viewinvmatrix;
 	MT_Vector3 m_campos;
@@ -488,13 +483,6 @@ public:
 	* GetRenderArea computes the render area from the 2d canvas.
 	*/
 	RAS_Rect GetRenderArea(RAS_ICanvas *canvas);
-
-	void SetAmbientColor(const MT_Vector3& color);
-
-	/**
-	 * Sets a polygon offset.  z depth will be: z1 = mult*z0 + add
-	 */
-	void	SetPolygonOffset(float mult, float add);
 
 	RAS_DebugDraw& GetDebugDraw(SCA_IScene *scene);
 	void FlushDebugDraw(SCA_IScene *scene, RAS_ICanvas *canvas);

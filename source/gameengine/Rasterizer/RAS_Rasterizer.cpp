@@ -180,9 +180,7 @@ RAS_Rasterizer::FrameBufferType RAS_Rasterizer::NextRenderFrameBuffer(FrameBuffe
 }
 
 RAS_Rasterizer::RAS_Rasterizer()
-	:m_fogenabled(false),
-	m_time(0.0f),
-	m_ambient(0.0f, 0.0f, 0.0f),
+	:m_time(0.0f),
 	m_campos(0.0f, 0.0f, 0.0f),
 	m_camortho(false),
 	m_camnegscale(false),
@@ -223,11 +221,6 @@ void RAS_Rasterizer::SetDepthFunc(RAS_Rasterizer::DepthFunc func)
 void RAS_Rasterizer::SetBlendFunc(BlendFunc src, BlendFunc dst)
 {
 	m_impl->SetBlendFunc(src, dst);
-}
-
-void RAS_Rasterizer::SetAmbientColor(const MT_Vector3& color)
-{
-	m_ambient = color;
 }
 
 void RAS_Rasterizer::Init()
@@ -582,21 +575,6 @@ void RAS_Rasterizer::SetLines(bool enable)
 double RAS_Rasterizer::GetTime()
 {
 	return m_time;
-}
-
-void RAS_Rasterizer::SetPolygonOffset(float mult, float add)
-{
-	m_impl->SetPolygonOffset(mult, add);
-	EnableBit mode = RAS_POLYGON_OFFSET_FILL;
-	if (m_drawingmode < RAS_TEXTURED) {
-		mode = RAS_POLYGON_OFFSET_LINE;
-	}
-	if (mult != 0.0f || add != 0.0f) {
-		Enable(mode);
-	}
-	else {
-		Disable(mode);
-	}
 }
 
 void RAS_Rasterizer::SetAlphaBlend(int alphablend)

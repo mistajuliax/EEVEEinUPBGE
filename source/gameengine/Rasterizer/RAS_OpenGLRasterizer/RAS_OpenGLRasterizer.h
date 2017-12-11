@@ -96,10 +96,6 @@ public:
 
 	void SetLines(bool enable);
 
-	void SetAmbient(const MT_Vector3& amb, float factor);
-
-	void SetPolygonOffset(float mult, float add);
-
 	void EnableClipPlane(int numplanes);
 	void DisableClipPlane(int numplanes);
 

@@ -361,11 +361,6 @@ void RAS_OpenGLRasterizer::SetLines(bool enable)
 	}
 }
 
-void RAS_OpenGLRasterizer::SetPolygonOffset(float mult, float add)
-{
-	glPolygonOffset(mult, add);
-}
-
 void RAS_OpenGLRasterizer::EnableClipPlane(int numplanes)
 {
 	for (int i = 0; i < numplanes; ++i) {
