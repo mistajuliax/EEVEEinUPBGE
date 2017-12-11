@@ -52,8 +52,6 @@ public:
 	KX_WorldInfo(Scene *blenderscene, World *blenderworld);
 	~KX_WorldInfo();
 
-	void RenderBackground();
-
 	const std::string& GetName();
 
 #ifdef WITH_PYTHON

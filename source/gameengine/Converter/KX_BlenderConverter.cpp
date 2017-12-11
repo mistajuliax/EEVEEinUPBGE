@@ -750,8 +750,8 @@ void KX_BlenderConverter::MergeScene(KX_Scene *to, KX_Scene *from)
 	m_sceneSlots.erase(from);
 
 	// Delete from scene's world info.
-	delete from->GetWorldInfo();
-	from->SetWorldInfo(nullptr);
+	//delete from->GetWorldInfo();
+	//from->SetWorldInfo(nullptr);
 }
 
 /** This function merges a mesh from the current scene into another main

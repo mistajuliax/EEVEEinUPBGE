@@ -70,11 +70,6 @@ const std::string& KX_WorldInfo::GetName()
 	return m_name;
 }
 
-void KX_WorldInfo::RenderBackground()
-{
-	DRW_draw_pass(EEVEE_engine_data_get()->psl->background_pass);
-}
-
 #ifdef WITH_PYTHON
 
 /* -------------------------------------------------------------------------
