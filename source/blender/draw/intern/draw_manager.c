@@ -4171,12 +4171,7 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 
 	drw_engines_cache_finish();
 
-	/* Start Drawing */
 	DRW_state_reset();
-	drw_engines_draw_background();
-	drw_engines_draw_scene();
-	DRW_state_reset();
-
 	drw_engines_disable();
 }
 
