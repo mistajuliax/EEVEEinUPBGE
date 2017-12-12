@@ -1523,8 +1523,10 @@ static int game_engine_exec(bContext *C, wmOperator *op)
 		ViewLayer *view_layer = BKE_view_layer_from_scene_get(sc);
 		Depsgraph *depsgraph = BKE_scene_get_depsgraph(sc, view_layer, true);
 		DEG_graph_relations_update(depsgraph, bmain, sc, view_layer);
-		DRW_game_init_properties(view_layer, sc);
-		DRW_game_flush_base_flags(depsgraph, view_layer, bmain);
+		if (sc != startscene) {
+			DRW_game_init_properties(view_layer, sc);
+			DRW_game_flush_base_flags(depsgraph, view_layer, bmain);
+		}
 	}
 	
 	/* redraw to hide any menus/popups, we don't go back to
