@@ -4093,6 +4093,41 @@ static void drw_game_motion_blur_init()
 	}
 }
 
+static void drw_game_eevee_view_layer_data_free()
+{
+	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+
+	/* Lights */
+	MEM_SAFE_FREE(sldata->lamps);
+	DRW_UBO_FREE_SAFE(sldata->light_ubo);
+	DRW_UBO_FREE_SAFE(sldata->shadow_ubo);
+	DRW_UBO_FREE_SAFE(sldata->shadow_render_ubo);
+	DRW_FRAMEBUFFER_FREE_SAFE(sldata->shadow_target_fb);
+	DRW_FRAMEBUFFER_FREE_SAFE(sldata->shadow_store_fb);
+	DRW_TEXTURE_FREE_SAFE(sldata->shadow_cube_target);
+	DRW_TEXTURE_FREE_SAFE(sldata->shadow_cube_blur);
+	DRW_TEXTURE_FREE_SAFE(sldata->shadow_cascade_target);
+	DRW_TEXTURE_FREE_SAFE(sldata->shadow_cascade_blur);
+	DRW_TEXTURE_FREE_SAFE(sldata->shadow_pool);
+	BLI_freelistN(&sldata->shadow_casters);
+
+	/* Probes */
+	MEM_SAFE_FREE(sldata->probes);
+	DRW_UBO_FREE_SAFE(sldata->probe_ubo);
+	DRW_UBO_FREE_SAFE(sldata->grid_ubo);
+	DRW_UBO_FREE_SAFE(sldata->planar_ubo);
+	DRW_FRAMEBUFFER_FREE_SAFE(sldata->probe_fb);
+	DRW_FRAMEBUFFER_FREE_SAFE(sldata->probe_filter_fb);
+	DRW_TEXTURE_FREE_SAFE(sldata->probe_rt);
+	DRW_TEXTURE_FREE_SAFE(sldata->probe_depth_rt);
+	DRW_TEXTURE_FREE_SAFE(sldata->probe_pool);
+	DRW_TEXTURE_FREE_SAFE(sldata->irradiance_pool);
+	DRW_TEXTURE_FREE_SAFE(sldata->irradiance_rt);
+
+	/* Volumetrics */
+	MEM_SAFE_FREE(sldata->volumetrics);
+}
+
 void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	Scene *scene, ViewLayer *cur_view_layer, Object *maincam, int viewportsize[2])
 {
@@ -4184,6 +4219,7 @@ void DRW_game_render_loop_end()
 	release_texture_slots();
 
 	draw_engine_eevee_type.engine_free();
+	drw_game_eevee_view_layer_data_free();
 
 	memset(&DST, 0xFF, sizeof(DST));
 }
