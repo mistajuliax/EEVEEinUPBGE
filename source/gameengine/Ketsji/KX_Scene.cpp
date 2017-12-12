@@ -2205,16 +2205,18 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 	for (KX_GameObject *gameobj : GetObjectList()) {
 		gameobj->UpdateBlenderObjectMatrix(nullptr);
 		gameobj->TagForUpdate();
-		if (gameobj->GetCulled()) {
+		if (gameobj->GetCulled() || !gameobj->GetVisible()) {
 			gameobj->DiscardMaterialBatches();
 			gameobj->m_wasculled = true; // TODO: replace with functions getter/setter
+			gameobj->m_wasVisible = false;
 		}
 		else {
-			if (gameobj->m_wasculled) {
+			if (gameobj->m_wasculled || !gameobj->m_wasVisible) {
 				float obmat[4][4];
 				gameobj->NodeGetWorldTransform().getValue(&obmat[0][0]);
 				gameobj->RestoreMaterialBatches(obmat);
 				gameobj->m_wasculled = false;
+				gameobj->m_wasVisible = true;
 			}
 		}
 	}

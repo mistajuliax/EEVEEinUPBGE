@@ -131,6 +131,7 @@ KX_GameObject::KX_GameObject(
       m_pDupliGroupObject(nullptr),
 	  m_wasculled(false), // eevee integration
 	  m_needShadowUpdate(true), // eevee integration
+	  m_wasVisible(true), // eevee integration
       m_actionManager(nullptr)
 #ifdef WITH_PYTHON
     , m_attr_dict(nullptr),

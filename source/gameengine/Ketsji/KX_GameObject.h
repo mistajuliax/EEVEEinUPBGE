@@ -156,6 +156,8 @@ public:
 	bool NeedShadowUpdate();
 	bool m_wasculled;
 
+	bool m_wasVisible;
+
 
 
 
