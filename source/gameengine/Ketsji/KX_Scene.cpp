@@ -1795,6 +1795,14 @@ void KX_Scene::EEVEE_draw_scene()
 			DRW_viewport_matrix_override_set(stl->effects->overide_winmat, DRW_MAT_WIN);
 			DRW_viewport_matrix_override_set(stl->effects->overide_wininv, DRW_MAT_WININV);
 		}
+		if (m_doingProbeUpdate) {
+			KX_Camera *cam = GetActiveCamera();
+			float viewmat[4][4], viewinv[4][4];
+			cam->GetModelviewMatrix().getValue(&viewmat[0][0]);
+			invert_m4_m4(viewinv, viewmat);
+			DRW_viewport_matrix_override_set(viewmat, DRW_MAT_VIEW);
+			DRW_viewport_matrix_override_set(viewinv, DRW_MAT_VIEWINV);
+		}
 
 		/* Depth prepass */
 		DRW_stats_group_start("Prepass");
