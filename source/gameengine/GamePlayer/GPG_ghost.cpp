@@ -63,6 +63,7 @@ extern "C"
 #  include "BKE_image.h"
 #  include "BKE_node.h"
 #  include "BKE_report.h"
+#  include "BKE_layer.h"
 #  include "BKE_library.h"
 #  include "BKE_library_remap.h"
 #  include "BKE_modifier.h"
@@ -71,15 +72,12 @@ extern "C"
 #  include "BKE_text.h"
 #  include "BKE_sound.h"
 #  include "BKE_scene.h"
-#  include "BKE_layer.h"
-#  include "BKE_idprop.h"
 
 #  include "draw/DRW_engine.h"
 
 #  include "IMB_imbuf.h"
 #  include "IMB_moviecache.h"
 
-#  include "DEG_depsgraph.h"
 #  include "DEG_depsgraph_build.h"
 #  include "DEG_depsgraph_query.h"
 
@@ -634,35 +632,6 @@ static bool quitGame(KX_ExitRequest exitcode)
 //
 //#endif  // WITH_GAMEENGINE_BPPLAYER
 
-static void idproperty_reset(IDProperty **props, IDProperty *props_ref)
-{
-	IDPropertyTemplate val = { 0 };
-
-	if (*props) {
-		IDP_FreeProperty(*props);
-		MEM_freeN(*props);
-	}
-	*props = IDP_New(IDP_GROUP, &val, ROOT_PROP);
-
-	if (props_ref) {
-		IDP_MergeGroup(*props, props_ref, true);
-	}
-}
-
-static void InitProperties(ViewLayer *view_layer, Scene *scene)
-{
-	for (Base *base = (Base *)view_layer->object_bases.first; base != NULL; base = base->next) {
-		idproperty_reset(&base->collection_properties, scene ? scene->collection_properties : NULL);
-	}
-
-	/* Sync properties from scene to scene layer. */
-	idproperty_reset(&view_layer->properties_evaluated, scene ? scene->layer_properties : NULL);
-	IDP_MergeGroup(view_layer->properties_evaluated, view_layer->properties, true);
-
-	/* TODO(sergey): Is it always required? */
-	view_layer->flag |= VIEW_LAYER_ENGINE_DIRTY;
-}
-
 int main(
 	int argc,
 #ifdef WIN32
@@ -1196,9 +1165,7 @@ int main(
 						for (Scene *sc = (Scene *)maggie->scene.first; sc; sc = (Scene *)sc->id.next) {
 							ViewLayer *view_layer = BKE_view_layer_from_scene_get(sc);
 							Depsgraph *depsgraph = BKE_scene_get_depsgraph(sc, view_layer, true);
-							DEG_graph_relations_update(depsgraph, maggie, sc, view_layer);
-							DRW_game_init_properties(view_layer, sc);
-							DRW_game_flush_base_flags(depsgraph, view_layer, maggie);
+							BKE_scene_graph_update_tagged(maggie->eval_ctx, depsgraph, maggie, sc, view_layer);
 						}
 
 						if (firstTimeRunning) {

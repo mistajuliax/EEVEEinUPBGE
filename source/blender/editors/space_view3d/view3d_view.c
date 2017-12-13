@@ -69,8 +69,6 @@
 
 #include "DRW_engine.h"
 
-#include "DEG_depsgraph_build.h" // Game engine transition
-
 
 #ifdef WITH_GAMEENGINE
 #  include "BLI_listbase.h"
@@ -1522,11 +1520,7 @@ static int game_engine_exec(bContext *C, wmOperator *op)
 	for (Scene *sc = (Scene *)bmain->scene.first; sc; sc = (Scene *)sc->id.next) {
 		ViewLayer *view_layer = BKE_view_layer_from_scene_get(sc);
 		Depsgraph *depsgraph = BKE_scene_get_depsgraph(sc, view_layer, true);
-		DEG_graph_relations_update(depsgraph, bmain, sc, view_layer);
-		if (sc != startscene) {
-			DRW_game_init_properties(view_layer, sc);
-			DRW_game_flush_base_flags(depsgraph, view_layer, bmain);
-		}
+		BKE_scene_graph_update_tagged(bmain->eval_ctx, depsgraph, bmain, sc, view_layer);
 	}
 	
 	/* redraw to hide any menus/popups, we don't go back to

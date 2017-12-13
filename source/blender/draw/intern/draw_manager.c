@@ -4010,45 +4010,6 @@ static void drw_game_camera_border(
 	r_viewborder->ymax = ((rect_camera.ymax - rect_view.ymin) / BLI_rctf_size_y(&rect_view)) * ar->winy;
 }
 
-static void drw_game_idproperty_reset(IDProperty **props, IDProperty *props_ref)
-{
-	IDPropertyTemplate val = { 0 };
-
-	if (*props) {
-		IDP_FreeProperty(*props);
-		MEM_freeN(*props);
-	}
-	*props = IDP_New(IDP_GROUP, &val, ROOT_PROP);
-
-	if (props_ref) {
-		IDP_MergeGroup(*props, props_ref, true);
-	}
-}
-
-void DRW_game_init_properties(ViewLayer *view_layer, Scene *scene)
-{
-	for (Base *base = (Base *)view_layer->object_bases.first; base != NULL; base = base->next) {
-		drw_game_idproperty_reset(&base->collection_properties, scene ? scene->collection_properties : NULL);
-	}
-
-	/* Sync properties from scene to scene layer. */
-	drw_game_idproperty_reset(&view_layer->properties_evaluated, scene ? scene->layer_properties : NULL);
-	IDP_MergeGroup(view_layer->properties_evaluated, view_layer->properties, true);
-
-	/* TODO(sergey): Is it always required? */
-	view_layer->flag |= VIEW_LAYER_ENGINE_DIRTY;
-}
-
-void DRW_game_flush_base_flags(Depsgraph *depsgraph, ViewLayer *view_layer, Main *maggie)
-{
-	DEG_OBJECT_ITER(depsgraph, ob, DEG_ITER_OBJECT_FLAG_ALL);
-	{
-		Base *base = BKE_view_layer_base_find(view_layer, ob);
-		BKE_object_eval_flush_base_flags(maggie->eval_ctx, ob, base, true);
-	}
-	DEG_OBJECT_ITER_END
-}
-
 static void drw_game_disable_double_buffer_check()
 {
 	/* When uniforms are passed to the shaders, there is a control if
