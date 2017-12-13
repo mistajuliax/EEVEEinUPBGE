@@ -34,6 +34,10 @@
 #include "KX_VisibilityActuator.h"
 #include "KX_GameObject.h"
 
+extern "C" {
+#  include "eevee_private.h"
+}
+
 KX_VisibilityActuator::KX_VisibilityActuator(
 	SCA_IObject* gameobj,
 	bool visible,
@@ -74,7 +78,11 @@ KX_VisibilityActuator::Update()
 	if (bNegativeEvent) return false;
 
 	KX_GameObject *obj = (KX_GameObject*) GetParent();
-	
+
+	/* To avoid ghost effect when we switch of visibility state */
+	EEVEE_EffectsInfo *effects = EEVEE_engine_data_get()->stl->effects;
+	effects->taa_current_sample = 1;
+
 	obj->SetVisible(m_visible, m_recursive);
 	obj->SetOccluder(m_occlusion, m_recursive);
 

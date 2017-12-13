@@ -1685,6 +1685,11 @@ void KX_Scene::LogicEndFrame()
 {
 	m_logicmgr->EndFrame();
 
+	if (m_euthanasyobjects.size() > 0) {
+		EEVEE_EffectsInfo *effects = EEVEE_engine_data_get()->stl->effects;
+		effects->taa_current_sample = 1;
+	}
+
 	for (KX_GameObject *gameobj : m_euthanasyobjects) {
 		RemoveObject(gameobj);
 	}
