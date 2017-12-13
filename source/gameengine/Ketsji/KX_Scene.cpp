@@ -2125,6 +2125,27 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 		}
 	}
 
+	else {
+		if (m_doingProbeUpdate) {
+			effects->taa_current_sample = 1;
+
+			float persmat[4][4], viewmat[4][4];
+
+			DRW_viewport_matrix_get(persmat, DRW_MAT_PERS);
+			DRW_viewport_matrix_get(viewmat, DRW_MAT_VIEW);
+			DRW_viewport_matrix_get(effects->overide_winmat, DRW_MAT_WIN);
+
+			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
+			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
+			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
+
+			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
+			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
+			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
+			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
+		}
+	}
+
 	if (effects->enabled_effects & EFFECT_VOLUMETRIC) {
 
 		EEVEE_VolumetricsInfo *volumetrics = EEVEE_view_layer_data_get()->volumetrics;
