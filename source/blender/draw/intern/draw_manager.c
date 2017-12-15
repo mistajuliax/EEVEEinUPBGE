@@ -1033,6 +1033,7 @@ void DRW_shgroup_call_object_add(DRWShadingGroup *shgroup, Gwn_Batch *geom, Obje
 	call->geometry = geom;
 	call->ob_data = ob->data;
 
+	call->ob = ob; // Game engine transition
 	call->culled = false; // Game engine transition
 }
 
@@ -3928,6 +3929,30 @@ void DRW_engines_free(void)
 
 /***********************************Game engine transition*******************************************/
 
+void DRW_game_shgroup_call_add(DRWShadingGroup *shgroup, Gwn_Batch *geom, Object *ob, float(*obmat)[4])
+{
+	BLI_assert(geom != NULL);
+
+	DRWCall *call = BLI_mempool_alloc(DST.vmempool->calls);
+
+	CALL_PREPEND(shgroup, call);
+
+	call->head.type = DRW_CALL_SINGLE;
+#ifdef USE_GPU_SELECT
+	call->head.select_id = g_DRW_select_id;
+#endif
+
+	if (obmat != NULL) {
+		copy_m4_m4(call->obmat, obmat);
+	}
+
+	call->geometry = geom;
+	call->ob_data = NULL;
+
+	call->ob = ob; // Game engine transition
+	call->culled = false; // Game engine transition
+}
+
 bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
@@ -3938,28 +3963,28 @@ bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batc
 	return false;
 }
 
-void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, float obmat[4][4])
+void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, Object *ob, float obmat[4][4])
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
-		if (call->geometry == batch) {
+		if (call->geometry == batch && call->ob == ob) {
 			copy_m4_m4(call->obmat, obmat);
 		}
 	}
 }
 
-void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch)
+void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, Object *ob)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
-		if (call->geometry == batch) {
+		if (call->geometry == batch && call->ob == ob) {
 			call->culled = true;
 		}
 	}
 }
 
-void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, float obmat[4][4])
+void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, Object *ob, float obmat[4][4])
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
-		if (call->geometry == batch) {
+		if (call->geometry == batch && call->ob == ob) {
 			call->culled = false;
 		}
 	}

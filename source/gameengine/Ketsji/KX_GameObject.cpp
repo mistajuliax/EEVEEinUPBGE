@@ -293,7 +293,7 @@ void KX_GameObject::DiscardMaterialBatches()
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
 			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
-				DRW_game_call_discard_geometry(sh, b);
+				DRW_game_call_discard_geometry(sh, b, GetBlenderObject());
 			}
 		}
 	}
@@ -304,7 +304,7 @@ void KX_GameObject::RestoreMaterialBatches(float obmat[4][4])
 {
 	for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
 		for (int i = 0; i < m_materialBatches.size(); i++) {
-			DRW_game_call_restore_geometry(sh, m_materialBatches[i], obmat);
+			DRW_game_call_restore_geometry(sh, m_materialBatches[i], GetBlenderObject(), obmat);
 		}
 	}
 }
@@ -327,7 +327,7 @@ void KX_GameObject::AddNewMaterialBatchesToPasses(float obmat[4][4]) // works in
 		for (int i = 0; i < m_materialBatches.size(); i++) {
 			Gwn_Batch *oldBatch = m_materialBatches[i];
 			if (DRW_game_batch_belongs_to_shgroup(shgroup, oldBatch)) {
-				DRW_shgroup_call_add(shgroup, m_newBatches[i], obmat);
+				DRW_game_shgroup_call_add(shgroup, m_newBatches[i], GetBlenderObject(), obmat);
 			}
 		}
 	}
@@ -862,7 +862,7 @@ void KX_GameObject::TagForUpdate() // Used for shadow culling
 	else {
 		for (Gwn_Batch *batch : m_materialBatches) {
 			for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-				DRW_game_call_update_obmat(sh, batch, obmat);
+				DRW_game_call_update_obmat(sh, batch, GetBlenderObject(), obmat);
 			}
 		}
 		m_needShadowUpdate = true;
