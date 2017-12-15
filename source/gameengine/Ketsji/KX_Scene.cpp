@@ -1885,6 +1885,9 @@ void KX_Scene::AppendToStaticObjectsInsideFrustum(KX_GameObject *gameobj)
 
 bool KX_Scene::ComputeTAA(const KX_CullingNodeList& nodes)
 {
+	if (nodes.size() == 0) {
+		return false;
+	}
 	if (m_lightProbes.size() > 0) {
 		if (m_staticObjects.size() != GetObjectList()->GetCount()) {
 			return false;
