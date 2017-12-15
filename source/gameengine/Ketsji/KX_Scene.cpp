@@ -2059,7 +2059,7 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 		DRW_viewport_matrix_get(viewmat, DRW_MAT_VIEW);
 		DRW_viewport_matrix_get(effects->overide_winmat, DRW_MAT_WIN);
 
-		bool view_not_changed = compare_m4m4(persmat, effects->prev_drw_persmat, FLT_MIN);
+		bool view_not_changed = compare_m4m4(persmat, effects->prev_drw_persmat, 0.000001);
 
 		view_is_valid = view_is_valid && view_not_changed;
 		copy_m4_m4(effects->prev_drw_persmat, persmat);
