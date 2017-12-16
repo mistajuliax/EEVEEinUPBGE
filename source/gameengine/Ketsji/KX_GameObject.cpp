@@ -291,9 +291,9 @@ void KX_GameObject::DiscardMaterialBatches()
 {
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
+			//if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
 				DRW_game_call_discard_geometry(sh, b, GetBlenderObject());
-			}
+			//}
 		}
 	}
 }
