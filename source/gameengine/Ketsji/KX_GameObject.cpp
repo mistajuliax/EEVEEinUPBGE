@@ -233,20 +233,19 @@ void KX_GameObject::AddMaterialBatches()
 	/* Get per-material split surface */
 	Object *ob = GetBlenderObject();
 
-	if (ob->type != OB_MESH) {
-		return;
-	}
+	if (ELEM(ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
 
-	int materials_len = max_ii(1, ob->totcol);
-	struct GPUMaterial **gpumat_array = (GPUMaterial **)BLI_array_alloca(gpumat_array, materials_len);
-	struct Gwn_Batch **mat_geom = DRW_cache_object_surface_material_get(ob, gpumat_array, materials_len);
-	if (mat_geom) {
-		for (int i = 0; i < materials_len; ++i) {
-			std::vector<Gwn_Batch *>::iterator it = std::find(m_materialBatches.begin(), m_materialBatches.end(), mat_geom[i]);
-			if (it != m_materialBatches.end()) {
-				continue;
+		int materials_len = max_ii(1, ob->totcol);
+		struct GPUMaterial **gpumat_array = (GPUMaterial **)BLI_array_alloca(gpumat_array, materials_len);
+		struct Gwn_Batch **mat_geom = DRW_cache_object_surface_material_get(ob, gpumat_array, materials_len);
+		if (mat_geom) {
+			for (int i = 0; i < materials_len; ++i) {
+				std::vector<Gwn_Batch *>::iterator it = std::find(m_materialBatches.begin(), m_materialBatches.end(), mat_geom[i]);
+				if (it != m_materialBatches.end()) {
+					continue;
+				}
+				m_materialBatches.push_back(mat_geom[i]);
 			}
-			m_materialBatches.push_back(mat_geom[i]);
 		}
 	}
 }
