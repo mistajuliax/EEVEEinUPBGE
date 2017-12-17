@@ -146,7 +146,7 @@ protected:
 
 	/***************EEVEE INTEGRATION*****************/
 	bool m_dofInitialized;
-	bool m_taaInitialized;
+	bool m_firstFrameRendered;
 
 	bool m_doingTAA;
 	bool m_doingProbeUpdate;

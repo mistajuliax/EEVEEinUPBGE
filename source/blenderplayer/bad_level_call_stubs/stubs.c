@@ -564,7 +564,7 @@ void ED_view3d_clipping_disable(void) RET_NONE
 void ED_view3d_clipping_enable(void) RET_NONE
 void ED_view3d_init_mats_rv3d(struct Object *ob, struct RegionView3D *rv3d) RET_NONE
 void ED_region_info_draw_multiline(struct ARegion *ar, const char *text_array[], float fill_color[4], const bool full_redraw) RET_NONE
-void view3d_draw_bgpic_test(Scene *scene, ARegion *ar, View3D *v3d, const bool do_foreground, const bool do_camera_frame) RET_NONE
+void view3d_draw_bgpic_test(struct Scene *scene, struct ARegion *ar, struct View3D *v3d, const bool do_foreground, const bool do_camera_frame) RET_NONE
 void view3d_draw_region_info(const struct bContext *C, struct ARegion *ar, const int offset);
 void view3d_draw_region_info(const struct bContext *C, struct ARegion *ar, const int offset) RET_NONE
 void ED_node_shader_default(const struct bContext *C, struct ID *id) RET_NONE
@@ -739,7 +739,7 @@ void uiTemplateRunningJobs(struct uiLayout *layout, struct bContext *C) RET_NONE
 void uiTemplateOperatorSearch(struct uiLayout *layout) RET_NONE
 void uiTemplateHeader3D(struct uiLayout *layout, struct bContext *C) RET_NONE
 void uiTemplateEditModeSelection(struct uiLayout *layout, struct bContext *C) RET_NONE
-void uiTemplateImage(uiLayout *layout, struct bContext *C, struct PointerRNA *ptr, const char *propname, struct PointerRNA *userptr, int compact, int multiview, int cubemap) RET_NONE
+void uiTemplateImage(uiLayout *layout, struct bContext *C, struct PointerRNA *ptr, const char *propname, struct PointerRNA *userptr, int compact, int multiview) RET_NONE
 void uiTemplateColorPicker(uiLayout *layout, struct PointerRNA *ptr, const char *propname, int value_slider, int lock, int lock_luminosity, int cubic) RET_NONE
 void uiTemplateHistogram(uiLayout *layout, struct PointerRNA *ptr, const char *propname) RET_NONE
 void uiTemplateReportsBanner(uiLayout *layout, struct bContext *C) RET_NONE

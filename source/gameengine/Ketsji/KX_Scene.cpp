@@ -181,7 +181,7 @@ KX_Scene::KX_Scene(SCA_IInputDevice *inputDevice,
 	m_dofInitialized(false),
 	m_doingProbeUpdate(false),
 	m_doingTAA(false),
-	m_taaInitialized(false)
+	m_firstFrameRendered(false)
 {
 
 	m_dbvt_culling = false;
@@ -2014,7 +2014,7 @@ void KX_Scene::UpdateShadows(RAS_Rasterizer *rasty)
 /****************************PROBES**************************************/
 void KX_Scene::UpdateProbes()
 {
-	if (m_lightProbes.size() == 0) {
+	if (m_lightProbes.size() == 0 || !m_firstFrameRendered) {
 		return;
 	}
 
@@ -2073,9 +2073,7 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 
 		view_is_valid = view_is_valid && ComputeTAA(nodes);
 
-		if (view_is_valid || !m_taaInitialized) {
-
-			m_taaInitialized = true;
+		if (view_is_valid && m_firstFrameRendered) {
 
 			effects->taa_current_sample += 1;
 
@@ -2275,6 +2273,8 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 
 	/* Update of eevee's post processing before after rendering */
 	EeveePostProcessingHackEnd();
+
+	m_firstFrameRendered = true;
 
 	KX_BlenderMaterial::EndFrame(rasty);
 }

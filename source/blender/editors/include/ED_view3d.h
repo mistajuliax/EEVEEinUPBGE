@@ -471,4 +471,8 @@ void ED_view3d_shade_update(struct Main *bmain, struct Scene *scene, struct View
 
 void ED_view3d_id_remap(struct View3D *v3d, const struct ID *old_id, struct ID *new_id);
 
+// Game engine transition (moved from view3d_intern.h to here to fix blenderplayer compilation)
+void view3d_draw_bgpic_test(struct Scene *scene, struct ARegion *ar, struct View3D *v3d,
+	const bool do_foreground, const bool do_camera_frame);
+
 #endif /* __ED_VIEW3D_H__ */
