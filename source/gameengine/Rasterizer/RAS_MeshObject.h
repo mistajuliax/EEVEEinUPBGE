@@ -57,6 +57,11 @@ struct Mesh;
 struct MTFace;
 struct MCol;
 
+/* EEVEE INTEGRATION */
+struct DRWShadingGroup;
+struct Gwn_Batch;
+/*********************/
+
 /* RAS_MeshObject is a mesh used for rendering. It stores polygons,
  * but the actual vertices and index arrays are stored in material
  * buckets, referenced by the list of RAS_MeshMaterials. */
@@ -88,6 +93,11 @@ public:
 	};
 
 private:
+
+	/* EEVEE INTEGRATION */
+	std::vector<Gwn_Batch *>m_materialBatches;
+	std::vector<DRWShadingGroup *>m_materialShGroups;
+	/*********************/
 	std::string m_name;
 
 	LayersInfo m_layersInfo;
@@ -110,6 +120,12 @@ public:
 	// for now, meshes need to be in a certain layer (to avoid sorting on lights in realtime)
 	RAS_MeshObject(Mesh *mesh, const LayersInfo& layersInfo);
 	virtual ~RAS_MeshObject();
+
+
+	/* EEVEE INTEGRATION */
+	std::vector<Gwn_Batch *>GetMaterialBatches();
+	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
+	/*********************/
 
 	// materials
 	int NumMaterials();

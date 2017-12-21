@@ -48,6 +48,17 @@
 
 #include <algorithm>
 
+/*EEVEE INTEGRATION */
+extern "C" {
+#  include "BLI_alloca.h"
+#  include "../draw/intern/draw_cache_impl.h"
+#  include "DRW_render.h"
+}
+
+#include "KX_Globals.h"
+#include "KX_Scene.h"
+/********************/
+
 // polygon sorting
 
 struct RAS_MeshObject::polygonSlot
@@ -459,3 +470,49 @@ bool RAS_MeshObject::HasColliderPolygon()
 
 	return false;
 }
+
+/*****************EEVEE INTEGRATION*******************/
+std::vector<Gwn_Batch *>RAS_MeshObject::GetMaterialBatches()
+{
+	if (m_materialBatches.size() > 0) {
+		return m_materialBatches;
+	}
+	int materials_len = MAX2(1, GetMesh()->totcol);
+	Mesh *me = GetMesh();
+	struct GPUMaterial **gpumat_array = (GPUMaterial **)BLI_array_alloca(gpumat_array, materials_len);
+	struct Gwn_Batch **mat_geom = DRW_mesh_batch_cache_get_surface_shaded(me, gpumat_array, materials_len);
+	if (mat_geom) {
+		for (int i = 0; i < materials_len; i++) {
+			if (mat_geom[i]) {
+				m_materialBatches.push_back(mat_geom[i]);
+			}
+		}
+	}
+	return m_materialBatches;
+}
+
+std::vector<DRWShadingGroup *>RAS_MeshObject::GetMaterialShadingGroups()
+{
+	if (m_materialShGroups.size() > 0) {
+		return m_materialShGroups;
+	}
+	KX_Scene *scene = KX_GetActiveScene();
+	std::vector<DRWPass *>allPasses = scene->GetMaterialPasses();
+	for (DRWPass *pass : allPasses) {
+		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
+			std::vector<DRWShadingGroup *>::iterator it = std::find(m_materialShGroups.begin(), m_materialShGroups.end(), shgroup);
+			if (it != m_materialShGroups.end()) {
+				continue;
+			}
+			for (Gwn_Batch *batch : GetMaterialBatches()) {
+				if (DRW_game_batch_belongs_to_shgroup(shgroup, batch)) {
+					m_materialShGroups.push_back(shgroup);
+					break;
+				}
+			}
+		}
+	}
+	return m_materialShGroups;
+}
+
+/*******************************************************/

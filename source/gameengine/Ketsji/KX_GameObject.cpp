@@ -235,7 +235,7 @@ void KX_GameObject::AddMaterialBatches()
 
 	if (ELEM(ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
 
-		int materials_len = max_ii(1, ob->totcol);
+		int materials_len = MAX2(1, ob->totcol);
 		struct GPUMaterial **gpumat_array = (GPUMaterial **)BLI_array_alloca(gpumat_array, materials_len);
 		struct Gwn_Batch **mat_geom = DRW_cache_object_surface_material_get(ob, gpumat_array, materials_len);
 		if (mat_geom) {
@@ -260,7 +260,6 @@ std::vector<Gwn_Batch *>KX_GameObject::GetMaterialBatches()
 	return m_materialBatches;
 }
 
-/* Can be called only after we added batches with AddMaterialBatches */
 /* GET + CREATE IF DOESN'T EXIST */
 std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 {
@@ -275,7 +274,7 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 			if (it != m_materialShGroups.end()) {
 				continue;
 			}
-			for (Gwn_Batch *batch : m_materialBatches) {
+			for (Gwn_Batch *batch : GetMaterialBatches()) {
 				if (DRW_game_batch_belongs_to_shgroup(shgroup, batch)) {
 					m_materialShGroups.push_back(shgroup);
 					break;
@@ -291,9 +290,7 @@ void KX_GameObject::DiscardMaterialBatches()
 {
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-			//if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
-				DRW_game_call_discard_geometry(sh, b, GetBlenderObject());
-			//}
+			DRW_game_call_discard_geometry(sh, b, GetBlenderObject());
 		}
 	}
 }
