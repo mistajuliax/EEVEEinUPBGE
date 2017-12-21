@@ -260,29 +260,10 @@ std::vector<Gwn_Batch *>KX_GameObject::GetMaterialBatches()
 	return m_materialBatches;
 }
 
-/* GET + CREATE IF DOESN'T EXIST */
-std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
+void KX_GameObject::ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches)
 {
-	if (m_materialShGroups.size() > 0) {
-		return m_materialShGroups;
-	}
-	KX_Scene *scene = GetScene();
-	std::vector<DRWPass *>allPasses = scene->GetMaterialPasses();
-	for (DRWPass *pass : allPasses) {
-		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
-			std::vector<DRWShadingGroup *>::iterator it = std::find(m_materialShGroups.begin(), m_materialShGroups.end(), shgroup);
-			if (it != m_materialShGroups.end()) {
-				continue;
-			}
-			for (Gwn_Batch *batch : GetMaterialBatches()) {
-				if (DRW_game_batch_belongs_to_shgroup(shgroup, batch)) {
-					m_materialShGroups.push_back(shgroup);
-					break;
-				}
-			}
-		}
-	}
-	return m_materialShGroups;
+	m_materialBatches.clear();
+	m_materialBatches = batches;
 }
 
 /* Use for EndObject + to discard batches in inactive layers/scenes at BlenderDataConversion + for culling */
@@ -329,6 +310,66 @@ void KX_GameObject::AddNewMaterialBatchesToPasses(float obmat[4][4]) // works in
 	}
 	m_materialBatches.clear();
 	m_materialBatches = m_newBatches;
+}
+
+/* GET + CREATE IF DOESN'T EXIST */
+std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
+{
+	if (m_materialShGroups.size() > 0) {
+		return m_materialShGroups;
+	}
+	KX_Scene *scene = GetScene();
+	std::vector<DRWPass *>allPasses = scene->GetMaterialPasses();
+	for (DRWPass *pass : allPasses) {
+		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
+			std::vector<DRWShadingGroup *>::iterator it = std::find(m_materialShGroups.begin(), m_materialShGroups.end(), shgroup);
+			if (it != m_materialShGroups.end()) {
+				continue;
+			}
+			for (Gwn_Batch *batch : GetMaterialBatches()) {
+				if (DRW_game_batch_belongs_to_shgroup(shgroup, batch)) {
+					m_materialShGroups.push_back(shgroup);
+					break;
+				}
+			}
+		}
+	}
+	return m_materialShGroups;
+}
+
+void KX_GameObject::ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups)
+{
+	m_materialShGroups.clear();
+	m_materialShGroups = shgroups;
+}
+
+void KX_GameObject::TagForUpdate() // Used for shadow culling
+{
+	float obmat[4][4];
+	NodeGetWorldTransform().getValue(&obmat[0][0]);
+	bool staticObject = compare_m4m4(m_prevObmat, obmat, FLT_MIN);
+
+	m_needShadowUpdate = false;
+	if (staticObject) {
+		GetScene()->AppendToStaticObjects(this);
+		if (!GetCulled()) {
+			GetScene()->AppendToStaticObjectsInsideFrustum(this);
+		}
+	}
+	else {
+		for (Gwn_Batch *batch : m_materialBatches) {
+			for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
+				DRW_game_call_update_obmat(sh, batch, GetBlenderObject(), obmat);
+			}
+		}
+		m_needShadowUpdate = true;
+	}
+	copy_m4_m4(m_prevObmat, obmat);
+}
+
+bool KX_GameObject::NeedShadowUpdate() // used for shadow culling
+{
+	return m_needShadowUpdate;
 }
 
 /************************END OF EEVEE INTEGRATION******************************/
@@ -840,38 +881,6 @@ void KX_GameObject::UpdateBuckets()
 	m_meshUser->SetFrontFace(!m_bIsNegativeScaling);
 	m_meshUser->ActivateMeshSlots();
 }
-
-/************************EEVEE_INTEGRATION**********************/
-void KX_GameObject::TagForUpdate() // Used for shadow culling
-{
-	float obmat[4][4];
-	NodeGetWorldTransform().getValue(&obmat[0][0]);
-	bool staticObject = compare_m4m4(m_prevObmat, obmat, FLT_MIN);
-
-	m_needShadowUpdate = false;
-	if (staticObject) {
-		GetScene()->AppendToStaticObjects(this);
-		if (!GetCulled()) {
-			GetScene()->AppendToStaticObjectsInsideFrustum(this);
-		}
-	}
-	else {
-		for (Gwn_Batch *batch : m_materialBatches) {
-			for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-				DRW_game_call_update_obmat(sh, batch, GetBlenderObject(), obmat);
-			}
-		}
-		m_needShadowUpdate = true;
-	}
-	copy_m4_m4(m_prevObmat, obmat);
-}
-
-bool KX_GameObject::NeedShadowUpdate() // used for shadow culling
-{
-	return m_needShadowUpdate;
-}
-
-/********************End of EEVEE INTEGRATION*********************/
 
 void KX_GameObject::RemoveMeshes()
 {
