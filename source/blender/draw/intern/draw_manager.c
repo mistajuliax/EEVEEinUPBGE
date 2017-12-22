@@ -3989,7 +3989,7 @@ bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batc
 void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob, float obmat[4][4])
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
-		if (call->geometry == batch && call->kxob == kxob) {
+		if (call->kxob == kxob) {
 			copy_m4_m4(call->obmat, obmat);
 		}
 	}
@@ -4007,7 +4007,7 @@ void DRW_game_call_set_kxob_pointer(DRWShadingGroup *shgroup, Gwn_Batch *batch, 
 void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
-		if (call->geometry == batch && call->kxob == kxob) {
+		if (call->kxob == kxob) {
 			call->culled = true;
 		}
 	}
@@ -4016,7 +4016,7 @@ void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, 
 void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob, float obmat[4][4])
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
-		if (call->geometry == batch && call->kxob == kxob) {
+		if (call->kxob == kxob) {
 			call->culled = false;
 		}
 	}
