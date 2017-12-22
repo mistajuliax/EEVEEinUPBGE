@@ -154,6 +154,8 @@ public:
 	void AddNewMaterialBatchesToPasses(float obmat[4][4]);
 	void ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches);
 
+	void SetKXGameObjectCallsPointer();
+
 	void TagForUpdate();
 	bool NeedShadowUpdate();
 	bool m_wasculled;

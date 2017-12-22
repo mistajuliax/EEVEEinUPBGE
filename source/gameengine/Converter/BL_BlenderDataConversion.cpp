@@ -1312,6 +1312,7 @@ static void bl_ConvertBlenderObject_Single(
 	 * Here we add batches + shgroups for all game objects (active/inactive).
 	 */
 	gameobj->GetMaterialShadingGroups(); // The getter is also used as setter
+	gameobj->SetKXGameObjectCallsPointer(); // Set pointer to KX_GameObject
 
 	if (isInActiveLayer)
 	{
