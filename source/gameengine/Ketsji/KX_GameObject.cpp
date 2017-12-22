@@ -287,29 +287,15 @@ void KX_GameObject::RestoreMaterialBatches(float obmat[4][4])
 }
 
 /* Use for AddObject */
-void KX_GameObject::DuplicateMaterialBatches()
+void KX_GameObject::AddNewMaterialBatchesToPasses(float obmat[4][4])
 {
-	std::vector<Gwn_Batch *>newBatches;
 	for (Gwn_Batch *b : m_materialBatches) {
-		Gwn_Batch *newBatch = GWN_batch_create_from_batch_ex(b);
-		newBatches.push_back(newBatch);
-	}
-	m_newBatches = newBatches;
-}
-
-/* Use for AddObject */
-void KX_GameObject::AddNewMaterialBatchesToPasses(float obmat[4][4]) // works in pair with DuplicateMaterialBatches()
-{
-	for (DRWShadingGroup *shgroup : m_materialShGroups) {
-		for (int i = 0; i < m_materialBatches.size(); i++) {
-			Gwn_Batch *oldBatch = m_materialBatches[i];
-			if (DRW_game_batch_belongs_to_shgroup(shgroup, oldBatch)) {
-				DRW_game_shgroup_call_add(shgroup, m_newBatches[i], (void *)this, obmat);
+		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
+			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
+				DRW_game_shgroup_call_add(sh, b, (void *)this, obmat);
 			}
 		}
 	}
-	m_materialBatches.clear();
-	m_materialBatches = m_newBatches;
 }
 
 void KX_GameObject::SetKXGameObjectCallsPointer()

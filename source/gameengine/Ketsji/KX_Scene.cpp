@@ -1037,7 +1037,6 @@ KX_GameObject *KX_Scene::AddReplicaObject(KX_GameObject *originalobject, KX_Game
 	if (replica->GetMaterialBatches().size() > 0) {
 		float obmat[4][4];
 		replica->NodeGetWorldTransform().getValue(&obmat[0][0]);
-		replica->DuplicateMaterialBatches();
 		replica->AddNewMaterialBatchesToPasses(obmat);
 	}
 
