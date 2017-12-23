@@ -141,17 +141,15 @@ protected:
 
 public:
 
-
+	/* EEVEE INTEGRATION */
 	void AddMaterialShadingGroups();
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
-	void ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups);
 
 	void AddMaterialBatches();
 	std::vector<Gwn_Batch *>GetMaterialBatches();
 	void DiscardMaterialBatches();
 	void RestoreMaterialBatches(float obmat[4][4]);
 	void AddNewMaterialBatchesToPasses(float obmat[4][4]);
-	void ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches);
 
 	void SetKXGameObjectCallsPointer();
 
@@ -160,7 +158,7 @@ public:
 	bool m_wasculled;
 
 	bool m_wasVisible;
-
+	/* End of EEVEE INTEGRATION */
 
 
 

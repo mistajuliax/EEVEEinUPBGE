@@ -260,12 +260,6 @@ std::vector<Gwn_Batch *>KX_GameObject::GetMaterialBatches()
 	return m_materialBatches;
 }
 
-void KX_GameObject::ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches)
-{
-	m_materialBatches.clear();
-	m_materialBatches = batches;
-}
-
 /* Use for EndObject + to discard batches in inactive layers/scenes at BlenderDataConversion + for culling */
 void KX_GameObject::DiscardMaterialBatches()
 {
@@ -330,12 +324,6 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 		}
 	}
 	return m_materialShGroups;
-}
-
-void KX_GameObject::ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups)
-{
-	m_materialShGroups.clear();
-	m_materialShGroups = shgroups;
 }
 
 void KX_GameObject::TagForUpdate() // Used for shadow culling
