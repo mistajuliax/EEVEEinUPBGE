@@ -4229,6 +4229,8 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 
 void DRW_game_render_loop_end()
 {
+	drw_viewport_cache_resize();
+
 	GPU_viewport_free(DST.viewport);
 	MEM_freeN(DST.viewport);
 
