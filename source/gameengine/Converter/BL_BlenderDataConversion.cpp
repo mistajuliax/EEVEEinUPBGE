@@ -1317,7 +1317,7 @@ static void bl_ConvertBlenderObject_Single(
 	 * Here we add batches + shgroups for all game objects (active/inactive).
 	 */
 	gameobj->GetMaterialShadingGroups(); // The getter is also used as setter
-	gameobj->SetKXGameObjectCallsPointer(); // Set pointer to KX_GameObject
+	gameobj->SetKXGameObjectCallsPointer(); // Set pointer to KX_GameObject in each KX_GameObject DRWCall
 	/* End of EEVEE INTEGRATION */
 
 	if (isInActiveLayer)
