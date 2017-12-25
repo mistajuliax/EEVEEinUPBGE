@@ -37,7 +37,6 @@ public:
 	RAS_OpenGLLight *Clone();
 
 	virtual bool HasShadow() const;
-	virtual bool NeedShadowUpdate();
 	virtual int GetShadowBindCode();
 	virtual MT_Matrix4x4 GetViewMat();
 	virtual MT_Matrix4x4 GetWinMat();

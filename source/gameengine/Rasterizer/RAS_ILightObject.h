@@ -134,7 +134,6 @@ public:
 	virtual RAS_ILightObject* Clone() = 0;
 
 	virtual bool HasShadow() const = 0;
-	virtual bool NeedShadowUpdate() = 0;
 	virtual int GetShadowBindCode() = 0;
 	virtual MT_Matrix4x4 GetShadowMatrix() = 0;
 	virtual MT_Matrix4x4 GetViewMat() = 0;

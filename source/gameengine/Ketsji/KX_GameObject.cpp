@@ -93,7 +93,7 @@
 
 #include "CM_Message.h"
 
-/* eevee integration */
+/* EEVEE INTEGRATION */
 extern "C" {
 #  include "DRW_render.h"
 #  include "BLI_alloca.h"
@@ -101,7 +101,7 @@ extern "C" {
 #  include "eevee_private.h"
 #  include "BLI_listbase.h"
 }
-/* End of eevee integration */
+/* End of EEVEE INTEGRATION */
 
 static MT_Vector3 dummy_point= MT_Vector3(0.0f, 0.0f, 0.0f);
 static MT_Vector3 dummy_scaling = MT_Vector3(1.0f, 1.0f, 1.0f);
@@ -242,7 +242,7 @@ void KX_GameObject::AddMaterialBatches()
 			for (int i = 0; i < materials_len; ++i) {
 				std::vector<Gwn_Batch *>::iterator it = std::find(m_materialBatches.begin(), m_materialBatches.end(), mat_geom[i]);
 				if (it != m_materialBatches.end()) {
-					continue;
+					continue; // I think it's not needed but it costs nothing
 				}
 				m_materialBatches.push_back(mat_geom[i]);
 			}
@@ -260,7 +260,7 @@ std::vector<Gwn_Batch *>KX_GameObject::GetMaterialBatches()
 	return m_materialBatches;
 }
 
-/* Use for EndObject + to discard batches in inactive layers/scenes at BlenderDataConversion + for culling */
+/* Use for EndObject (temp) + to discard batches in inactive layers at BlenderDataConversion + for culling */
 void KX_GameObject::DiscardMaterialBatches()
 {
 	for (Gwn_Batch *b : m_materialBatches) {
@@ -292,6 +292,7 @@ void KX_GameObject::AddNewMaterialBatchesToPasses(float obmat[4][4])
 	}
 }
 
+/* Used to identify a DRWCall in the cache */
 void KX_GameObject::SetKXGameObjectCallsPointer()
 {
 	for (Gwn_Batch *b : m_materialBatches) {
@@ -313,7 +314,7 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
 			std::vector<DRWShadingGroup *>::iterator it = std::find(m_materialShGroups.begin(), m_materialShGroups.end(), shgroup);
 			if (it != m_materialShGroups.end()) {
-				continue;
+				continue; // I think it's not needed but it costs nothing
 			}
 			for (Gwn_Batch *batch : GetMaterialBatches()) {
 				if (DRW_game_batch_belongs_to_shgroup(shgroup, batch)) {
@@ -326,7 +327,7 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 	return m_materialShGroups;
 }
 
-void KX_GameObject::TagForUpdate() // Used for shadow culling
+void KX_GameObject::TagForUpdate()
 {
 	float obmat[4][4];
 	NodeGetWorldTransform().getValue(&obmat[0][0]);

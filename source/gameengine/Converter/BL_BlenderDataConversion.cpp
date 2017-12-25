@@ -1109,13 +1109,17 @@ static KX_GameObject *gameobject_from_blenderobject(
 		break;
 	}
 
+	/* EEVEE INTEGRATION */
+
+	// We want the lightprobes in the Objects list to update their obmat with gamelogic
 	case OB_LIGHTPROBE:
 	{
 		gameobj = new KX_EmptyObject(kxscene, KX_Scene::m_callbacks);
-		kxscene->AppendProbeList(gameobj);
+		kxscene->AppendToProbeList(gameobj);
 		// set transformation
 		break;
 	}
+	/* End of EEVEE INTEGRATION */
 
 	case OB_FONT:
 	{
@@ -1308,11 +1312,13 @@ static void bl_ConvertBlenderObject_Single(
 
 	logicbrick_conversionlist->Add(CM_AddRef(gameobj));
 
+	/* EEVEE INTEGRATION */
 	/* This adds display arrays (Gwn_Batch) + shgroups to draw with eevee code
 	 * Here we add batches + shgroups for all game objects (active/inactive).
 	 */
 	gameobj->GetMaterialShadingGroups(); // The getter is also used as setter
 	gameobj->SetKXGameObjectCallsPointer(); // Set pointer to KX_GameObject
+	/* End of EEVEE INTEGRATION */
 
 	if (isInActiveLayer)
 	{
@@ -1327,10 +1333,10 @@ static void bl_ConvertBlenderObject_Single(
 		//we must store this object otherwise it will be deleted
 		//at the end of this function if it is not a root object
 		inactivelist->Add(CM_AddRef(gameobj));
-		// We replace batches with an unique single vertex in the cache
-		// Same vertex for all objects added. this vertex is not displayed on the screen
-		// See DRW_single_vertex_no_diplay_get()
+
+		/* EEVEE INTEGRATION (cull objects in anactive layers (collections) */
 		gameobj->DiscardMaterialBatches();
+		/* End of EEVEE INTEGRATION */
 	}
 }
 

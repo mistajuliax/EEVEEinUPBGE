@@ -356,11 +356,11 @@ public:
 
 	void UpdateShadows(RAS_Rasterizer *rasty);
 
-	void AppendProbeList(KX_GameObject *probe);
+	void AppendToProbeList(KX_GameObject *probe);
 	std::vector<KX_GameObject *>GetProbeList();
 	void UpdateProbes();
 
-	bool ComputeTAA(const KX_CullingNodeList& nodes);
+	bool ObjectsAreStatic(const KX_CullingNodeList& nodes);
 	void EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes);
 	void EeveePostProcessingHackEnd();
 

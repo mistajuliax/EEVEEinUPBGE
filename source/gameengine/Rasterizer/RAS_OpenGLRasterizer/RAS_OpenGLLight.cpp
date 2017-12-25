@@ -61,15 +61,6 @@ bool RAS_OpenGLLight::HasShadow() const
 	return m_hasShadow;
 }
 
-bool RAS_OpenGLLight::NeedShadowUpdate()
-{
-	if (m_staticShadow) {
-		return m_requestShadowUpdate;
-	}
-
-	return true;
-}
-
 int RAS_OpenGLLight::GetShadowBindCode()
 {
 	return -1;

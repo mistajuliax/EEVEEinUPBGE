@@ -323,7 +323,9 @@ KX_Scene::~KX_Scene()
 		delete m_boundingBoxManager;
 	}
 
+	/* EEVEE INTEGRATION */
 	FreeEeveeData();
+	/* End of EEVEE INTEGRATION */
 
 #ifdef WITH_PYTHON
 	if (m_attr_dict) {
@@ -339,21 +341,23 @@ KX_Scene::~KX_Scene()
 #endif
 }
 
-/*******************EEVEE INTEGRATION******************/
+/**********************************************EEVEE INTEGRATION*************************************************/
 
+// Called in scene constructor
 void KX_Scene::InitEeveeData()
 {
-	Main *bmain = KX_GetActiveEngine()->GetConverter()->GetMain();
-	RAS_ICanvas *canvas = KX_GetActiveEngine()->GetCanvas();
+	KX_KetsjiEngine *engine = KX_GetActiveEngine();
+	Main *bmain = engine->GetConverter()->GetMain();
+	RAS_ICanvas *canvas = engine->GetCanvas();
 	Scene *scene = GetBlenderScene();
 	ViewLayer *cur_view_layer = BKE_view_layer_from_scene_get(scene);
-	Object *maincam = BKE_view_layer_camera_find(cur_view_layer);
-	GPUOffScreen *tempgpuofs = GPU_offscreen_create(canvas->GetWidth(), canvas->GetHeight(), 0, nullptr);
-	int viewportsize[2] = { canvas->GetWidth(), canvas->GetHeight() };
-	DRW_game_render_loop_begin(tempgpuofs, bmain, scene,
-		cur_view_layer, maincam, viewportsize);
+	Object *maincam = BKE_view_layer_camera_find(cur_view_layer); // TODO: Find a way to always have a valid camera
+
+	GPUOffScreen *tempGpuOffScreen = GPU_offscreen_create(canvas->GetWidth(), canvas->GetHeight(), 0, nullptr); // TODO: Find a way to free that properly
+	DRW_game_render_loop_begin(tempGpuOffScreen, bmain, scene, cur_view_layer, maincam);
 }
 
+// Called in scene destructor
 void KX_Scene::FreeEeveeData()
 {
 	DRW_game_render_loop_end();
@@ -361,7 +365,11 @@ void KX_Scene::FreeEeveeData()
 
 void KX_Scene::InitScenePasses(EEVEE_PassList *psl)
 {
-	/* MATERIALS PASSES */
+	/* MATERIALS PASSES (passes which contain display arrays (Gwn_Batch)) */
+
+	/* TODO: Ask BF if we can use DRW_shgroup_call_object_add
+	 * instead of DRW_shgroup_call_add for hair geometry and CLAY
+	 */
 
 	// Default materials passes
 	for (int i = 0; i < VAR_MAT_MAX; ++i) {
@@ -390,7 +398,7 @@ std::vector<DRWPass *>KX_Scene::GetMaterialPasses()
 	return m_materialPasses;
 }
 
-void KX_Scene::AppendProbeList(KX_GameObject *probe)
+void KX_Scene::AppendToProbeList(KX_GameObject *probe)
 {
 	m_lightProbes.push_back(probe);
 }
@@ -400,7 +408,539 @@ std::vector<KX_GameObject *>KX_Scene::GetProbeList()
 	return m_lightProbes;
 }
 
-/******************End of EEVEE INTEGRATION****************************/
+/**********************EEVEE SCENE DRAWING*****************************/
+/* EEVEE's render main loop (see eevee_engine.c) */
+void KX_Scene::EEVEE_draw_scene()
+{
+	EEVEE_Data *vedata = EEVEE_engine_data_get();
+	EEVEE_PassList *psl = ((EEVEE_Data *)vedata)->psl;
+	EEVEE_StorageList *stl = ((EEVEE_Data *)vedata)->stl;
+	EEVEE_FramebufferList *fbl = ((EEVEE_Data *)vedata)->fbl;
+	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_ensure();
+
+	/* Default framebuffer and texture */
+	DefaultTextureList *dtxl = DRW_viewport_texture_list_get();
+
+	/* Number of iteration: needed for all temporal effect (SSR, TAA)
+	* when using opengl render. */
+	int loop_ct = DRW_state_is_image_render() ? 4 : 1;
+
+	static float rand = 0.0f;
+
+	/* XXX temp for denoising render. TODO plug number of samples here */
+	if (DRW_state_is_image_render()) {
+		rand += 1.0f / 16.0f;
+		rand = rand - floorf(rand);
+
+		/* Set jitter offset */
+		EEVEE_update_util_texture(rand);
+	}
+	else if (((stl->effects->enabled_effects & EFFECT_TAA) != 0) && (stl->effects->taa_current_sample > 1)) {
+		double r;
+		BLI_halton_1D(2, 0.0, stl->effects->taa_current_sample - 1, &r);
+
+		/* Set jitter offset */
+		/* PERF This is killing perf ! */
+		EEVEE_update_util_texture((float)r);
+	}
+
+	while (loop_ct--) {
+
+		/* Refresh Probes */
+		DRW_stats_group_start("Probes Refresh");
+
+		/* BGE SPECIFIC CODE */
+		// We need this to update planars in bge
+		EEVEE_lightprobes_render_planars(sldata, vedata);
+		/* End og BGE SPECIFIC CODE */
+
+
+		EEVEE_lightprobes_refresh(sldata, vedata);
+		DRW_stats_group_end();
+
+		/* Refresh shadows */
+		DRW_stats_group_start("Shadows");
+		EEVEE_draw_shadows(sldata, psl);
+		DRW_stats_group_end();
+
+		/* Attach depth to the hdr buffer and bind it */
+		DRW_framebuffer_texture_detach(dtxl->depth);
+		DRW_framebuffer_texture_attach(fbl->main, dtxl->depth, 0, 0);
+		DRW_framebuffer_bind(fbl->main);
+		DRW_framebuffer_clear(false, true, true, NULL, 1.0f);
+
+		if ((((stl->effects->enabled_effects & EFFECT_TAA) != 0) && stl->effects->taa_current_sample > 1) || m_doingProbeUpdate) {
+			DRW_viewport_matrix_override_set(stl->effects->overide_persmat, DRW_MAT_PERS);
+			DRW_viewport_matrix_override_set(stl->effects->overide_persinv, DRW_MAT_PERSINV);
+			DRW_viewport_matrix_override_set(stl->effects->overide_winmat, DRW_MAT_WIN);
+			DRW_viewport_matrix_override_set(stl->effects->overide_wininv, DRW_MAT_WININV);
+		}
+		/* BGE SPECIFIC CODE */
+		if (m_doingProbeUpdate) {
+			KX_Camera *cam = GetActiveCamera();
+			float viewmat[4][4], viewinv[4][4];
+			cam->GetModelviewMatrix().getValue(&viewmat[0][0]);
+			invert_m4_m4(viewinv, viewmat);
+			DRW_viewport_matrix_override_set(viewmat, DRW_MAT_VIEW);
+			DRW_viewport_matrix_override_set(viewinv, DRW_MAT_VIEWINV);
+		}
+		/* End og BGE SPECIFIC CODE */
+
+		/* Depth prepass */
+		DRW_stats_group_start("Prepass");
+		DRW_draw_pass(psl->depth_pass);
+		DRW_draw_pass(psl->depth_pass_cull);
+		DRW_stats_group_end();
+
+		/* Create minmax texture */
+		DRW_stats_group_start("Main MinMax buffer");
+		EEVEE_create_minmax_buffer(vedata, dtxl->depth, -1);
+		DRW_stats_group_end();
+
+		EEVEE_occlusion_compute(sldata, vedata);
+		EEVEE_volumes_compute(sldata, vedata);
+
+		/* Shading pass */
+		DRW_stats_group_start("Shading");
+		DRW_draw_pass(psl->background_pass);
+		EEVEE_draw_default_passes(psl);
+		DRW_draw_pass(psl->material_pass);
+		EEVEE_subsurface_data_render(sldata, vedata);
+		DRW_stats_group_end();
+
+		/* Effects pre-transparency */
+		EEVEE_subsurface_compute(sldata, vedata);
+		EEVEE_reflection_compute(sldata, vedata);
+		EEVEE_occlusion_draw_debug(sldata, vedata);
+		DRW_draw_pass(psl->probe_display);
+		EEVEE_refraction_compute(sldata, vedata);
+
+		/* Opaque refraction */
+		DRW_stats_group_start("Opaque Refraction");
+		DRW_draw_pass(psl->refract_depth_pass);
+		DRW_draw_pass(psl->refract_depth_pass_cull);
+		DRW_draw_pass(psl->refract_pass);
+		DRW_stats_group_end();
+
+		/* Volumetrics Resolve Opaque */
+		EEVEE_volumes_resolve(sldata, vedata);
+
+		/* Transparent */
+		DRW_pass_sort_shgroup_z(psl->transparent_pass);
+		DRW_draw_pass(psl->transparent_pass);
+
+		/* Post Process */
+		DRW_stats_group_start("Post FX");
+		EEVEE_draw_effects(vedata);
+		DRW_stats_group_end();
+
+		if (stl->effects->taa_current_sample > 1 || m_doingProbeUpdate) {
+			DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
+			DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
+			DRW_viewport_matrix_override_unset(DRW_MAT_WIN);
+			DRW_viewport_matrix_override_unset(DRW_MAT_WININV);
+		}
+	}
+
+	EEVEE_volumes_free_smoke_textures();
+
+	stl->g_data->view_updated = false;
+}
+/*************************End of EEVEE SCENE DRAWING*********************/
+
+/*****************************TAA UTILS**********************************/
+/* Utils for TAA to check if nothing is moving inside view frustum (or anywhere when using probes) */
+void KX_Scene::AppendToStaticObjects(KX_GameObject *gameobj)
+{
+	m_staticObjects.push_back(gameobj);
+}
+
+void KX_Scene::AppendToStaticObjectsInsideFrustum(KX_GameObject *gameobj)
+{
+	m_staticObjectsInsideFrustum.push_back(gameobj);
+}
+
+bool KX_Scene::ObjectsAreStatic(const KX_CullingNodeList& nodes)
+{
+	if (nodes.size() == 0) {
+		return false;
+	}
+	if (m_lightProbes.size() > 0) {
+		if (m_staticObjects.size() != GetObjectList()->GetCount()) {
+			return false;
+		}
+	}
+	if (m_staticObjectsInsideFrustum.size() != nodes.size()) {
+		return false;
+	}
+	return true;
+}
+/************************End of TAA UTILS**************************/
+
+/***********************EEVEE SHADOWS******************************/
+
+/* Shadows utils */
+enum LightShadowType {
+	SHADOW_CUBE = 0,
+	SHADOW_CASCADE
+};
+
+/* Used for checking if object is inside the shadow volume. */
+
+// TODO: FIX Light shadow frustum vs AABB intersection check
+static bool cube_bbox_intersect(const float cube_center[3], float cube_half_dim, const BoundBox *bb, float(*obmat)[4])
+{
+	float min[3], max[4], tmp[4][4];
+	unit_m4(tmp);
+	translate_m4(tmp, -cube_center[0], -cube_center[1], -cube_center[2]);
+	mul_m4_m4m4(tmp, tmp, obmat);
+
+	/* Just simple AABB intersection test in world space. */
+	INIT_MINMAX(min, max);
+	for (int i = 0; i < 8; ++i) {
+		float vec[3];
+		copy_v3_v3(vec, bb->vec[i]);
+		mul_m4_v3(tmp, vec);
+		minmax_v3v3_v3(min, max, vec);
+	}
+
+	float threshold = cube_half_dim / 10.0f;
+	if (MAX3(min[0], min[1], min[2]) > cube_half_dim + threshold) {
+		return false;
+	}
+	if (MIN3(max[0], max[1], max[2]) < -cube_half_dim - threshold) {
+		return false;
+	}
+
+	return true;
+}
+
+static void light_tag_shadow_update(KX_LightObject *light, KX_GameObject *gameobj)
+{
+	Object *oblamp = light->GetBlenderObject();
+	Lamp *la = (Lamp *)oblamp->data;
+	Object *ob = gameobj->GetBlenderObject();
+	EEVEE_LampEngineData *led = EEVEE_lamp_data_get(oblamp);
+
+	bool is_inside_range = cube_bbox_intersect(oblamp->obmat[3], la->clipend, BKE_object_boundbox_get(ob), ob->obmat);
+
+	if (is_inside_range) {
+		if (gameobj->NeedShadowUpdate()) {
+			led->need_update = true;
+		}
+	}
+	else {
+		led->need_update = false;
+	}
+}
+
+/* End of Shadows utils */
+
+/* Update shadows (update light position and tag shadow cubes for update (led->needs_update)) */
+// TODO: Shadow culling for Sun lamps
+void KX_Scene::UpdateShadows(RAS_Rasterizer *rasty)
+{
+	CListValue<KX_LightObject> *lightlist = GetLightList();
+
+	rasty->SetAuxilaryClientInfo(this);
+	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+	EEVEE_PassList *psl = EEVEE_engine_data_get()->psl;
+	EEVEE_LampsInfo *linfo = sldata->lamps;
+
+	for (KX_LightObject *light : lightlist) {
+		if (!light->GetVisible()) {
+			continue;
+		}
+
+		Object *ob = light->GetBlenderObject();
+		EEVEE_LampEngineData *led = EEVEE_lamp_data_get(ob);
+		Lamp *la = (Lamp *)ob->data;
+		LightShadowType shadowtype = la->type != LA_SUN ? SHADOW_CUBE : SHADOW_CASCADE;
+
+		if (shadowtype == SHADOW_CUBE) {
+			for (KX_GameObject *gameob : GetObjectList()) {
+				Object *blenob = gameob->GetBlenderObject();
+				if (blenob && blenob->type == OB_MESH) {
+					light_tag_shadow_update(light, gameob);
+				}
+			}
+		}
+	}
+	EEVEE_lights_cache_finish(sldata);
+}
+
+/***********************End of EEVEE SHADOWS*****************************/
+
+/****************************PROBES**************************************/
+void KX_Scene::UpdateProbes()
+{
+	if (m_lightProbes.size() == 0 || !m_firstFrameRendered) {
+		return;
+	}
+
+	m_doingProbeUpdate = true;
+
+	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+	EEVEE_Data *vedata = EEVEE_engine_data_get();
+
+	EEVEE_lightprobes_cache_init(sldata, vedata);
+	for (KX_GameObject *kxprobe : GetProbeList()) {
+		EEVEE_lightprobes_cache_add(sldata, kxprobe->GetBlenderObject());
+	}
+
+	EEVEE_lightprobes_cache_finish(sldata, vedata);
+}
+/*********************End of PROBES**************************************/
+
+/********************EEVEE'S POST PROCESSING*****************************/
+// TODO: Fix PostProcessing on linux
+void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
+{
+	EEVEE_Data *vedata = EEVEE_engine_data_get();
+	EEVEE_EffectsInfo *effects = vedata->stl->effects;
+	EEVEE_StorageList *stl = vedata->stl;
+	ViewLayer *view_layer = BKE_view_layer_from_scene_get(GetBlenderScene());
+	IDProperty *props = BKE_view_layer_engine_evaluated_get(view_layer, COLLECTION_MODE_NONE, RE_engine_id_BLENDER_EEVEE);
+	KX_Camera *cam = GetActiveCamera();
+
+	/* Update TAA when the view is not moving and nothing in the view frustum is moving */
+	if (effects->enabled_effects & EFFECT_TAA) {
+
+		const float *viewport_size = DRW_viewport_size_get();
+		float persmat[4][4], viewmat[4][4];
+
+		/* Until we support reprojection, we need to make sure
+		* that the history buffer contains correct information. */
+		bool view_is_valid = stl->g_data->valid_double_buffer;
+
+		view_is_valid = view_is_valid && (stl->g_data->view_updated == false);
+
+		effects->taa_total_sample = BKE_collection_engine_property_value_get_int(props, "taa_samples");
+		MAX2(effects->taa_total_sample, 0);
+
+		DRW_viewport_matrix_get(persmat, DRW_MAT_PERS);
+		DRW_viewport_matrix_get(viewmat, DRW_MAT_VIEW);
+		DRW_viewport_matrix_get(effects->overide_winmat, DRW_MAT_WIN);
+
+		bool view_not_changed = compare_m4m4(persmat, effects->prev_drw_persmat, 0.000001);
+
+		view_is_valid = view_is_valid && view_not_changed;
+		copy_m4_m4(effects->prev_drw_persmat, persmat);
+
+		/* Prevent ghosting from probe data. */
+		view_is_valid = view_is_valid && (effects->prev_drw_support == DRW_state_draw_support());
+		effects->prev_drw_support = DRW_state_draw_support();
+
+		view_is_valid = view_is_valid && ObjectsAreStatic(nodes);
+
+		if (view_is_valid && m_firstFrameRendered) { // Render first frame before applying TAA to avoid artifacts
+
+			effects->taa_current_sample += 1;
+
+			if (effects->taa_current_sample < 50) {
+				effects->taa_alpha = 1.0f / (float)(effects->taa_current_sample);
+			}
+
+			double ht_point[2];
+			double ht_offset[2] = { 0.0, 0.0 };
+			unsigned int ht_primes[2] = { 2, 3 };
+
+			BLI_halton_2D(ht_primes, ht_offset, effects->taa_current_sample - 1, ht_point);
+
+			window_translate_m4(
+				effects->overide_winmat, persmat,
+				((float)(ht_point[0]) * 2.0f - 1.0f) / viewport_size[0],
+				((float)(ht_point[1]) * 2.0f - 1.0f) / viewport_size[1]);
+
+			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
+			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
+			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
+
+			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
+			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
+			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
+			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
+
+			m_doingTAA = true;
+		}
+		else if (!view_is_valid && m_doingProbeUpdate) {
+
+			effects->taa_current_sample = 1;
+
+			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
+			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
+			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
+
+			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
+			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
+			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
+			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
+
+			m_doingTAA = false;
+		}
+
+		else {
+			effects->taa_current_sample = 1;
+
+			m_doingTAA = false;
+		}
+	}
+
+	else {
+		if (m_doingProbeUpdate) {
+			effects->taa_current_sample = 1;
+
+			float persmat[4][4], viewmat[4][4];
+
+			DRW_viewport_matrix_get(persmat, DRW_MAT_PERS);
+			DRW_viewport_matrix_get(viewmat, DRW_MAT_VIEW);
+			DRW_viewport_matrix_get(effects->overide_winmat, DRW_MAT_WIN);
+
+			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
+			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
+			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
+
+			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
+			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
+			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
+			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
+		}
+	}
+
+	if (effects->enabled_effects & EFFECT_VOLUMETRIC) {
+
+		EEVEE_VolumetricsInfo *volumetrics = EEVEE_view_layer_data_get()->volumetrics;
+
+		/* Temporal Super sampling jitter */
+		double ht_point[3];
+		double ht_offset[3] = { 0.0, 0.0 };
+		unsigned int ht_primes[3] = { 3, 7, 2 };
+		unsigned int current_sample = 0;
+
+		/* If TAA is in use do not use the history buffer. */
+		bool do_taa = ((effects->enabled_effects & EFFECT_TAA) != 0) && m_doingTAA;
+
+		if (do_taa) {
+			volumetrics->history_alpha = 0.0f;
+			current_sample = effects->taa_current_sample - 1;
+			effects->volume_current_sample = -1;
+		}
+		else {
+			const unsigned int max_sample = (ht_primes[0] * ht_primes[1] * ht_primes[2]);
+			current_sample = effects->volume_current_sample = max_sample; // Too much flickering in bge here if we keep eevee's code
+			// eevee_volumes line 234
+
+			if (current_sample != max_sample - 1) {
+				DRW_viewport_request_redraw();
+			}
+		}
+		BLI_halton_3D(ht_primes, ht_offset, current_sample, ht_point);
+
+		volumetrics->jitter[0] = (float)ht_point[0];
+		volumetrics->jitter[1] = (float)ht_point[1];
+		volumetrics->jitter[2] = (float)ht_point[2];
+	}
+
+	if (effects->enabled_effects & EFFECT_DOF && !m_dofInitialized) {
+		/* Depth Of Field */
+		KX_Camera *cam = GetActiveCamera();
+		float sensorSize = cam->GetCameraData()->m_sensor_x;
+		/* Only update params that needs to be updated */
+		float scaleCamera = 0.001f;
+		float sensorScaled = scaleCamera * sensorSize;
+		effects->dof_params[2] = (KX_GetActiveEngine()->GetCanvas()->GetWidth() + 1) / (1.0f * sensorScaled);
+		m_dofInitialized = true;
+	}
+
+	/* Hack for motion blur */
+	if (effects->enabled_effects & EFFECT_MOTION_BLUR) {
+		float shutter = BKE_collection_engine_property_value_get_float(m_idProperty, "motion_blur_shutter");
+		float camToWorld[4][4];
+		GetActiveCamera()->GetCameraToWorld().getValue(&camToWorld[0][0]);
+		camToWorld[3][0] *= shutter;
+		camToWorld[3][1] *= shutter;
+		camToWorld[3][2] *= shutter;
+		copy_m4_m4(effects->current_ndc_to_world, camToWorld);
+	}
+}
+
+void KX_Scene::EeveePostProcessingHackEnd()
+{
+	EEVEE_Data *vedata = EEVEE_engine_data_get();
+	EEVEE_EffectsInfo *effects = vedata->stl->effects;
+	KX_Camera *cam = GetActiveCamera();
+
+	/* Hack for motion blur */
+	if (effects->enabled_effects & EFFECT_MOTION_BLUR) {
+		float shutter = BKE_collection_engine_property_value_get_float(m_idProperty, "motion_blur_shutter");
+		float worldToCam[4][4];
+		cam->GetWorldToCamera().getValue(&worldToCam[0][0]);
+		worldToCam[3][0] *= shutter;
+		worldToCam[3][1] *= shutter;
+		worldToCam[3][2] *= shutter;
+		copy_m4_m4(effects->past_world_to_ndc, worldToCam);
+	}
+
+	/* Hack for SSR : See eevee_screen_raytrace line 155 */
+	if (effects->enabled_effects & EFFECT_SSR) {
+		/* Reattach textures to the right buffer (because we are alternating between buffers) */
+		/* TODO multiple FBO per texture!!!! */
+		DRW_framebuffer_texture_detach(vedata->txl->ssr_specrough_input);
+		DRW_framebuffer_texture_attach(vedata->fbl->main, vedata->txl->ssr_normal_input, 1, 0);
+		DRW_framebuffer_texture_attach(vedata->fbl->main, vedata->txl->ssr_specrough_input, 2, 0);
+	}
+}
+
+/******************End of EEVEE'S POST PROCESSING***************************/
+
+/****ACTIVITY CULLING, CULLING, MATRIX UPDATE, CALL RENDER MAINLOOP*********/
+void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer *rasty)
+{
+	for (KX_GameObject *gameobj : GetObjectList()) {
+		gameobj->UpdateBlenderObjectMatrix(nullptr);
+		gameobj->TagForUpdate();
+		if (gameobj->GetCulled() || !gameobj->GetVisible()) {
+			gameobj->DiscardMaterialBatches();
+			gameobj->m_wasculled = true; // TODO: replace with functions getter/setter
+			gameobj->m_wasVisible = false; // TODO: replace with functions getter/setter
+		}
+		else {
+			if (gameobj->m_wasculled || !gameobj->m_wasVisible) {
+				float obmat[4][4];
+				gameobj->NodeGetWorldTransform().getValue(&obmat[0][0]);
+				gameobj->RestoreMaterialBatches(obmat);
+				gameobj->m_wasculled = false; // TODO: replace with functions getter/setter
+				gameobj->m_wasVisible = true; // TODO: replace with functions getter/setter
+			}
+		}
+	}
+
+	UpdateShadows(rasty);
+
+	/* Update of eevee's post processing before scene rendering */
+	EeveePostProcessingHackBegin(nodes);
+
+	UpdateProbes();
+
+	m_staticObjects.clear();
+	m_staticObjectsInsideFrustum.clear();
+
+	/* Start Drawing */
+	DRW_state_reset();
+	EEVEE_draw_scene();
+	DRW_state_reset();
+
+	/* Update of eevee's post processing before after rendering */
+	EeveePostProcessingHackEnd();
+
+	m_firstFrameRendered = true;
+
+	KX_BlenderMaterial::EndFrame(rasty);
+}
+
+/**End of ACTIVITY CULLING, CULLING, MATRIX UPDATE, CALL RENDER MAINLOOP**/
+
+/*************************************End of EEVEE INTEGRATION*********************************************/
 
 std::string KX_Scene::GetName()
 {
@@ -469,12 +1009,12 @@ void KX_Scene::SetFramingType(RAS_FrameSettings & frame_settings)
 };
 
 /**
- * Return a const reference to the framing 
+ * Return a const reference to the framing
  * type set by the above call.
  * The contents are not guaranteed to be sensible
  * if you don't call the above function.
  */
-const RAS_FrameSettings& KX_Scene::GetFramingType() const 
+const RAS_FrameSettings& KX_Scene::GetFramingType() const
 {
 	return m_frame_settings;
 }
@@ -524,7 +1064,7 @@ void KX_Scene::AddObjectDebugProperties(class KX_GameObject* gameobj)
 		if (prop->flag & PROP_DEBUG)
 			AddDebugProperty(gameobj, prop->name);
 		prop = prop->next;
-	}	
+	}
 
 	if (blenderobject->scaflag & OB_DEBUGSTATE)
 		AddDebugProperty(gameobj, "__state__");
@@ -545,10 +1085,11 @@ void KX_Scene::RemoveNodeDestructObject(SG_Node* node, KX_GameObject *gameobj)
 KX_GameObject* KX_Scene::AddNodeReplicaObject(SG_Node* node, KX_GameObject *gameobj)
 {
 	// for group duplication, limit the duplication of the hierarchy to the
-	// objects that are part of the group. 
-	if (!IsObjectInGroup(gameobj))
+	// objects that are part of the group.
+	if (!IsObjectInGroup(gameobj)) {
 		return nullptr;
-	
+	}
+
 	KX_GameObject* newobj = (KX_GameObject*)gameobj->GetReplica();
 	m_map_gameobject_to_replica[gameobj] = newobj;
 
@@ -570,7 +1111,7 @@ KX_GameObject* KX_Scene::AddNodeReplicaObject(SG_Node* node, KX_GameObject *game
 	else
 	{
 		m_rootnode = new SG_Node(newobj,this,KX_Scene::m_callbacks);
-	
+
 		// this fixes part of the scaling-added object bug
 		SG_Node* orgnode = gameobj->GetSGNode();
 		m_rootnode->SetLocalScale(orgnode->GetLocalScale());
@@ -578,13 +1119,12 @@ KX_GameObject* KX_Scene::AddNodeReplicaObject(SG_Node* node, KX_GameObject *game
 		m_rootnode->SetLocalOrientation(orgnode->GetLocalOrientation());
 
 		// define the relationship between this node and it's parent.
-		KX_NormalParentRelation * parent_relation = 
+		KX_NormalParentRelation * parent_relation =
 			KX_NormalParentRelation::New();
 		m_rootnode->SetParentRelation(parent_relation);
 
 		newobj->SetSGNode(m_rootnode);
 	}
-	
 	SG_Node* replicanode = newobj->GetSGNode();
 //	SG_Node* rootnode = (replicanode == m_rootnode ? nullptr : m_rootnode);
 
@@ -628,7 +1168,7 @@ KX_GameObject* KX_Scene::AddNodeReplicaObject(SG_Node* node, KX_GameObject *game
 	replicanode->RemoveAllControllers();
 	SGControllerList::iterator cit;
 	//int numcont = scenegraphcontrollers.size();
-	
+
 	for (cit = scenegraphcontrollers.begin();!(cit==scenegraphcontrollers.end());++cit)
 	{
 		// controller replication is quite complicated
@@ -681,8 +1221,8 @@ KX_GameObject* KX_Scene::AddNodeReplicaObject(SG_Node* node, KX_GameObject *game
 // !
 // It is VERY important that the order of sensors and actuators in
 // the replicated object is preserved: it is used to reconnect the logic.
-// This method is more robust then using the bricks name in case of complex 
-// group replication. The replication of logic bricks is done in 
+// This method is more robust then using the bricks name in case of complex
+// group replication. The replication of logic bricks is done in
 // SCA_IObject::ReParentLogic(), make sure it preserves the order of the bricks.
 void KX_Scene::ReplicateLogic(KX_GameObject* newobj)
 {
@@ -706,7 +1246,7 @@ void KX_Scene::ReplicateLogic(KX_GameObject* newobj)
 		// do it directly on the list at this controller is not connected to anything at this stage
 		cont->GetLinkedSensors().clear();
 		cont->GetLinkedActuators().clear();
-		
+
 		// now relink each sensor
 		for (std::vector<SCA_ISensor*>::iterator its = linkedsensors.begin();!(its==linkedsensors.end());its++)
 		{
@@ -732,7 +1272,7 @@ void KX_Scene::ReplicateLogic(KX_GameObject* newobj)
 
 				for (sensorpos=0, sit=sensorlist.begin(); sit!=sensorlist.end(); sit++, sensorpos++)
 				{
-					if ((*sit) == oldsensor) 
+					if ((*sit) == oldsensor)
 					{
 						newsensor = newsensorobj->GetSensors().at(sensorpos);
 						break;
@@ -742,7 +1282,6 @@ void KX_Scene::ReplicateLogic(KX_GameObject* newobj)
 				m_logicmgr->RegisterToSensor(cont,newsensor);
 			}
 		}
-		
 		// now relink each actuator
 		for (std::vector<SCA_IActuator*>::iterator ita = linkedactuators.begin();!(ita==linkedactuators.end());ita++)
 		{
@@ -767,7 +1306,7 @@ void KX_Scene::ReplicateLogic(KX_GameObject* newobj)
 
 				for (actuatorpos=0, ait=actuatorlist.begin(); ait!=actuatorlist.end(); ait++, actuatorpos++)
 				{
-					if ((*ait) == oldactuator) 
+					if ((*ait) == oldactuator)
 					{
 						newactuator = newactuatorobj->GetActuators().at(actuatorpos);
 						break;
@@ -801,13 +1340,13 @@ void KX_Scene::DupliGroupRecurse(KX_GameObject *groupobj, int level)
 	m_logicHierarchicalGameObjects.clear();
 	m_map_gameobject_to_replica.clear();
 	m_ueberExecutionPriority++;
-	// for groups will do something special: 
+	// for groups will do something special:
 	// we will force the creation of objects to those in the group only
 	// Again, this is match what Blender is doing (it doesn't care of parent relationship)
 	m_groupGameObjects.clear();
 
 	group = blgroupobj->dup_group;
-	for (go=(GroupObject*)group->gobject.first; go; go=(GroupObject*)go->next) 
+	for (go=(GroupObject*)group->gobject.first; go; go=(GroupObject*)go->next)
 	{
 		Object* blenderobj = go->ob;
 		if (blgroupobj == blenderobj)
@@ -815,10 +1354,10 @@ void KX_Scene::DupliGroupRecurse(KX_GameObject *groupobj, int level)
 			continue;
 
 		gameobj = (KX_GameObject*)m_logicmgr->FindGameObjByBlendObj(blenderobj);
-		if (gameobj == nullptr) 
+		if (gameobj == nullptr)
 		{
 			// this object has not been converted!!!
-			// Should not happen as dupli group are created automatically 
+			// Should not happen as dupli group are created automatically
 			continue;
 		}
 
@@ -859,8 +1398,8 @@ void KX_Scene::DupliGroupRecurse(KX_GameObject *groupobj, int level)
 		}
 		// don't replicate logic now: we assume that the objects in the group can have
 		// logic relationship, even outside parent relationship
-		// In order to match 3D view, the position of groupobj is used as a 
-		// transformation matrix instead of the new position. This means that 
+		// In order to match 3D view, the position of groupobj is used as a
+		// transformation matrix instead of the new position. This means that
 		// the group reference point is 0,0,0
 
 		// get the rootnode's scale
@@ -869,7 +1408,7 @@ void KX_Scene::DupliGroupRecurse(KX_GameObject *groupobj, int level)
 		replica->NodeSetRelativeScale(newscale);
 
 		MT_Vector3 offset(group->dupli_ofs);
-		MT_Vector3 newpos = groupobj->NodeGetWorldPosition() + 
+		MT_Vector3 newpos = groupobj->NodeGetWorldPosition() +
 			newscale*(groupobj->NodeGetWorldOrientation() * (gameobj->NodeGetWorldPosition()-offset));
 		replica->NodeSetLocalPosition(newpos);
 		// set the orientation after position for softbody!
@@ -889,7 +1428,6 @@ void KX_Scene::DupliGroupRecurse(KX_GameObject *groupobj, int level)
 	for (KX_GameObject *gameobj : m_logicHierarchicalGameObjects) {
 		gameobj->ReParentLogic();
 	}
-	
 	//	relink any pointers as necessary, sort of a temporary solution
 	for (KX_GameObject *gameobj : m_logicHierarchicalGameObjects) {
 		// this will also relink the actuator to objects within the hierarchy
@@ -897,12 +1435,10 @@ void KX_Scene::DupliGroupRecurse(KX_GameObject *groupobj, int level)
 		// add the object in the layer of the parent
 		gameobj->SetLayer(groupobj->GetLayer());
 	}
-
 	// replicate crosslinks etc. between logic bricks
 	for (KX_GameObject *gameobj : m_logicHierarchicalGameObjects) {
 		ReplicateLogic(gameobj);
 	}
-	
 	// now look if object in the hierarchy have dupli group and recurse
 	for (KX_GameObject *gameobj : m_logicHierarchicalGameObjects) {
 		/* Replicate all constraints. */
@@ -997,7 +1533,6 @@ KX_GameObject *KX_Scene::AddReplicaObject(KX_GameObject *originalobject, KX_Game
 	for (KX_GameObject *gameobj : m_logicHierarchicalGameObjects) {
 		gameobj->ReParentLogic();
 	}
-	
 	//	relink any pointers as necessary, sort of a temporary solution
 	for (KX_GameObject *gameobj : m_logicHierarchicalGameObjects) {
 		// this will also relink the actuators in the hierarchy
@@ -1016,7 +1551,6 @@ KX_GameObject *KX_Scene::AddReplicaObject(KX_GameObject *originalobject, KX_Game
 	for (KX_GameObject *gameobj : m_logicHierarchicalGameObjects) {
 		ReplicateLogic(gameobj);
 	}
-	
 	// check if there are objects with dupligroup in the hierarchy
 	std::vector<KX_GameObject*> duplilist;
 	for (KX_GameObject *gameobj : m_logicHierarchicalGameObjects) {
@@ -1087,7 +1621,6 @@ bool KX_Scene::NewRemoveObject(KX_GameObject *gameobj)
 
 	/* Invalidate the python reference, since the object may exist in script lists
 	 * its possible that it wont be automatically invalidated, so do it manually here,
-	 * 
 	 * if for some reason the object is added back into the scene python can always get a new Proxy
 	 */
 	gameobj->InvalidateProxy();
@@ -1102,7 +1635,6 @@ bool KX_Scene::NewRemoveObject(KX_GameObject *gameobj)
 	}
 
 	// remove all sensors/controllers/actuators from logicsystem...
-	
 	SCA_SensorList& sensors = gameobj->GetSensors();
 	for (SCA_SensorList::iterator its = sensors.begin();
 		 !(its==sensors.end());its++)
@@ -1192,7 +1724,6 @@ bool KX_Scene::NewRemoveObject(KX_GameObject *gameobj)
 	}
 
 	// return value will be 0 if the object is actually deleted (all reference gone)
-	
 	return ret;
 }
 
@@ -1209,18 +1740,18 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 	{
 	gameobj->RemoveMeshes();
 	gameobj->AddMesh(mesh);
-	
+
 	if (gameobj->IsDeformable())
 	{
 		BL_DeformableGameObject* newobj = static_cast<BL_DeformableGameObject*>( gameobj );
-		
+
 		if (newobj->GetDeformer())
 		{
 			delete newobj->GetDeformer();
 			newobj->SetDeformer(nullptr);
 		}
 
-		if (mesh->GetMesh()) 
+		if (mesh->GetMesh())
 		{
 			// we must create a new deformer but which one?
 			KX_GameObject* parentobj = newobj->GetParent();
@@ -1233,7 +1764,7 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 			bool bHasModifier = BL_ModifierDeformer::HasCompatibleDeformer(blendobj);
 			bool bHasShapeKey = blendmesh->key != nullptr && blendmesh->key->type==KEY_RELATIVE;
 			bool bHasDvert = blendmesh->dvert != nullptr;
-			bool bHasArmature = 
+			bool bHasArmature =
 				BL_ModifierDeformer::HasArmatureDeformer(blendobj) &&
 				parentobj &&								// current parent is armature
 				parentobj->GetGameObjectType() == SCA_IObject::OBJ_ARMATURE &&
@@ -1244,14 +1775,14 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 #ifdef WITH_BULLET
 			bool bHasSoftBody = (!parentobj && (blendobj->gameflag & OB_SOFT_BODY));
 #endif
-			
+
 			if (oldblendobj==nullptr) {
 				if (bHasModifier || bHasShapeKey || bHasDvert || bHasArmature) {
 					CM_FunctionWarning("new mesh is not used in an object from the current scene, you will get incorrect behavior");
 					bHasShapeKey= bHasDvert= bHasArmature=bHasModifier= false;
 				}
 			}
-			
+
 			if (bHasModifier)
 			{
 				BL_ModifierDeformer* modifierDeformer;
@@ -1282,7 +1813,7 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 			}
 			else if (bHasShapeKey) {
 				BL_ShapeDeformer* shapeDeformer;
-				if (bHasArmature) 
+				if (bHasArmature)
 				{
 					shapeDeformer = new BL_ShapeDeformer(
 						newobj,
@@ -1307,7 +1838,7 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 				}
 				newobj->SetDeformer( shapeDeformer);
 			}
-			else if (bHasArmature) 
+			else if (bHasArmature)
 			{
 				BL_SkinDeformer* skinDeformer = new BL_SkinDeformer(
 					newobj,
@@ -1557,11 +2088,11 @@ void KX_Scene::LogicBeginFrame(double curtime, double framestep)
 	for (std::vector<KX_GameObject *>::iterator it = m_tempObjectList.begin(); it != m_tempObjectList.end();) {
 		KX_GameObject *gameobj = *it;
 		CFloatValue* propval = (CFloatValue *)gameobj->GetProperty("::timebomb");
-		
+
 		if (propval)
 		{
 			float timeleft = propval->GetNumber() - framestep;
-			
+
 			if (timeleft > 0)
 			{
 				propval->SetFloat(timeleft);
@@ -1732,555 +2263,6 @@ RAS_MaterialBucket* KX_Scene::FindBucket(class RAS_IPolyMaterial* polymat, bool 
 {
 	return m_bucketmanager->FindBucket(polymat, bucketCreated);
 }
-
-/***********************************************EEVEE INTEGRATION****************************************************/
-
-/**********************EEVEE SCENE DRAWING*****************************/
-/* EEVEE's render main loop (see eevee_engine.c) */
-void KX_Scene::EEVEE_draw_scene()
-{
-	EEVEE_Data *vedata = EEVEE_engine_data_get();
-	EEVEE_PassList *psl = ((EEVEE_Data *)vedata)->psl;
-	EEVEE_StorageList *stl = ((EEVEE_Data *)vedata)->stl;
-	EEVEE_FramebufferList *fbl = ((EEVEE_Data *)vedata)->fbl;
-	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_ensure();
-
-	/* Default framebuffer and texture */
-	DefaultTextureList *dtxl = DRW_viewport_texture_list_get();
-
-	/* Number of iteration: needed for all temporal effect (SSR, TAA)
-	* when using opengl render. */
-	int loop_ct = DRW_state_is_image_render() ? 4 : 1;
-
-	static float rand = 0.0f;
-
-	/* XXX temp for denoising render. TODO plug number of samples here */
-	if (DRW_state_is_image_render()) {
-		rand += 1.0f / 16.0f;
-		rand = rand - floorf(rand);
-
-		/* Set jitter offset */
-		EEVEE_update_util_texture(rand);
-	}
-	else if (((stl->effects->enabled_effects & EFFECT_TAA) != 0) && (stl->effects->taa_current_sample > 1)) {
-		double r;
-		BLI_halton_1D(2, 0.0, stl->effects->taa_current_sample - 1, &r);
-
-		/* Set jitter offset */
-		/* PERF This is killing perf ! */
-		EEVEE_update_util_texture((float)r);
-	}
-
-	while (loop_ct--) {
-
-		/* Refresh Probes */
-		DRW_stats_group_start("Probes Refresh");
-
-		//TEMP
-		EEVEE_lightprobes_render_planars(sldata, vedata);
-
-		EEVEE_lightprobes_refresh(sldata, vedata);
-		DRW_stats_group_end();
-
-		/* Refresh shadows */
-		DRW_stats_group_start("Shadows");
-		EEVEE_draw_shadows(sldata, psl);
-		DRW_stats_group_end();
-
-		/* Attach depth to the hdr buffer and bind it */
-		DRW_framebuffer_texture_detach(dtxl->depth);
-		DRW_framebuffer_texture_attach(fbl->main, dtxl->depth, 0, 0);
-		DRW_framebuffer_bind(fbl->main);
-		DRW_framebuffer_clear(false, true, true, NULL, 1.0f);
-
-		if ((((stl->effects->enabled_effects & EFFECT_TAA) != 0) && stl->effects->taa_current_sample > 1) || m_doingProbeUpdate) {
-			DRW_viewport_matrix_override_set(stl->effects->overide_persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_override_set(stl->effects->overide_persinv, DRW_MAT_PERSINV);
-			DRW_viewport_matrix_override_set(stl->effects->overide_winmat, DRW_MAT_WIN);
-			DRW_viewport_matrix_override_set(stl->effects->overide_wininv, DRW_MAT_WININV);
-		}
-		if (m_doingProbeUpdate) {
-			KX_Camera *cam = GetActiveCamera();
-			float viewmat[4][4], viewinv[4][4];
-			cam->GetModelviewMatrix().getValue(&viewmat[0][0]);
-			invert_m4_m4(viewinv, viewmat);
-			DRW_viewport_matrix_override_set(viewmat, DRW_MAT_VIEW);
-			DRW_viewport_matrix_override_set(viewinv, DRW_MAT_VIEWINV);
-		}
-
-		/* Depth prepass */
-		DRW_stats_group_start("Prepass");
-		DRW_draw_pass(psl->depth_pass);
-		DRW_draw_pass(psl->depth_pass_cull);
-		DRW_stats_group_end();
-
-		/* Create minmax texture */
-		DRW_stats_group_start("Main MinMax buffer");
-		EEVEE_create_minmax_buffer(vedata, dtxl->depth, -1);
-		DRW_stats_group_end();
-
-		EEVEE_occlusion_compute(sldata, vedata);
-		EEVEE_volumes_compute(sldata, vedata);
-
-		/* Shading pass */
-		DRW_stats_group_start("Shading");
-		DRW_draw_pass(psl->background_pass);
-		EEVEE_draw_default_passes(psl);
-		DRW_draw_pass(psl->material_pass);
-		EEVEE_subsurface_data_render(sldata, vedata);
-		DRW_stats_group_end();
-
-		/* Effects pre-transparency */
-		EEVEE_subsurface_compute(sldata, vedata);
-		EEVEE_reflection_compute(sldata, vedata);
-		EEVEE_occlusion_draw_debug(sldata, vedata);
-		DRW_draw_pass(psl->probe_display);
-		EEVEE_refraction_compute(sldata, vedata);
-
-		/* Opaque refraction */
-		DRW_stats_group_start("Opaque Refraction");
-		DRW_draw_pass(psl->refract_depth_pass);
-		DRW_draw_pass(psl->refract_depth_pass_cull);
-		DRW_draw_pass(psl->refract_pass);
-		DRW_stats_group_end();
-
-		/* Volumetrics Resolve Opaque */
-		EEVEE_volumes_resolve(sldata, vedata);
-
-		/* Transparent */
-		DRW_pass_sort_shgroup_z(psl->transparent_pass);
-		DRW_draw_pass(psl->transparent_pass);
-
-		/* Post Process */
-		DRW_stats_group_start("Post FX");
-		EEVEE_draw_effects(vedata);
-		DRW_stats_group_end();
-
-		if (stl->effects->taa_current_sample > 1 || m_doingProbeUpdate) {
-			DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
-			DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
-			DRW_viewport_matrix_override_unset(DRW_MAT_WIN);
-			DRW_viewport_matrix_override_unset(DRW_MAT_WININV);
-		}
-	}
-
-	EEVEE_volumes_free_smoke_textures();
-
-	stl->g_data->view_updated = false;
-}
-/*************************End of EEVEE SCENE DRAWING*********************/
-
-/*****************************TAA UTILS**********************************/
-/* Utils for TAA to check if nothing is moving inside view frustum (or anywhere when using probes) */
-void KX_Scene::AppendToStaticObjects(KX_GameObject *gameobj)
-{
-	m_staticObjects.push_back(gameobj);
-}
-
-void KX_Scene::AppendToStaticObjectsInsideFrustum(KX_GameObject *gameobj)
-{
-	m_staticObjectsInsideFrustum.push_back(gameobj);
-}
-
-bool KX_Scene::ComputeTAA(const KX_CullingNodeList& nodes)
-{
-	if (nodes.size() == 0) {
-		return false;
-	}
-	if (m_lightProbes.size() > 0) {
-		if (m_staticObjects.size() != GetObjectList()->GetCount()) {
-			return false;
-		}
-	}
-	if (m_staticObjectsInsideFrustum.size() != nodes.size()) {
-		return false;
-	}
-	return true;
-}
-/************************End of TAA UTILS**************************/
-
-/***********************EEVEE SHADOWS******************************/
-
-/* Shadows utils */
-enum LightShadowType {
-	SHADOW_CUBE = 0,
-	SHADOW_CASCADE
-};
-
-typedef struct ShadowCaster {
-	struct ShadowCaster *next, *prev;
-	void *ob;
-	bool prune;
-} ShadowCaster;
-
-/* Used for checking if object is inside the shadow volume. */
-static bool cube_bbox_intersect(const float cube_center[3], float cube_half_dim, const BoundBox *bb, float(*obmat)[4])
-{
-	float min[3], max[4], tmp[4][4];
-	unit_m4(tmp);
-	translate_m4(tmp, -cube_center[0], -cube_center[1], -cube_center[2]);
-	mul_m4_m4m4(tmp, tmp, obmat);
-
-	/* Just simple AABB intersection test in world space. */
-	INIT_MINMAX(min, max);
-	for (int i = 0; i < 8; ++i) {
-		float vec[3];
-		copy_v3_v3(vec, bb->vec[i]);
-		mul_m4_v3(tmp, vec);
-		minmax_v3v3_v3(min, max, vec);
-	}
-
-	float threshold = cube_half_dim / 10.0f;
-	if (MAX3(min[0], min[1], min[2]) > cube_half_dim + threshold) {
-		return false;
-	}
-	if (MIN3(max[0], max[1], max[2]) < -cube_half_dim - threshold) {
-		return false;
-	}
-
-	return true;
-}
-
-static ShadowCaster *search_object_in_list(ListBase *list, Object *ob)
-{
-	for (ShadowCaster *ldata = (ShadowCaster *)list->first; ldata; ldata = ldata->next) {
-		if (ldata->ob == ob)
-			return ldata;
-	}
-
-	return NULL;
-}
-
-static void light_tag_shadow_update(KX_LightObject *light, KX_GameObject *gameobj)
-{
-	Object *oblamp = light->GetBlenderObject();
-	Lamp *la = (Lamp *)oblamp->data;
-	Object *ob = gameobj->GetBlenderObject();
-	EEVEE_LampEngineData *led = EEVEE_lamp_data_get(oblamp);
-
-	bool is_inside_range = cube_bbox_intersect(oblamp->obmat[3], la->clipend, BKE_object_boundbox_get(ob), ob->obmat);
-
-	if (is_inside_range) {
-		if (gameobj->NeedShadowUpdate()) {
-			led->need_update = true;
-		}
-	}
-	else {
-		led->need_update = false;
-	}
-}
-
-/* End of Shadows utils */
-
-/* Update shadows (update light position and tag shadow cubes for update (led->needs_update) */
-void KX_Scene::UpdateShadows(RAS_Rasterizer *rasty)
-{
-	CListValue<KX_LightObject> *lightlist = GetLightList();
-
-	rasty->SetAuxilaryClientInfo(this);
-	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
-	EEVEE_PassList *psl = EEVEE_engine_data_get()->psl;
-	EEVEE_LampsInfo *linfo = sldata->lamps;
-
-	for (KX_LightObject *light : lightlist) {
-		if (!light->GetVisible()) {
-			continue;
-		}
-
-		RAS_ILightObject *raslight = light->GetLightData();
-		Object *ob = light->GetBlenderObject();
-		EEVEE_LampEngineData *led = EEVEE_lamp_data_get(ob);
-		Lamp *la = (Lamp *)ob->data;
-		LightShadowType shadowtype = la->type != LA_SUN ? SHADOW_CUBE : SHADOW_CASCADE;
-
-		if (raslight->NeedShadowUpdate()) {
-
-			if (shadowtype == SHADOW_CUBE) {
-				for (KX_GameObject *gameob : GetObjectList()) {
-					Object *blenob = gameob->GetBlenderObject();
-					if (blenob && blenob->type == OB_MESH) {
-						light_tag_shadow_update(light, gameob);
-					}
-				}
-			}
-		}
-	}
-	EEVEE_lights_cache_finish(sldata);
-}
-
-/***********************End of EEVEE SHADOWS*****************************/
-
-/****************************PROBES**************************************/
-void KX_Scene::UpdateProbes()
-{
-	if (m_lightProbes.size() == 0 || !m_firstFrameRendered) {
-		return;
-	}
-
-	m_doingProbeUpdate = true;
-
-	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
-	EEVEE_Data *vedata = EEVEE_engine_data_get();
-
-	EEVEE_lightprobes_cache_init(sldata, vedata);
-	for (KX_GameObject *kxprobe : GetProbeList()) {
-		EEVEE_lightprobes_cache_add(sldata, kxprobe->GetBlenderObject());
-	}
-
-	EEVEE_lightprobes_cache_finish(sldata, vedata);
-}
-/*********************End of PROBES**************************************/
-
-/********************EEVEE'S POST PROCESSING*****************************/
-
-void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
-{
-	EEVEE_Data *vedata = EEVEE_engine_data_get();
-	EEVEE_EffectsInfo *effects = vedata->stl->effects;
-	EEVEE_StorageList *stl = vedata->stl;
-	ViewLayer *view_layer = BKE_view_layer_from_scene_get(GetBlenderScene());
-	IDProperty *props = BKE_view_layer_engine_evaluated_get(view_layer, COLLECTION_MODE_NONE, RE_engine_id_BLENDER_EEVEE);
-	KX_Camera *cam = GetActiveCamera();
-
-	/* Update TAA when the view is not moving and nothing in the view frustum is moving */
-	if (effects->enabled_effects & EFFECT_TAA) {
-
-		const float *viewport_size = DRW_viewport_size_get();
-		float persmat[4][4], viewmat[4][4];
-
-		/* Until we support reprojection, we need to make sure
-		* that the history buffer contains correct information. */
-		bool view_is_valid = stl->g_data->valid_double_buffer;
-
-		view_is_valid = view_is_valid && (stl->g_data->view_updated == false);
-
-		effects->taa_total_sample = BKE_collection_engine_property_value_get_int(props, "taa_samples");
-		MAX2(effects->taa_total_sample, 0);
-
-		DRW_viewport_matrix_get(persmat, DRW_MAT_PERS);
-		DRW_viewport_matrix_get(viewmat, DRW_MAT_VIEW);
-		DRW_viewport_matrix_get(effects->overide_winmat, DRW_MAT_WIN);
-
-		bool view_not_changed = compare_m4m4(persmat, effects->prev_drw_persmat, 0.000001);
-
-		view_is_valid = view_is_valid && view_not_changed;
-		copy_m4_m4(effects->prev_drw_persmat, persmat);
-
-		/* Prevent ghosting from probe data. */
-		view_is_valid = view_is_valid && (effects->prev_drw_support == DRW_state_draw_support());
-		effects->prev_drw_support = DRW_state_draw_support();
-
-		view_is_valid = view_is_valid && ComputeTAA(nodes);
-
-		if (view_is_valid && m_firstFrameRendered) {
-
-			effects->taa_current_sample += 1;
-
-			if (effects->taa_current_sample < 50) {
-				effects->taa_alpha = 1.0f / (float)(effects->taa_current_sample);
-			}
-
-			double ht_point[2];
-			double ht_offset[2] = { 0.0, 0.0 };
-			unsigned int ht_primes[2] = { 2, 3 };
-
-			BLI_halton_2D(ht_primes, ht_offset, effects->taa_current_sample - 1, ht_point);
-
-			window_translate_m4(
-				effects->overide_winmat, persmat,
-				((float)(ht_point[0]) * 2.0f - 1.0f) / viewport_size[0],
-				((float)(ht_point[1]) * 2.0f - 1.0f) / viewport_size[1]);
-
-			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
-			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
-			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
-
-			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
-			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
-			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
-
-			m_doingTAA = true;
-		}
-		else if (!view_is_valid && m_doingProbeUpdate) {
-
-			effects->taa_current_sample = 1;
-
-			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
-			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
-			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
-
-			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
-			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
-			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
-
-			m_doingTAA = false;
-		}
-
-		else {
-			effects->taa_current_sample = 1;
-
-			m_doingTAA = false;
-		}
-	}
-
-	else {
-		if (m_doingProbeUpdate) {
-			effects->taa_current_sample = 1;
-
-			float persmat[4][4], viewmat[4][4];
-
-			DRW_viewport_matrix_get(persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_get(viewmat, DRW_MAT_VIEW);
-			DRW_viewport_matrix_get(effects->overide_winmat, DRW_MAT_WIN);
-
-			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
-			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
-			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
-
-			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
-			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
-			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
-		}
-	}
-
-	if (effects->enabled_effects & EFFECT_VOLUMETRIC) {
-
-		EEVEE_VolumetricsInfo *volumetrics = EEVEE_view_layer_data_get()->volumetrics;
-
-		/* Temporal Super sampling jitter */
-		double ht_point[3];
-		double ht_offset[3] = { 0.0, 0.0 };
-		unsigned int ht_primes[3] = { 3, 7, 2 };
-		unsigned int current_sample = 0;
-
-		/* If TAA is in use do not use the history buffer. */
-		bool do_taa = ((effects->enabled_effects & EFFECT_TAA) != 0) && m_doingTAA;
-
-		if (do_taa) {
-			volumetrics->history_alpha = 0.0f;
-			current_sample = effects->taa_current_sample - 1;
-			effects->volume_current_sample = -1;
-		}
-		else {
-			const unsigned int max_sample = (ht_primes[0] * ht_primes[1] * ht_primes[2]);
-			current_sample = effects->volume_current_sample = max_sample; // Too much flickering in bge here if we keep eevee's code
-																		  // eevee_volumes line 234
-
-			if (current_sample != max_sample - 1) {
-				DRW_viewport_request_redraw();
-			}
-		}
-		BLI_halton_3D(ht_primes, ht_offset, current_sample, ht_point);
-
-		volumetrics->jitter[0] = (float)ht_point[0];
-		volumetrics->jitter[1] = (float)ht_point[1];
-		volumetrics->jitter[2] = (float)ht_point[2];
-	}
-
-	if (effects->enabled_effects & EFFECT_DOF && !m_dofInitialized) {
-		/* Depth Of Field */
-		KX_Camera *cam = GetActiveCamera();
-		float sensorSize = cam->GetCameraData()->m_sensor_x;
-		/* Only update params that needs to be updated */
-		float scaleCamera = 0.001f;
-		float sensorScaled = scaleCamera * sensorSize;
-		effects->dof_params[2] = (KX_GetActiveEngine()->GetCanvas()->GetWidth() + 1) / (1.0f * sensorScaled);
-		m_dofInitialized = true;
-	}
-
-	/* Hack for motion blur */
-	if (effects->enabled_effects & EFFECT_MOTION_BLUR) {
-		float shutter = BKE_collection_engine_property_value_get_float(m_idProperty, "motion_blur_shutter");
-		float camToWorld[4][4];
-		GetActiveCamera()->GetCameraToWorld().getValue(&camToWorld[0][0]);
-		camToWorld[3][0] *= shutter;
-		camToWorld[3][1] *= shutter;
-		camToWorld[3][2] *= shutter;
-		copy_m4_m4(effects->current_ndc_to_world, camToWorld);
-	}
-}
-
-void KX_Scene::EeveePostProcessingHackEnd()
-{
-	EEVEE_Data *vedata = EEVEE_engine_data_get();
-	EEVEE_EffectsInfo *effects = vedata->stl->effects;
-	KX_Camera *cam = GetActiveCamera();
-
-	/* Hack for motion blur */
-	if (effects->enabled_effects & EFFECT_MOTION_BLUR) {
-		float shutter = BKE_collection_engine_property_value_get_float(m_idProperty, "motion_blur_shutter");
-		float worldToCam[4][4];
-		cam->GetWorldToCamera().getValue(&worldToCam[0][0]);
-		worldToCam[3][0] *= shutter;
-		worldToCam[3][1] *= shutter;
-		worldToCam[3][2] *= shutter;
-		copy_m4_m4(effects->past_world_to_ndc, worldToCam);
-	}
-
-	/* Hack for SSR : See eevee_screen_raytrace line 155 */
-	if (effects->enabled_effects & EFFECT_SSR) {
-		/* Reattach textures to the right buffer (because we are alternating between buffers) */
-		/* TODO multiple FBO per texture!!!! */
-		DRW_framebuffer_texture_detach(vedata->txl->ssr_specrough_input);
-		DRW_framebuffer_texture_attach(vedata->fbl->main, vedata->txl->ssr_normal_input, 1, 0);
-		DRW_framebuffer_texture_attach(vedata->fbl->main, vedata->txl->ssr_specrough_input, 2, 0);
-	}
-}
-
-/******************End of EEVEE'S POST PROCESSING***************************/
-
-/****ACTIVITY CULLING, CULLING, MATRIX UPDATE, CALL RENDER MAINLOOP*********/
-void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer *rasty)
-{
-	/* Update blenderobjects matrix as we use it for eevee's shadows */
-	for (KX_GameObject *gameobj : GetObjectList()) {
-		gameobj->UpdateBlenderObjectMatrix(nullptr);
-		gameobj->TagForUpdate();
-		if (gameobj->GetCulled() || !gameobj->GetVisible()) {
-			gameobj->DiscardMaterialBatches();
-			gameobj->m_wasculled = true; // TODO: replace with functions getter/setter
-			gameobj->m_wasVisible = false;
-		}
-		else {
-			if (gameobj->m_wasculled || !gameobj->m_wasVisible) {
-				float obmat[4][4];
-				gameobj->NodeGetWorldTransform().getValue(&obmat[0][0]);
-				gameobj->RestoreMaterialBatches(obmat);
-				gameobj->m_wasculled = false;
-				gameobj->m_wasVisible = true;
-			}
-		}
-	}
-
-	UpdateShadows(rasty);
-
-	/* Update of eevee's post processing before scene rendering */
-	EeveePostProcessingHackBegin(nodes);
-
-	UpdateProbes();
-
-	m_staticObjects.clear();
-	m_staticObjectsInsideFrustum.clear();
-
-	/* Start Drawing */
-	DRW_state_reset();
-	EEVEE_draw_scene();
-	DRW_state_reset();
-
-	/* Update of eevee's post processing before after rendering */
-	EeveePostProcessingHackEnd();
-
-	m_firstFrameRendered = true;
-
-	KX_BlenderMaterial::EndFrame(rasty);
-}
-
-/**End of ACTIVITY CULLING, CULLING, MATRIX UPDATE, CALL RENDER MAINLOOP**/
-
-/*************************************End of EEVEE INTEGRATION*********************************************/
 
 void KX_Scene::UpdateObjectLods(KX_Camera *cam, const KX_CullingNodeList& nodes)
 {

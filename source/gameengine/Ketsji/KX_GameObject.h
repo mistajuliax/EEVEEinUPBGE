@@ -66,7 +66,10 @@ struct Object;
 class KX_ObstacleSimulation;
 class KX_CollisionContactPointList;
 struct bAction;
+
+/* EEVEE INTEGRATION */
 struct Gwn_Batch;
+/* End of EEVEE INTEGRATION */
 
 #ifdef WITH_PYTHON
 /* utility conversion function */
@@ -142,18 +145,18 @@ protected:
 public:
 
 	/* EEVEE INTEGRATION */
-	void AddMaterialShadingGroups();
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
 
-	void AddMaterialBatches();
 	std::vector<Gwn_Batch *>GetMaterialBatches();
+	void AddMaterialBatches();
 	void DiscardMaterialBatches();
 	void RestoreMaterialBatches(float obmat[4][4]);
 	void AddNewMaterialBatchesToPasses(float obmat[4][4]);
 
 	void SetKXGameObjectCallsPointer();
 
-	void TagForUpdate();
+	void TagForUpdate(); // It was UpdateBuckets before
+
 	bool NeedShadowUpdate();
 	bool m_wasculled;
 

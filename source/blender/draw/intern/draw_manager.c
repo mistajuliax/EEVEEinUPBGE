@@ -3995,6 +3995,7 @@ void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, void
 	}
 }
 
+/* TODO: assign to all KX_GameObject directly its own list of DRWCalls */
 void DRW_game_call_set_kxob_pointer(DRWShadingGroup *shgroup, Gwn_Batch *batch, Object *ob, void *kxob)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
@@ -4070,15 +4071,16 @@ static void drw_game_camera_border(
 static void drw_game_disable_double_buffer_check()
 {
 	/* When uniforms are passed to the shaders, there is a control if
-	* stl->g_data->valid_double_buffer is true if we want to enable SSR
-	* As there is no valid frame before game start, stl->g_data->valid_double_buffer
-	* is set to false. This is causing issues with my simplified implementation of SSR
-	* so I set it to true here before the uniforms are passed.
-	*/
+	 * stl->g_data->valid_double_buffer is true if we want to enable SSR
+	 * As there is no valid frame before game start, stl->g_data->valid_double_buffer
+	 * is set to false. This is causing issues with my simplified implementation of SSR
+	 * so I set it to true here before the uniforms are passed.
+	 */
 	EEVEE_StorageList *stl = EEVEE_engine_data_get()->stl;
-	stl->g_data->valid_double_buffer = true;
+	stl->g_data->valid_double_buffer = true; // TODO: check issue when we are not in camera view
 }
 
+/* Custom code for BGE to allow us to use camera motion blur eevee's shader */
 static void drw_game_motion_blur_init()
 {
 	EEVEE_Data *vedata = EEVEE_engine_data_get();
@@ -4111,6 +4113,7 @@ static void drw_game_motion_blur_init()
 	}
 }
 
+// Here I duplicate code in eevee_data.c to avoid to change eevee's sources (static function in eevee_data.c)
 static void drw_game_eevee_view_layer_data_free()
 {
 	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
@@ -4147,7 +4150,7 @@ static void drw_game_eevee_view_layer_data_free()
 }
 
 void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
-	Scene *scene, ViewLayer *cur_view_layer, Object *maincam, int viewportsize[2])
+	Scene *scene, ViewLayer *cur_view_layer, Object *maincam)
 {
 	memset(&DST, 0x0, sizeof(DST));
 
@@ -4157,9 +4160,11 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 
 	GPU_viewport_engine_data_create(DST.viewport, &draw_engine_eevee_type);
 
+	const float *viewport_size = DRW_viewport_size_get();
+
 	ARegion ar;
-	ar.winx = viewportsize[0];
-	ar.winy = viewportsize[1];
+	ar.winx = (int)viewport_size[0];
+	ar.winy = (int)viewport_size[1];
 
 	View3D v3d;
 	Object *obcam = maincam;
@@ -4184,9 +4189,9 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	DST.draw_ctx.rv3d = &rv3d;
 
 	/* We don't use bContext in bge
-	* (not possible or very difficult
-	* with blenderplayer I guess
-	*/
+	 * (not possible or very difficult
+	 * with blenderplayer I guess
+	 */
 	DST.draw_ctx.evil_C = NULL;
 
 	DST.draw_ctx.v3d->zbuf = true;
@@ -4208,8 +4213,8 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	DEG_OBJECT_ITER(graph, ob, DEG_ITER_OBJECT_FLAG_LINKED_DIRECTLY | DEG_ITER_OBJECT_FLAG_LINKED_VIA_SET | DEG_ITER_OBJECT_FLAG_DUPLI);
 	{
 		/* We want to populate cache even with objects in invisible layers.
-		* (we'll remove them from psl->material_pass later).
-		*/
+		 * (we'll remove them from eevee's passes later).
+		 */
 		bool mesh_is_invisible = (ob->base_flag & BASE_VISIBLED) == 0 && ob->type == OB_MESH;
 		if (mesh_is_invisible) {
 			ob->base_flag |= BASE_VISIBLED;
@@ -4225,8 +4230,16 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 
 	DRW_state_reset();
 	drw_engines_disable();
+
+	/* Fixes issue with volumetrics at blenderplayer start but creates issues in embedded
+	 * (e_data.update_world?)
+	 */
+	EEVEE_Data *vedata = EEVEE_engine_data_get();
+	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+	//EEVEE_lightprobes_refresh(sldata, vedata);
 }
 
+/* TODO: Fix memory leaks */
 void DRW_game_render_loop_end()
 {
 	drw_viewport_cache_resize();
