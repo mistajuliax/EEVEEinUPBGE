@@ -114,10 +114,10 @@ void EDIT_ARMATURE_collection_settings_create(struct IDProperty *properties);
 void PAINT_WEIGHT_collection_settings_create(struct IDProperty *properties);
 void PAINT_VERTEX_collection_settings_create(struct IDProperty *properties);
 
-/*************************************************Game engine************************************************/
+/*********************************************Game engine transition************************************************/
 void DRW_game_render_loop_begin(struct GPUOffScreen *ofs, struct Main *bmain,
 	struct Scene *scene, struct ViewLayer *view_layer, struct Object *maincam);
 void DRW_game_render_loop_end(void);
-/********************************************End of game engine**********************************************/
+/*******************************************End of game engine transition*******************************************/
 
 #endif /* __DRW_ENGINE_H__ */
