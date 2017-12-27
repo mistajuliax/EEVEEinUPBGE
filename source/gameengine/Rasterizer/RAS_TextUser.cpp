@@ -74,11 +74,6 @@ const MT_Vector3& RAS_TextUser::GetSpacing() const
 	return m_spacing;
 }
 
-const std::vector<std::string>& RAS_TextUser::GetTexts() const
-{
-	return m_texts;
-}
-
 void RAS_TextUser::SetFontId(int fontid)
 {
 	m_fontid = fontid;

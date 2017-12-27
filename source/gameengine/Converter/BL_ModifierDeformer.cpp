@@ -66,6 +66,16 @@ extern "C" {
 #include "BLI_blenlib.h"
 #include "BLI_math.h"
 
+/* EEVEE INTEGRATION */
+extern "C" {
+#  include "BKE_main.h"
+}
+
+#include "KX_BlenderConverter.h"
+#include "KX_Globals.h"
+#include "KX_KetsjiEngine.h"
+/* End of EEVEE INTEGRATION */
+
 BL_ModifierDeformer::~BL_ModifierDeformer()
 {
 	if (m_dm) {
@@ -135,7 +145,6 @@ bool BL_ModifierDeformer::HasArmatureDeformer(Object *ob)
 DerivedMesh *BL_ModifierDeformer::GetPhysicsMesh()
 {
 	/* TODO: This doesn't work currently because of eval_ctx. */
-#if 0
 	/* we need to compute the deformed mesh taking into account the current
 	 * shape and skin deformers, we cannot just call mesh_create_derived_physics()
 	 * because that would use the m_transvers already deformed previously by BL_ModifierDeformer::Update(),
@@ -149,7 +158,8 @@ DerivedMesh *BL_ModifierDeformer::GetPhysicsMesh()
 	 * It may not be the case here because of replace mesh actuator */
 	Mesh *oldmesh = (Mesh *)blendobj->data;
 	blendobj->data = m_bmesh;
-	DerivedMesh *dm = mesh_create_derived_physics(m_scene, blendobj, m_transverts, CD_MASK_MESH);
+	EvaluationContext *eval_ctx = KX_GetActiveEngine()->GetConverter()->GetMain()->eval_ctx;
+	DerivedMesh *dm = mesh_create_derived_physics(eval_ctx, m_scene, blendobj, m_transverts, CD_MASK_MESH);
 	/* restore object data */
 	blendobj->data = oldmesh;
 
@@ -159,14 +169,11 @@ DerivedMesh *BL_ModifierDeformer::GetPhysicsMesh()
 	/* m_transverts is correct here (takes into account deform only modifiers) */
 	/* the derived mesh returned by this function must be released by the caller !!! */
 	return dm;
-#endif
-	return NULL;
 }
 
 bool BL_ModifierDeformer::Update(void)
 {
 	/* TODO: This doesn't work currently because of eval_ctx. */
-#if 0
 	bool bShapeUpdate = BL_ShapeDeformer::Update();
 
 	if (bShapeUpdate || m_lastModifierUpdate != m_gameobj->GetLastFrame()) {
@@ -181,7 +188,8 @@ bool BL_ModifierDeformer::Update(void)
 			Mesh *oldmesh = (Mesh *)blendobj->data;
 			blendobj->data = m_bmesh;
 			/* execute the modifiers */
-			DerivedMesh *dm = mesh_create_derived_no_virtual(m_scene, blendobj, m_transverts, CD_MASK_MESH);
+			EvaluationContext *eval_ctx = KX_GetActiveEngine()->GetConverter()->GetMain()->eval_ctx;
+			DerivedMesh *dm = mesh_create_derived_no_virtual(eval_ctx, m_scene, blendobj, m_transverts, CD_MASK_MESH);
 			/* restore object data */
 			blendobj->data = oldmesh;
 			/* free the current derived mesh and replace, (dm should never be nullptr) */
@@ -213,16 +221,9 @@ bool BL_ModifierDeformer::Update(void)
 		}
 		m_lastModifierUpdate = m_gameobj->GetLastFrame();
 		bShapeUpdate = true;
-
-		RAS_MeshUser *meshUser = m_gameobj->GetMeshUser();
-		for (RAS_MeshSlot *slot : meshUser->GetMeshSlots()) {
-			slot->m_pDerivedMesh = m_dm;
-		}
 	}
 
 	return bShapeUpdate;
-#endif
-	return false;
 }
 
 bool BL_ModifierDeformer::Apply(RAS_MeshMaterial *meshmat, RAS_IDisplayArray *array)

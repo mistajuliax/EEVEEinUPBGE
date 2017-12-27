@@ -50,7 +50,6 @@
 class RAS_OpenGLRasterizer;
 class RAS_FrameBuffer;
 class RAS_ICanvas;
-class RAS_MeshSlot;
 class RAS_IDisplayArray;
 class SCA_IScene;
 struct KX_ClientObjectInfo;
@@ -351,9 +350,6 @@ public:
 	 * \param index The off screen index to read from.
 	 */
 	void DrawFrameBuffer(RAS_ICanvas *canvas, RAS_FrameBuffer *frameBuffer);
-
-	/// Render text mesh slot using BLF functions.
-	void IndexPrimitivesText(RAS_MeshSlot *ms);
  
 	/// Get the modelview matrix.
 	MT_Matrix4x4 GetViewMatrix(const MT_Transform &camtrans, bool perspective);

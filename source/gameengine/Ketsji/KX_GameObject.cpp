@@ -863,7 +863,6 @@ void KX_GameObject::UpdateBuckets()
 
 	m_meshUser->SetColor(m_objectColor);
 	m_meshUser->SetFrontFace(!m_bIsNegativeScaling);
-	m_meshUser->ActivateMeshSlots();
 }
 
 void KX_GameObject::RemoveMeshes()
