@@ -1582,7 +1582,7 @@ KX_GameObject *KX_Scene::AddReplicaObject(KX_GameObject *originalobject, KX_Game
 void KX_Scene::RemoveObject(KX_GameObject *gameobj)
 {
 	// Discard geometry (gameobj gaiwan batches)
-	gameobj->DiscardMaterialBatches();
+	gameobj->DiscardMaterialBatches(); // Here we shouldn't use that -> TODO: RemoveMaterialBatches
 	// disconnect child from parent
 	SG_Node* node = gameobj->GetSGNode();
 
