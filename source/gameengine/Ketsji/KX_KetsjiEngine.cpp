@@ -518,9 +518,6 @@ bool KX_KetsjiEngine::GetFrameRenderData(std::vector<FrameRenderData>& frameData
 		SceneRenderData& sceneFrameData = frameData.m_sceneDataList.back();
 
 		KX_Camera *activecam = scene->GetActiveCamera();
-		/* TEMP -> needs to be optimised */
-		activecam->UpdateViewVecs(EEVEE_engine_data_get()->stl);
-
 		KX_Camera *overrideCullingCam = scene->GetOverrideCullingCamera();
 		for (KX_Camera *cam : scene->GetCameraList()) {
 			if (cam != activecam && !cam->GetViewport()) {
@@ -834,6 +831,9 @@ void KX_KetsjiEngine::RenderCamera(KX_Scene *scene, const CameraRenderData& came
 
 	m_rasterizer->SetMatrix(rendercam->GetModelviewMatrix(), rendercam->GetProjectionMatrix(),
 							rendercam->NodeGetWorldPosition(), rendercam->NodeGetLocalScaling());
+
+	/* TEMP -> needs to be optimised */
+	rendercam->UpdateViewVecs(EEVEE_engine_data_get()->stl);
 
 	m_logger.StartLog(tc_scenegraph, m_kxsystem->GetTimeInSeconds());
 

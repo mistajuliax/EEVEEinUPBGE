@@ -114,7 +114,8 @@ void KX_Camera::UpdateViewVecs(EEVEE_StorageList *stl)
 	};
 
 	/* invert the view matrix */
-	GetProjectionMatrix().getValue(&winmat[0][0]);
+	DRW_viewport_matrix_get(winmat, DRW_MAT_WIN);
+	//GetProjectionMatrix().getValue(&winmat[0][0]);
 	invert_m4_m4(invproj, winmat);
 
 	/* convert the view vectors to view space */
