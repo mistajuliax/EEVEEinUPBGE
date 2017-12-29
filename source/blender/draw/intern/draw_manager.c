@@ -4149,6 +4149,8 @@ static void drw_game_eevee_view_layer_data_free()
 	MEM_SAFE_FREE(sldata->volumetrics);
 }
 
+static Camera *default_cam;
+
 void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	Scene *scene, ViewLayer *cur_view_layer, Object *maincam)
 {
@@ -4167,7 +4169,15 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	ar.winy = (int)viewport_size[1];
 
 	View3D v3d;
-	Object *obcam = maincam;
+
+	Object *obcam;
+	if (!maincam) {
+		default_cam = BKE_camera_add(bmain, "default_cam");
+		obcam = (Object *)default_cam;
+	}
+	else {
+		obcam = maincam;
+	}
 	Camera *cam = (Camera *)obcam;
 	v3d.camera = obcam;
 	v3d.lens = cam->lens;
@@ -4242,6 +4252,10 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 /* TODO: Fix memory leaks */
 void DRW_game_render_loop_end()
 {
+	if (default_cam) {
+		BKE_camera_free(default_cam);
+	}
+
 	drw_viewport_cache_resize();
 
 	GPU_viewport_free(DST.viewport);
