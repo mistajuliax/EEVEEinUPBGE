@@ -449,12 +449,6 @@ void KX_Scene::EEVEE_draw_scene()
 		/* Refresh Probes */
 		DRW_stats_group_start("Probes Refresh");
 
-		/* BGE SPECIFIC CODE */
-		// We need this to update planars in bge
-		EEVEE_lightprobes_render_planars(sldata, vedata);
-		/* End og BGE SPECIFIC CODE */
-
-
 		EEVEE_lightprobes_refresh(sldata, vedata);
 		DRW_stats_group_end();
 
@@ -462,6 +456,11 @@ void KX_Scene::EEVEE_draw_scene()
 		DRW_stats_group_start("Shadows");
 		EEVEE_draw_shadows(sldata, psl);
 		DRW_stats_group_end();
+
+		/* BGE SPECIFIC CODE */
+		// We need this to update planars in bge
+		EEVEE_lightprobes_render_planars(sldata, vedata);
+		/* End og BGE SPECIFIC CODE */
 
 		/* Attach depth to the hdr buffer and bind it */
 		DRW_framebuffer_texture_detach(dtxl->depth);
