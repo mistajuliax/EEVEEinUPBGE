@@ -148,12 +148,15 @@ public:
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
 
 	std::vector<Gwn_Batch *>GetMaterialBatches();
-	void AddMaterialBatches();
-	void DiscardMaterialBatches();
-	void RestoreMaterialBatches(float obmat[4][4]);
-	void AddNewMaterialBatchesToPasses(float obmat[4][4]);
 
 	void SetKXGameObjectCallsPointer();
+
+	void AddMaterialBatches();
+	void DesactivateMaterialBatches(); // cull objects in inactive collections
+	void DiscardMaterialBatches();
+	void RestoreMaterialBatches(float obmat[4][4]);
+	void AddNewMaterialBatchesToPasses(float obmat[4][4]); // AddObject
+	void RemoveMaterialBatches(); // EndObject
 
 	void TagForUpdate(); // It was UpdateBuckets before
 

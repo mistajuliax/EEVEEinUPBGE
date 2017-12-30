@@ -1334,8 +1334,8 @@ static void bl_ConvertBlenderObject_Single(
 		//at the end of this function if it is not a root object
 		inactivelist->Add(CM_AddRef(gameobj));
 
-		/* EEVEE INTEGRATION (cull objects in anactive layers (collections) */
-		gameobj->DiscardMaterialBatches();
+		/* EEVEE INTEGRATION (cull/desactivate objects in anactive layers (collections)) */
+		gameobj->DesactivateMaterialBatches();
 		/* End of EEVEE INTEGRATION */
 	}
 }

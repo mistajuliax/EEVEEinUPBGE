@@ -260,7 +260,39 @@ std::vector<Gwn_Batch *>KX_GameObject::GetMaterialBatches()
 	return m_materialBatches;
 }
 
-/* Use for EndObject (temp) + to discard batches in inactive layers at BlenderDataConversion + for culling */
+/* Used to identify a DRWCall in the cache */
+void KX_GameObject::SetKXGameObjectCallsPointer()
+{
+	for (Gwn_Batch *b : m_materialBatches) {
+		for (DRWShadingGroup *sh : m_materialShGroups) {
+			DRW_game_call_set_kxob_pointer(sh, b, GetBlenderObject(), (void *)this);
+		}
+	}
+}
+
+/* Use for AddObject */
+void KX_GameObject::AddNewMaterialBatchesToPasses(float obmat[4][4])
+{
+	for (Gwn_Batch *b : m_materialBatches) {
+		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
+			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
+				DRW_game_shgroup_call_add(sh, b, (void *)this, obmat);
+			}
+		}
+	}
+}
+
+/* Use for end object */
+void KX_GameObject::RemoveMaterialBatches()
+{
+	for (Gwn_Batch *b : m_materialBatches) {
+		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
+			DRW_game_call_remove_geometry(sh, b, (void *)this);
+		}
+	}
+}
+
+/* Use for culling */
 void KX_GameObject::DiscardMaterialBatches()
 {
 	for (Gwn_Batch *b : m_materialBatches) {
@@ -280,24 +312,12 @@ void KX_GameObject::RestoreMaterialBatches(float obmat[4][4])
 	}
 }
 
-/* Use for AddObject */
-void KX_GameObject::AddNewMaterialBatchesToPasses(float obmat[4][4])
+/* Use to discard batches in inactive layers at BlenderDataConversion */
+void KX_GameObject::DesactivateMaterialBatches()
 {
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
-				DRW_game_shgroup_call_add(sh, b, (void *)this, obmat);
-			}
-		}
-	}
-}
-
-/* Used to identify a DRWCall in the cache */
-void KX_GameObject::SetKXGameObjectCallsPointer()
-{
-	for (Gwn_Batch *b : m_materialBatches) {
-		for (DRWShadingGroup *sh : m_materialShGroups) {
-			DRW_game_call_set_kxob_pointer(sh, b, GetBlenderObject(), (void *)this);
+			DRW_game_call_desactivate_geometry(sh, b, (void *)this);
 		}
 	}
 }

@@ -463,6 +463,8 @@ void DRW_game_call_set_kxob_pointer(DRWShadingGroup *shgroup, struct Gwn_Batch *
 void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, struct Gwn_Batch *batch, void *kxob, float obmat[4][4]);
 void DRW_game_shgroup_call_add(DRWShadingGroup *shgroup, struct Gwn_Batch *batch, void *kxob, float(*obmat)[4]);
 void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, struct Gwn_Batch *batch, void *kxob);
+void DRW_game_call_desactivate_geometry(DRWShadingGroup *shgroup, struct Gwn_Batch *batch, void *kxob);
+void DRW_game_call_remove_geometry(DRWShadingGroup *shgroup, struct Gwn_Batch *batch, void *kxob);
 void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, struct Gwn_Batch *batch, void *kxob, float obmat[4][4]);
 bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, struct Gwn_Batch *batch);
 /**************************END OF GAME ENGINE*******************************/

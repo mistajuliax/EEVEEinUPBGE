@@ -257,6 +257,7 @@ typedef struct DRWCall {
 
 	void *kxob; // Game engine transition (pointer to KX_GameObject)
 	bool culled; // Game engine transition
+	bool is_in_inactive_collection; // Game engine transition
 
 	Object *ob; /* Optional */
 	ID *ob_data; /* Optional. */
@@ -2088,7 +2089,7 @@ static void draw_shgroup(DRWShadingGroup *shgroup, DRWState pass_state)
 			GPU_SELECT_LOAD_IF_PICKSEL(call);
 
 			if (call->head.type == DRW_CALL_SINGLE) {
-				if (!call->culled) { // Game engine transition
+				if (!call->culled && !call->is_in_inactive_collection) { // Game engine transition
 					draw_geometry(shgroup, call->geometry, call->obmat, call->ob_data);
 				}
 			}
@@ -3974,6 +3975,7 @@ void DRW_game_shgroup_call_add(DRWShadingGroup *shgroup, Gwn_Batch *geom, void *
 
 	call->kxob = kxob; // Game engine transition
 	call->culled = false; // Game engine transition
+	call->is_in_inactive_collection = false; // Game engine transition
 }
 
 bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)
@@ -3986,6 +3988,7 @@ bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batc
 	return false;
 }
 
+/* Update DRWCall obmat with KX_GameObject obmat */
 void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob, float obmat[4][4])
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
@@ -4005,6 +4008,17 @@ void DRW_game_call_set_kxob_pointer(DRWShadingGroup *shgroup, Gwn_Batch *batch, 
 	}
 }
 
+/* To cull/desactivate geometry of objects in inactive collections */
+void DRW_game_call_desactivate_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob)
+{
+	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
+		if (call->kxob == kxob) {
+			call->is_in_inactive_collection = true;
+		}
+	}
+}
+
+/* Used for render culling */
 void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
@@ -4014,11 +4028,24 @@ void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, 
 	}
 }
 
+/* Used for render culling */
 void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob, float obmat[4][4])
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
 		if (call->kxob == kxob) {
 			call->culled = false;
+		}
+	}
+}
+
+/* Used to Remove a DRWCall from DRWShadingGroup (when we end object) */
+void DRW_game_call_remove_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob)
+{
+	/* I hope this is correct... */
+	shgroup->calls = NULL;
+	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
+		if (call->kxob != kxob && !call->is_in_inactive_collection) {
+			DRW_game_shgroup_call_add(shgroup, call->geometry, call->kxob, call->obmat);
 		}
 	}
 }
