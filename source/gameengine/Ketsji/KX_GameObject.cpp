@@ -295,6 +295,13 @@ void KX_GameObject::RemoveMaterialBatches()
 			}
 		}
 	}
+	/* Once the shgroup has been reconstructed, we need to
+	 * cull again objects in inactiveList.
+	 * temp fix: Needs to be improved
+	 */
+	for (KX_GameObject *gameobj : GetScene()->GetInactiveList()) {
+		gameobj->DiscardMaterialBatches();
+	}
 }
 
 /* Use for culling */
