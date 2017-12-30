@@ -152,7 +152,6 @@ public:
 	void SetKXGameObjectCallsPointer();
 
 	void AddMaterialBatches();
-	void DesactivateMaterialBatches(); // cull objects in inactive collections
 	void DiscardMaterialBatches();
 	void RestoreMaterialBatches(float obmat[4][4]);
 	void AddNewMaterialBatchesToPasses(float obmat[4][4]); // AddObject

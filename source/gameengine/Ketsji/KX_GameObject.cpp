@@ -223,6 +223,9 @@ KX_GameObject::~KX_GameObject()
 	if (m_lodManager) {
 		m_lodManager->Release();
 	}
+	if (m_materialBatches.size()) {
+		RemoveMaterialBatches();
+	}
 }
 
 /*********************************EEVEE INTEGRATION**************************************/
@@ -287,7 +290,9 @@ void KX_GameObject::RemoveMaterialBatches()
 {
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-			DRW_game_call_remove_geometry(sh, b, (void *)this);
+			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
+				DRW_game_call_remove_geometry(sh, b, (void *)this);
+			}
 		}
 	}
 }
@@ -308,16 +313,6 @@ void KX_GameObject::RestoreMaterialBatches(float obmat[4][4])
 	for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
 		for (int i = 0; i < m_materialBatches.size(); i++) {
 			DRW_game_call_restore_geometry(sh, m_materialBatches[i], (void *)this, obmat);
-		}
-	}
-}
-
-/* Use to discard batches in inactive layers at BlenderDataConversion */
-void KX_GameObject::DesactivateMaterialBatches()
-{
-	for (Gwn_Batch *b : m_materialBatches) {
-		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-			DRW_game_call_desactivate_geometry(sh, b, (void *)this);
 		}
 	}
 }
