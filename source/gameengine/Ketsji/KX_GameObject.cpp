@@ -322,6 +322,13 @@ void KX_GameObject::DesactivateMaterialBatches()
 	}
 }
 
+/* Used for replace mesh */
+void KX_GameObject::ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches)
+{
+	m_materialBatches.clear();
+	m_materialBatches = batches;
+}
+
 /* GET + CREATE IF DOESN'T EXIST */
 std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 {
@@ -345,6 +352,13 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 		}
 	}
 	return m_materialShGroups;
+}
+
+/* Used for ReplaceMesh */
+void KX_GameObject::ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups)
+{
+	m_materialShGroups.clear();
+	m_materialShGroups = shgroups;
 }
 
 void KX_GameObject::TagForUpdate()

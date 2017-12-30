@@ -92,7 +92,6 @@ protected:
 
 
 	std::vector<Gwn_Batch *>m_materialBatches;
-	std::vector<Gwn_Batch *>m_newBatches;
 	std::vector<DRWShadingGroup *>m_materialShGroups;
 
 	float m_savedObmat[4][4];
@@ -146,6 +145,7 @@ public:
 
 	/* EEVEE INTEGRATION */
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
+	void ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups); // ReplaceMesh
 
 	std::vector<Gwn_Batch *>GetMaterialBatches();
 
@@ -157,6 +157,7 @@ public:
 	void RestoreMaterialBatches(float obmat[4][4]);
 	void AddNewMaterialBatchesToPasses(float obmat[4][4]); // AddObject
 	void RemoveMaterialBatches(); // EndObject
+	void ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches); // ReplaceMesh
 
 	void TagForUpdate(); // It was UpdateBuckets before
 
