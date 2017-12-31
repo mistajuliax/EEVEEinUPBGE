@@ -47,7 +47,7 @@
  */
 
 /* TODO: Disabled for now, because of eval_ctx. */
-//#define THREADED_DAG_WORKAROUND
+#define THREADED_DAG_WORKAROUND
 
 #include <math.h>
 #include <vector>
@@ -979,6 +979,7 @@ static KX_Camera *gamecamera_from_bcamera(Object *ob, KX_Scene *kxscene)
 }
 
 static KX_GameObject *gameobject_from_blenderobject(
+								Main *bmain,
 								Object *ob, 
 								KX_Scene *kxscene, 
 								RAS_Rasterizer *rasty,
@@ -1136,8 +1137,13 @@ static KX_GameObject *gameobject_from_blenderobject(
 	case OB_CURVE:
 	{
 		if (ob->curve_cache == nullptr) {
-			BKE_displist_make_curveTypes(blenderscene, ob, false);
+			BKE_displist_make_curveTypes(bmain->eval_ctx, blenderscene, ob, false);
 		}
+		/* As for lightprobes, we want to convert curve objects as empty to
+		 * be able to move them with gamelogic.
+		 */
+		gameobj = new KX_EmptyObject(kxscene, KX_Scene::m_callbacks);
+		break;
 	}
 #endif
 
@@ -1472,6 +1478,7 @@ void BL_ConvertBlenderObjects(struct Main* maggie,
 		blenderobject->lay = (base->flag & BASE_VISIBLED) != 0;
 
 		KX_GameObject* gameobj = gameobject_from_blenderobject(
+										maggie,
 										blenderobject,
 										kxscene, 
 										rendertools, 
@@ -1523,6 +1530,7 @@ void BL_ConvertBlenderObjects(struct Main* maggie,
 						allblobj.insert(blenderobject);
 						groupobj.insert(blenderobject);
 						KX_GameObject* gameobj = gameobject_from_blenderobject(
+														maggie,
 														blenderobject, 
 														kxscene, 
 														rendertools, 
