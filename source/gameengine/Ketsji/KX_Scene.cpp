@@ -912,9 +912,7 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 		}
 		else {
 			if (gameobj->m_wasculled || !gameobj->m_wasVisible) {
-				float obmat[4][4];
-				gameobj->NodeGetWorldTransform().getValue(&obmat[0][0]);
-				gameobj->RestoreMaterialBatches(obmat);
+				gameobj->RestoreMaterialBatches();
 				gameobj->m_wasculled = false; // TODO: replace with functions getter/setter
 				gameobj->m_wasVisible = true; // TODO: replace with functions getter/setter
 			}
@@ -1570,14 +1568,9 @@ KX_GameObject *KX_Scene::AddReplicaObject(KX_GameObject *originalobject, KX_Game
 		DupliGroupRecurse(gameobj, 0);
 	}
 
-	/* This is to duplicate gaiwan batches and add it to eevee psl
-	 * Only useful if we choose to draw the scene with eevee render.
-	 * I think in this case we'd need to remove graphic controller.
-	 */
+	/* Add new display arrays to draw with eevee code */
 	if (replica->GetMaterialBatches().size() > 0) {
-		float obmat[4][4];
-		replica->NodeGetWorldTransform().getValue(&obmat[0][0]);
-		replica->AddNewMaterialBatchesToPasses(obmat);
+		replica->AddNewMaterialBatchesToPasses();
 	}
 
 	//	don't release replica here because we are returning it, not done with it...
@@ -1742,15 +1735,18 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 
 	if (use_gfx && mesh != nullptr) {
 
+		/* TODO: Fix shadows not updated with replaced geometry
+		 * (use DelayRemoveObject/AddObject instead of ReplaceMesh?)
+		 */
+		/* EEVEE INTEGRATION */
 		std::vector<Gwn_Batch *>meshBatches = mesh->GetMaterialBatches();
 		std::vector<DRWShadingGroup *>meshShgroups = mesh->GetMaterialShadingGroups();
 
 		gameobj->RemoveMaterialBatches();
 		gameobj->ReplaceMaterialBatches(meshBatches);
 		gameobj->ReplaceMaterialShadingGroups(meshShgroups);
-		float obmat[4][4];
-		gameobj->NodeGetWorldTransform().getValue(&obmat[0][0]);
-		gameobj->AddNewMaterialBatchesToPasses(obmat);
+		gameobj->AddNewMaterialBatchesToPasses();
+		/* End of EEVEE INTEGRATION */
 
 		gameobj->RemoveMeshes();
 		gameobj->AddMesh(mesh);

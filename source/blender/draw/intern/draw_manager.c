@@ -3952,7 +3952,7 @@ void DRW_engines_free(void)
 
 /***********************************Game engine transition*******************************************/
 
-void DRW_game_shgroup_call_add(DRWShadingGroup *shgroup, Gwn_Batch *geom, void *kxob, float(*obmat)[4])
+void DRW_game_shgroup_call_add(DRWShadingGroup *shgroup, Gwn_Batch *geom, void *kxob, float obmat[4][4])
 {
 	BLI_assert(geom != NULL);
 
@@ -4017,7 +4017,7 @@ void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, 
 }
 
 /* Used for render culling */
-void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob, float obmat[4][4])
+void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
 		if (call->kxob == kxob) {

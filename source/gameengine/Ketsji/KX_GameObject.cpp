@@ -274,8 +274,10 @@ void KX_GameObject::SetKXGameObjectCallsPointer()
 }
 
 /* Use for AddObject */
-void KX_GameObject::AddNewMaterialBatchesToPasses(float obmat[4][4])
+void KX_GameObject::AddNewMaterialBatchesToPasses()
 {
+	float obmat[4][4];
+	NodeGetWorldTransform().getValue(&obmat[0][0]);
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
 			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
@@ -315,11 +317,11 @@ void KX_GameObject::DiscardMaterialBatches()
 }
 
 /* Used to "uncull" discarded batches */
-void KX_GameObject::RestoreMaterialBatches(float obmat[4][4])
+void KX_GameObject::RestoreMaterialBatches()
 {
 	for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
 		for (int i = 0; i < m_materialBatches.size(); i++) {
-			DRW_game_call_restore_geometry(sh, m_materialBatches[i], (void *)this, obmat);
+			DRW_game_call_restore_geometry(sh, m_materialBatches[i], (void *)this);
 		}
 	}
 }

@@ -153,8 +153,8 @@ public:
 
 	void AddMaterialBatches();
 	void DiscardMaterialBatches();
-	void RestoreMaterialBatches(float obmat[4][4]);
-	void AddNewMaterialBatchesToPasses(float obmat[4][4]); // AddObject
+	void RestoreMaterialBatches();
+	void AddNewMaterialBatchesToPasses(); // AddObject
 	void RemoveMaterialBatches(); // EndObject
 	void ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches); // ReplaceMesh
 
