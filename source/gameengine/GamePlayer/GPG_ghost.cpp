@@ -1162,16 +1162,6 @@ int main(
 						Scene *scene = bfd->curscene;
 						G.main = maggie;
 
-						/* EEVEE INTEGRATION */
-
-						// Build a Depsgraph for each scene in bmain so we can be able to replace scene during bge runtime.
-						for (Scene *sc = (Scene *)maggie->scene.first; sc; sc = (Scene *)sc->id.next) {
-							ViewLayer *view_layer = BKE_view_layer_from_scene_get(sc);
-							Depsgraph *depsgraph = BKE_scene_get_depsgraph(sc, view_layer, true);
-							BKE_scene_graph_update_tagged(maggie->eval_ctx, depsgraph, maggie, sc, view_layer);
-						}
-						/* End of EEVEE INTEGRATION */
-
 						if (firstTimeRunning) {
 							G.fileflags  = bfd->fileflags;
 
