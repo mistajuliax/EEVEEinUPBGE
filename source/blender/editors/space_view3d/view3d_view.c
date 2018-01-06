@@ -45,7 +45,6 @@
 #include "BKE_context.h"
 #include "BKE_object.h"
 #include "BKE_global.h"
-#include "BKE_layer.h" // Game engine transition
 #include "BKE_main.h"
 #include "BKE_report.h"
 #include "BKE_scene.h"
@@ -1515,16 +1514,6 @@ static int game_engine_exec(bContext *C, wmOperator *op)
 	/* bad context switch .. */
 	if (!ED_view3d_context_activate(C))
 		return OPERATOR_CANCELLED;
-
-	/* Game engine transition */
-
-	// Build a Depsgraph for each scene in bmain so we can be able to replace scene during bge runtime.
-	for (Scene *sc = (Scene *)bmain->scene.first; sc; sc = (Scene *)sc->id.next) {
-		ViewLayer *view_layer = BKE_view_layer_from_scene_get(sc);
-		Depsgraph *depsgraph = BKE_scene_get_depsgraph(sc, view_layer, true);
-		BKE_scene_graph_update_tagged(bmain->eval_ctx, depsgraph, bmain, sc, view_layer);
-	}
-	/* End of Game engine transition */
 	
 	/* redraw to hide any menus/popups, we don't go back to
 	 * the window manager until after this operator exits */

@@ -354,7 +354,7 @@ void KX_Scene::InitEeveeData()
 	Object *maincam = BKE_view_layer_camera_find(cur_view_layer); // TODO: Find a way to always have a valid camera
 
 	GPUOffScreen *tempGpuOffScreen = GPU_offscreen_create(canvas->GetWidth(), canvas->GetHeight(), 0, nullptr); // TODO: Find a way to free that properly
-	DRW_game_render_loop_begin(tempGpuOffScreen, bmain, scene, cur_view_layer, maincam);
+	DRW_game_render_loop_begin(tempGpuOffScreen, bmain, scene, maincam);
 }
 
 // Called in scene destructor

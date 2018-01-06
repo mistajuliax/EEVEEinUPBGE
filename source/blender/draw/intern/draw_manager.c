@@ -4168,9 +4168,13 @@ static void drw_game_eevee_view_layer_data_free()
 static Camera *default_cam;
 
 void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
-	Scene *scene, ViewLayer *cur_view_layer, Object *maincam)
+	Scene *scene, Object *maincam)
 {
 	memset(&DST, 0x0, sizeof(DST));
+
+	ViewLayer *view_layer = BKE_view_layer_from_scene_get(scene);
+	Depsgraph *depsgraph = BKE_scene_get_depsgraph(scene, view_layer, true);
+	BKE_scene_graph_update_tagged(bmain->eval_ctx, depsgraph, bmain, scene, view_layer);
 
 	use_drw_engine(&draw_engine_eevee_type);
 
@@ -4222,8 +4226,8 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 
 	DST.draw_ctx.v3d->zbuf = true;
 	DST.draw_ctx.scene = scene;
-	DST.draw_ctx.view_layer = cur_view_layer;
-	DST.draw_ctx.obact = OBACT(cur_view_layer);
+	DST.draw_ctx.view_layer = view_layer;
+	DST.draw_ctx.obact = OBACT(view_layer);
 
 	drw_viewport_var_init();
 
@@ -4235,8 +4239,7 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 
 	drw_engines_cache_init();
 
-	Depsgraph *graph = BKE_scene_get_depsgraph(scene, cur_view_layer, false);
-	DEG_OBJECT_ITER(graph, ob, DEG_ITER_OBJECT_FLAG_LINKED_DIRECTLY | DEG_ITER_OBJECT_FLAG_LINKED_VIA_SET | DEG_ITER_OBJECT_FLAG_DUPLI);
+	DEG_OBJECT_ITER(depsgraph, ob, DEG_ITER_OBJECT_FLAG_LINKED_DIRECTLY | DEG_ITER_OBJECT_FLAG_LINKED_VIA_SET | DEG_ITER_OBJECT_FLAG_DUPLI);
 	{
 		/* We want to populate cache even with objects in invisible layers.
 		 * (we'll remove them from eevee's passes later).
