@@ -33,10 +33,6 @@
 #  pragma warning (disable:4786)
 #endif
 
-// Eigen3 stuff used for BGEDeformVerts
-#include <Eigen/Core>
-#include <Eigen/LU>
-
 #include "BL_SkinDeformer.h"
 #include <string>
 #include "RAS_IPolygonMaterial.h"
@@ -210,96 +206,6 @@ void BL_SkinDeformer::BlenderDeformVerts()
 #endif
 }
 
-void BL_SkinDeformer::BGEDeformVerts()
-{
-	Object *par_arma = m_armobj->GetArmatureObject();
-	MDeformVert *dverts = m_bmesh->dvert;
-	bDeformGroup *dg;
-	int defbase_tot;
-	Eigen::Matrix4f pre_mat, post_mat, chan_mat, norm_chan_mat;
-
-	if (!dverts)
-		return;
-
-	defbase_tot = BLI_listbase_count(&m_objMesh->defbase);
-
-	if (m_dfnrToPC == nullptr) {
-		m_dfnrToPC = new bPoseChannel *[defbase_tot];
-		int i;
-		for (i = 0, dg = (bDeformGroup *)m_objMesh->defbase.first;
-		     dg;
-		     ++i, dg = dg->next)
-		{
-			m_dfnrToPC[i] = BKE_pose_channel_find_name(par_arma->pose, dg->name);
-
-			if (m_dfnrToPC[i] && m_dfnrToPC[i]->bone->flag & BONE_NO_DEFORM)
-				m_dfnrToPC[i] = nullptr;
-		}
-	}
-
-	post_mat = Eigen::Matrix4f::Map((float *)m_obmat).inverse() * Eigen::Matrix4f::Map((float *)m_armobj->GetArmatureObject()->obmat);
-	pre_mat = post_mat.inverse();
-
-	MDeformVert *dv = dverts;
-	MDeformWeight *dw;
-
-	for (int i = 0; i < m_bmesh->totvert; ++i, dv++) {
-		float contrib = 0.0f, weight, max_weight = -1.0f;
-		bPoseChannel *pchan = nullptr;
-		Eigen::Vector3f normorg(m_bmesh->mvert[i].no[0], m_bmesh->mvert[i].no[1], m_bmesh->mvert[i].no[2]);
-		Eigen::Map<Eigen::Vector3f> norm = Eigen::Vector3f::Map(m_transnors[i]);
-		Eigen::Vector4f vec(0.0f, 0.0f, 0.0f, 1.0f);
-		Eigen::Vector4f co(m_transverts[i][0],
-		                   m_transverts[i][1],
-		                   m_transverts[i][2],
-		                   1.0f);
-
-		if (!dv->totweight)
-			continue;
-
-		co = pre_mat * co;
-
-		dw = dv->dw;
-
-		for (unsigned int j = dv->totweight; j != 0; j--, dw++) {
-			const int index = dw->def_nr;
-
-			if (index < defbase_tot && (pchan = m_dfnrToPC[index])) {
-				weight = dw->weight;
-
-				if (weight) {
-					chan_mat = Eigen::Matrix4f::Map((float *)pchan->chan_mat);
-
-					// Update Vertex Position
-					vec.noalias() += (chan_mat * co - co) * weight;
-
-					// Save the most influential channel so we can use it to update the vertex normal
-					if (weight > max_weight)
-					{
-						max_weight = weight;
-						norm_chan_mat = chan_mat;
-					}
-
-					contrib += weight;
-				}
-			}
-		}
-
-		// Update Vertex Normal
-		norm = norm_chan_mat.topLeftCorner<3, 3>() * normorg;
-
-		co.noalias() += vec / contrib;
-		co[3] = 1.0f; // Make sure we have a 1 for the w component!
-
-		co = post_mat * co;
-
-		m_transverts[i][0] = co[0];
-		m_transverts[i][1] = co[1];
-		m_transverts[i][2] = co[2];
-	}
-	m_copyNormals = true;
-}
-
 void BL_SkinDeformer::UpdateTransverts()
 {
 	// if we don't use a vertex array we does nothing.
@@ -369,10 +275,7 @@ bool BL_SkinDeformer::UpdateInternal(bool shape_applied)
 
 		m_armobj->ApplyPose();
 
-		if (m_armobj->GetVertDeformType() == ARM_VDEF_BGE_CPU)
-			BGEDeformVerts();
-		else
-			BlenderDeformVerts();
+		BlenderDeformVerts();
 
 		/* Update the current frame */
 		m_lastArmaUpdate = m_armobj->GetLastFrame();

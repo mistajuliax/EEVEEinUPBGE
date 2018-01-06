@@ -133,7 +133,6 @@ void KX_FontObject::AddMeshUser()
 	NodeGetWorldTransform().getValue(m_meshUser->GetMatrix());
 
 	RAS_BucketManager *bucketManager = GetScene()->GetBucketManager();
-	RAS_DisplayArrayBucket *arrayBucket = bucketManager->GetTextDisplayArrayBucket();
 }
 
 void KX_FontObject::UpdateBuckets()

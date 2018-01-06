@@ -109,7 +109,6 @@ protected:
 	short m_deformflags;
 
 	void BlenderDeformVerts();
-	void BGEDeformVerts();
 
 	void UpdateTransverts();
 };

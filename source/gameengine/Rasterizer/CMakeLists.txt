@@ -67,7 +67,6 @@ set(SRC
 	RAS_BucketManager.cpp
 	RAS_DebugDraw.cpp
 	RAS_Deformer.cpp
-	RAS_DisplayArrayBucket.cpp
 	RAS_FrameBuffer.cpp
 	RAS_FramingManager.cpp
 	RAS_ICanvas.cpp
@@ -95,7 +94,6 @@ set(SRC
 	RAS_DebugDraw.h
 	RAS_Deformer.h
 	RAS_DisplayArray.h
-	RAS_DisplayArrayBucket.h
 	RAS_FrameBuffer.h
 	RAS_FramingManager.h
 	RAS_ICanvas.h

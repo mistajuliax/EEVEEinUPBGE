@@ -73,7 +73,6 @@ private:
 	struct TextMaterial
 	{
 		RAS_IPolyMaterial *m_material;
-		RAS_DisplayArrayBucket *m_arrayBucket;
 	} m_text;
 
 	void RenderBasicBuckets(RAS_Rasterizer *rasty, BucketType bucketType);
@@ -89,7 +88,6 @@ public:
 	void Renderbuckets(const MT_Transform & cameratrans, RAS_Rasterizer *rasty, RAS_FrameBuffer *frameBuffer);
 
 	RAS_MaterialBucket *FindBucket(RAS_IPolyMaterial *material, bool &bucketCreated);
-	RAS_DisplayArrayBucket *GetTextDisplayArrayBucket() const;
 
 	void UpdateShaders(RAS_IPolyMaterial *material = nullptr);
 	void ReleaseMaterials(RAS_IPolyMaterial *material = nullptr);

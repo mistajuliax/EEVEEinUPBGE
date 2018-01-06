@@ -36,7 +36,6 @@
 
 class RAS_MeshObject;
 class RAS_MaterialBucket;
-class RAS_DisplayArrayBucket;
 class RAS_IDisplayArray;
 struct RAS_TexVertFormat;
 
@@ -52,7 +51,6 @@ private:
 	unsigned int m_index;
 
 	RAS_IDisplayArray *m_displayArray;
-	RAS_DisplayArrayBucket *m_displayArrayBucket;
 
 public:
 	RAS_MeshMaterial(RAS_MeshObject *mesh, RAS_MaterialBucket *bucket, unsigned int index, const RAS_TexVertFormat& format);
@@ -61,9 +59,6 @@ public:
 	unsigned int GetIndex() const;
 	RAS_MaterialBucket *GetBucket() const;
 	RAS_IDisplayArray *GetDisplayArray() const;
-	RAS_DisplayArrayBucket *GetDisplayArrayBucket() const;
-
-	void ReplaceMaterial(RAS_MaterialBucket *bucket);
 };
 
 using RAS_MeshMaterialList = std::vector<RAS_MeshMaterial *>;

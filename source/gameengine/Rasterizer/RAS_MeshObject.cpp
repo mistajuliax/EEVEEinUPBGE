@@ -346,7 +346,6 @@ RAS_MeshUser* RAS_MeshObject::AddMeshUser(void *clientobj, RAS_Deformer *deforme
 	RAS_MeshUser *meshUser = new RAS_MeshUser(clientobj, boundingBox);
 
 	for (RAS_MeshMaterial *mmat : m_materials) {
-		RAS_DisplayArrayBucket *arrayBucket;
 		/* Duplicate the display array bucket and the display array if needed to store
 		 * the mesh slot on a unique list (= display array bucket) and use an unique vertex
 		 * array (=display array). */
@@ -356,13 +355,6 @@ RAS_MeshUser* RAS_MeshObject::AddMeshUser(void *clientobj, RAS_Deformer *deforme
 				// The deformer makes use of vertex array, make sure we have our local copy.
 				array = mmat->GetDisplayArray()->GetReplica();
 			}
-
-			arrayBucket = new RAS_DisplayArrayBucket(mmat->GetBucket(), array, this, mmat, deformer);
-			// Make the deformer the owner of the display array (and bucket).
-			deformer->AddDisplayArray(array, arrayBucket);
-		}
-		else {
-			arrayBucket = mmat->GetDisplayArrayBucket();
 		}
 	}
 	return meshUser;

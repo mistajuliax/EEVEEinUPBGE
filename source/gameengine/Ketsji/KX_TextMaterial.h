@@ -30,6 +30,8 @@
 
 #include "RAS_IPolygonMaterial.h"
 
+class SCA_IScene;
+
 class KX_TextMaterial : public RAS_IPolyMaterial
 {
 public:

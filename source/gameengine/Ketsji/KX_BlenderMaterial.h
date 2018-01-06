@@ -14,6 +14,9 @@
 #include "MT_Vector3.h"
 #include "MT_Vector4.h"
 
+#include <iostream>
+#include <memory>
+
 class SCA_IScene;
 class KX_Scene;
 class RAS_Rasterizer;

@@ -42,7 +42,6 @@
 
 #include "RAS_BoundingBox.h"
 #include "RAS_IDisplayArray.h" // For RAS_IDisplayArrayList.
-#include "RAS_DisplayArrayBucket.h" // For RAS_DisplayArrayBucketList.
 
 struct DerivedMesh;
 class RAS_MeshObject;
@@ -103,14 +102,11 @@ public:
 		return m_boundingBox;
 	}
 
-	void AddDisplayArray(RAS_IDisplayArray *array, RAS_DisplayArrayBucket *arrayBucket);
-
 protected:
 	RAS_MeshObject *m_mesh;
 	bool m_bDynamic;
 
 	RAS_IDisplayArrayList m_displayArrayList;
-	RAS_DisplayArrayBucketList m_displayArrayBucketList;
 
 	/// Deformer bounding box.
 	RAS_BoundingBox *m_boundingBox;

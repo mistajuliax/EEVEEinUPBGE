@@ -32,7 +32,6 @@
 #ifndef __RAS_MATERIAL_BUCKET_H__
 #define __RAS_MATERIAL_BUCKET_H__
 
-#include "RAS_DisplayArrayBucket.h"
 #include "MT_Transform.h"
 
 class RAS_IPolyMaterial;
@@ -60,16 +59,10 @@ public:
 	/// Set the shader after its conversion or when changing to custom shader.
 	void UpdateShader();
 
-	void AddDisplayArrayBucket(RAS_DisplayArrayBucket *bucket);
-	void RemoveDisplayArrayBucket(RAS_DisplayArrayBucket *bucket);
-
-	void MoveDisplayArrayBucket(RAS_MeshMaterial *meshmat, RAS_MaterialBucket *bucket);
-
 private:
 
 	RAS_IPolyMaterial *m_material;
 	RAS_MaterialShader *m_shader;
-	RAS_DisplayArrayBucketList m_displayArrayBucketList;
 };
 
 #endif  // __RAS_MATERIAL_BUCKET_H__

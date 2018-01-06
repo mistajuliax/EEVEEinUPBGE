@@ -23,7 +23,6 @@
 #include "RAS_MeshMaterial.h"
 #include "RAS_MaterialBucket.h"
 #include "RAS_IDisplayArray.h"
-#include "RAS_DisplayArrayBucket.h"
 
 RAS_MeshMaterial::RAS_MeshMaterial(RAS_MeshObject *mesh, RAS_MaterialBucket *bucket, unsigned int index, const RAS_TexVertFormat& format)
 	:m_bucket(bucket),
@@ -31,13 +30,10 @@ RAS_MeshMaterial::RAS_MeshMaterial(RAS_MeshObject *mesh, RAS_MaterialBucket *buc
 {
 	RAS_IDisplayArray::PrimitiveType type = (bucket->IsWire()) ? RAS_IDisplayArray::LINES : RAS_IDisplayArray::TRIANGLES;
 	m_displayArray = RAS_IDisplayArray::ConstructArray(type, format);
-
-	m_displayArrayBucket = new RAS_DisplayArrayBucket(bucket, m_displayArray, mesh, this, nullptr);
 }
 
 RAS_MeshMaterial::~RAS_MeshMaterial()
 {
-	delete m_displayArrayBucket;
 	delete m_displayArray;
 }
 
@@ -54,18 +50,4 @@ RAS_MaterialBucket *RAS_MeshMaterial::GetBucket() const
 RAS_IDisplayArray *RAS_MeshMaterial::GetDisplayArray() const
 {
 	return m_displayArray;
-}
-
-RAS_DisplayArrayBucket *RAS_MeshMaterial::GetDisplayArrayBucket() const
-{
-	return m_displayArrayBucket;
-}
-
-void RAS_MeshMaterial::ReplaceMaterial(RAS_MaterialBucket *bucket)
-{
-	// Avoid replacing the by the same material bucket.
-	if (m_bucket != bucket) {
-		m_bucket->MoveDisplayArrayBucket(this, bucket);
-		m_bucket = bucket;
-	}
 }

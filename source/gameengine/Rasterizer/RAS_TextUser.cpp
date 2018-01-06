@@ -27,7 +27,6 @@
  */
 
 #include "RAS_TextUser.h"
-#include "RAS_DisplayArrayBucket.h"
 
 RAS_TextUser::RAS_TextUser(void *clientobj, RAS_BoundingBox *boundingBox)
 	:RAS_MeshUser(clientobj, boundingBox),

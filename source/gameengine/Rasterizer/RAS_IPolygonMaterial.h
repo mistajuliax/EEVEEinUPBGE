@@ -46,6 +46,8 @@ struct Material;
 struct Scene;
 struct GameSettings;
 
+class SCA_IScene;
+
 enum MaterialProps
 {
 	RAS_MULTILIGHT = (1 << 1),

@@ -27,7 +27,6 @@
  */
 
 #include "RAS_MeshUser.h"
-#include "RAS_DisplayArrayBucket.h"
 #include "RAS_BoundingBox.h"
 
 RAS_MeshUser::RAS_MeshUser(void *clientobj, RAS_BoundingBox *boundingBox)
