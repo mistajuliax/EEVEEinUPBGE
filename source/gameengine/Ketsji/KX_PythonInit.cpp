@@ -615,6 +615,11 @@ static PyObject *pyPrintExt(PyObject *,PyObject *,PyObject *)
 
 static PyObject *gLibLoad(PyObject *, PyObject *args, PyObject *kwds)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "LibLoad is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_FALSE;
+	/* End of EEVEE INTEGRATION */
+
 	KX_Scene *kx_scene = nullptr;
 	PyObject *pyscene = Py_None;
 	char *path;
