@@ -366,6 +366,8 @@ public:
 
 	void EEVEE_draw_scene(); /* We need a minimal control on eevee render pipe */
 	void RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer *rasty);
+
+	void RenderFonts(); // old bge method to draw fonts
 	/***************End of EEVEE INTEGRATION**********************/
 
 	RAS_BucketManager* GetBucketManager() const;

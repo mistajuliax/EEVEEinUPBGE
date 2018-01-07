@@ -49,6 +49,8 @@ public:
 
 	virtual ~KX_FontObject();
 
+	void DrawFontText();
+
 	virtual void AddMeshUser();
 	virtual void UpdateBuckets();
 
@@ -64,10 +66,10 @@ public:
 		return OBJ_TEXT;
 	}
 
-	// Update text and bounding box.
-	void SetText(const std::string& text);
-	/// Update text from property.
-	void UpdateTextFromProperty();
+	void UpdateFontMatrix();
+	void UpdateBoundingBox();
+	void SetTextFromProperty();
+
 	/// Return text dimensions in blender unit.
 	const MT_Vector2 GetTextDimensions();
 

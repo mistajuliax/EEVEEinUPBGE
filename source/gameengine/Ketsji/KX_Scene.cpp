@@ -528,6 +528,9 @@ void KX_Scene::EEVEE_draw_scene()
 		DRW_pass_sort_shgroup_z(psl->transparent_pass);
 		DRW_draw_pass(psl->transparent_pass);
 
+		DRW_state_reset();
+		RenderFonts();
+
 		/* Post Process */
 		DRW_stats_group_start("Post FX");
 		EEVEE_draw_effects(vedata);
@@ -891,6 +894,15 @@ void KX_Scene::EeveePostProcessingHackEnd()
 }
 
 /******************End of EEVEE'S POST PROCESSING***************************/
+
+/**************************DYNAMIC FONTS************************************/
+void KX_Scene::RenderFonts()
+{
+	for (KX_FontObject *font : m_fontlist) {
+		font->DrawFontText();
+	}
+}
+/***********************End of DYNAMIC FONTS********************************/
 
 /****ACTIVITY CULLING, CULLING, MATRIX UPDATE, CALL RENDER MAINLOOP*********/
 void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer *rasty)
@@ -2236,11 +2248,8 @@ void KX_Scene::LogicEndFrame()
 	m_euthanasyobjects.clear();
 
 	//prepare obstacle simulation for new frame
-	if (m_obstacleSimulation)
+	if (m_obstacleSimulation) {
 		m_obstacleSimulation->UpdateObstacles();
-
-	for (KX_FontObject *font : m_fontlist) {
-		font->UpdateTextFromProperty();
 	}
 }
 

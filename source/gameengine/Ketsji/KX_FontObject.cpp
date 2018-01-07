@@ -52,7 +52,8 @@
 #include "DNA_packedFile_types.h"
 
 extern "C" {
-#include "BLF_api.h"
+#  include "BLF_api.h"
+#  include "DRW_render.h"
 }
 
 #include "CM_Message.h"
@@ -94,7 +95,7 @@ KX_FontObject::KX_FontObject(void *sgReplicationInfo,
 	m_rasterizer(rasterizer),
 	m_do_color_management(do_color_management)
 {
-	Curve *text = static_cast<Curve *> (ob->data);
+	Curve *text = static_cast<Curve *>(ob->data);
 	m_fsize = text->fsize;
 	m_line_spacing = text->linedist;
 	m_offset = MT_Vector3(text->xof, text->yof, 0.0f);
@@ -103,7 +104,8 @@ KX_FontObject::KX_FontObject(void *sgReplicationInfo,
 
 	m_boundingBox = new RAS_BoundingBox(boundingBoxManager);
 
-	SetText(text->str);
+	m_text = std::string(text->str);
+	m_texts = split_string(m_text);
 }
 
 KX_FontObject::~KX_FontObject()
@@ -138,62 +140,89 @@ void KX_FontObject::AddMeshUser()
 
 void KX_FontObject::UpdateBuckets()
 {
+}
+
+void KX_FontObject::UpdateFontMatrix()
+{
 	// Update datas and add mesh slot to be rendered only if the object is not culled.
 	if (m_pSGNode->IsDirty(SG_Node::DIRTY_RENDER)) {
 		NodeGetWorldTransform().getValue(m_meshUser->GetMatrix());
 		m_pSGNode->ClearDirty(SG_Node::DIRTY_RENDER);
 	}
-
-	// Font Objects don't use the glsl shader, this color management code is copied from gpu_shader_material.glsl
-	float color[4];
-	if (m_do_color_management) {
-		linearrgb_to_srgb_v4(color, m_objectColor.getValue());
-	}
-	else {
-		m_objectColor.getValue(color);
-	}
-
-	// HARDCODED MULTIPLICATION FACTOR - this will affect the render resolution directly
-	const float RES = BGE_FONT_RES * m_resolution;
-
-	const float size = fabs(m_fsize * NodeGetWorldScaling()[0] * RES);
-	const float aspect = m_fsize / size;
-
-	// Account for offset
-	MT_Vector3 offset = NodeGetWorldOrientation() * m_offset * NodeGetWorldScaling();
-	// Orient the spacing vector
-	MT_Vector3 spacing = NodeGetWorldOrientation() * MT_Vector3(0.0f, m_fsize * m_line_spacing, 0.0f) * NodeGetWorldScaling()[1];
-
-	RAS_TextUser *textUser = (RAS_TextUser *)m_meshUser;
-
-	textUser->SetColor(MT_Vector4(color));
-	textUser->SetFrontFace(!m_bIsNegativeScaling);
-	textUser->SetFontId(m_fontid);
-	textUser->SetSize(size);
-	textUser->SetDpi(m_dpi);
-	textUser->SetAspect(aspect);
-	textUser->SetOffset(offset);
-	textUser->SetSpacing(spacing);
-	textUser->SetTexts(m_texts);
 }
 
-void KX_FontObject::SetText(const std::string& text)
+void KX_FontObject::UpdateBoundingBox()
 {
-	m_text = text;
-	m_texts = split_string(text);
-
 	MT_Vector2 min;
 	MT_Vector2 max;
 	GetTextAabb(min, max);
 	m_boundingBox->SetAabb(MT_Vector3(min.x(), min.y(), 0.0f), MT_Vector3(max.x(), max.y(), 0.0f));
 }
 
-void KX_FontObject::UpdateTextFromProperty()
+void KX_FontObject::SetTextFromProperty()
 {
-	// Allow for some logic brick control
-	CValue *prop = GetProperty("Text");
-	if (prop && prop->GetText() != m_text) {
-		SetText(prop->GetText());
+	/* Allow for some logic brick control */
+	if (GetProperty("Text")) {
+		m_texts = split_string(GetProperty("Text")->GetText());
+	}
+}
+
+void KX_FontObject::DrawFontText()
+{
+	UpdateFontMatrix();
+
+	UpdateBoundingBox();
+
+	SetTextFromProperty();
+
+	/* only draws the text if visible */
+	if (!GetVisible()) {
+		return;
+	}
+
+	/* Font Objects don't use the glsl shader, this color management code is copied from gpu_shader_material.glsl */
+	float color[4];
+	if (m_do_color_management) {
+		linearrgb_to_srgb_v4(color, m_objectColor.getValue());
+	}
+	else {
+		copy_v4_v4(color, m_objectColor.getValue());
+	}
+
+	/* HARDCODED MULTIPLICATION FACTOR - this will affect the render resolution directly */
+	const float RES = BGE_FONT_RES * m_resolution;
+
+	const float size = m_fsize * NodeGetWorldScaling()[0] * RES;
+	const float aspect = m_fsize / size;
+
+	/* Get a working copy of the OpenGLMatrix to use */
+	float *mat = m_meshUser->GetMatrix();
+	MT_Matrix4x4 textMat(mat);
+
+	float pers[4][4], mvp[16];
+	DRW_viewport_matrix_get(pers, DRW_MAT_PERS);
+	MT_Matrix4x4 persmat(&pers[0][0]);
+	MT_Matrix4x4 finalMat(persmat * textMat);
+	finalMat.getValue(mvp);
+
+	/* Account for offset */
+	MT_Vector3 offset = NodeGetWorldOrientation() * m_offset * NodeGetWorldScaling();
+	mvp[12] += offset[0]; mvp[13] += offset[1]; mvp[14] += offset[2];
+
+	/* Orient the spacing vector */
+	MT_Vector3 spacing = MT_Vector3(0.0f, m_fsize * m_line_spacing, 0.0f);
+	spacing = NodeGetWorldOrientation() * spacing * NodeGetWorldScaling()[1];
+
+	/* Draw each line, taking spacing into consideration */
+	for (int i = 0; i < m_texts.size(); ++i)
+	{
+		if (i != 0)
+		{
+			mvp[12] -= spacing[0];
+			mvp[13] -= spacing[1];
+			mvp[14] -= spacing[2];
+		}
+		m_rasterizer->RenderText3D(m_fontid, m_texts[i], int(size), m_dpi, color, mvp, aspect);
 	}
 }
 
@@ -352,9 +381,6 @@ int KX_FontObject::pyattr_set_text(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DE
 		CValue *newstringprop = new CStringValue(std::string(chars), "Text");
 		self->SetProperty("Text", newstringprop);
 		newstringprop->Release();
-	}
-	else {
-		self->SetText(std::string(chars));
 	}
 
 	return PY_SET_ATTR_SUCCESS;
