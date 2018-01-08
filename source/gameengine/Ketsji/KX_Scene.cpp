@@ -899,7 +899,9 @@ void KX_Scene::EeveePostProcessingHackEnd()
 void KX_Scene::RenderFonts()
 {
 	for (KX_FontObject *font : m_fontlist) {
-		font->DrawFontText();
+		if (!font->GetCulled()) {
+			font->DrawFontText();
+		}
 	}
 }
 /***********************End of DYNAMIC FONTS********************************/
