@@ -105,7 +105,7 @@ static void eevee_motion_blur_camera_get_matrix_at_time(
 	mul_m4_m4m4(r_mat, params.winmat, obmat);
 }
 
-void EEVEE_create_shader_motion_blur()
+void EEVEE_create_shader_motion_blur() // Game engine transition (the function was static but I needed it in draw_manager)
 {
 	e_data.motion_blur_sh = DRW_shader_create_fullscreen(datatoc_effect_motion_blur_frag_glsl, NULL);
 }
