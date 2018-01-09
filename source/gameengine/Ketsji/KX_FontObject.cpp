@@ -42,7 +42,7 @@
 #include "RAS_BucketManager.h"
 #include "RAS_MaterialBucket.h"
 #include "RAS_BoundingBox.h"
-#include "RAS_TextUser.h"
+#include "RAS_MeshUser.h"
 
 /* paths needed for font load */
 #include "BLI_blenlib.h"
@@ -135,7 +135,7 @@ int KX_FontObject::GetGameObjectType() const
 
 void KX_FontObject::AddMeshUser()
 {
-	m_meshUser = new RAS_TextUser(m_pClient_info, m_boundingBox);
+	m_meshUser = new RAS_MeshUser(m_pClient_info, m_boundingBox);
 
 	NodeGetWorldTransform().getValue(m_meshUser->GetMatrix());
 
