@@ -80,8 +80,7 @@ KX_VisibilityActuator::Update()
 	KX_GameObject *obj = (KX_GameObject*) GetParent();
 
 	/* To avoid ghost effect when we switch of visibility state */
-	EEVEE_EffectsInfo *effects = EEVEE_engine_data_get()->stl->effects;
-	effects->taa_current_sample = 1;
+	obj->GetScene()->ResetTaaSamples();
 
 	obj->SetVisible(m_visible, m_recursive);
 	obj->SetOccluder(m_occlusion, m_recursive);

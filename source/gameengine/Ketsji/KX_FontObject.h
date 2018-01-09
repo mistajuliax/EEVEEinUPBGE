@@ -49,10 +49,10 @@ public:
 
 	virtual ~KX_FontObject();
 
-	void DrawFontText();
-
 	virtual void AddMeshUser();
-	virtual void UpdateBuckets();
+	void GetTextAabb(MT_Vector2& min, MT_Vector2& max);
+	/// Return text dimensions in blender unit.
+	const MT_Vector2 GetTextDimensions();
 
 	/**
 	 * Inherited from CValue -- return a new copy of this
@@ -61,17 +61,13 @@ public:
 	 */
 	virtual CValue *GetReplica();
 	virtual void ProcessReplica();
-	virtual int GetGameObjectType() const
-	{
-		return OBJ_TEXT;
-	}
+	virtual int GetGameObjectType() const;
 
 	void UpdateFontMatrix();
 	void UpdateBoundingBox();
 	void SetTextFromProperty();
 
-	/// Return text dimensions in blender unit.
-	const MT_Vector2 GetTextDimensions();
+	void DrawFontText();
 
 protected:
 	std::string m_text;
@@ -90,8 +86,6 @@ protected:
 	class RAS_Rasterizer *m_rasterizer;
 
 	bool m_do_color_management;
-
-	void GetTextAabb(MT_Vector2& min, MT_Vector2& max);
 
 #ifdef WITH_PYTHON
 	static PyObject *pyattr_get_text(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);

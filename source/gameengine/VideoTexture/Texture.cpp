@@ -410,8 +410,9 @@ KX_PYMETHODDEF_DOC(Texture, refresh, "Refresh texture from source")
 					}
 				}
 
-				EEVEE_EffectsInfo *effects = EEVEE_engine_data_get()->stl->effects;
-				effects->taa_current_sample = 1;
+				/* To avoid blending effect when we refresh texture */
+				m_scene->ResetTaaSamples(); // TODO: try to Reset TAA sample only when texture owner (gameobj) is inside frusrtum
+
 				// get texture
 				unsigned int * texture = m_source->m_image->getImage(m_actTex, ts);
 				// if texture is available

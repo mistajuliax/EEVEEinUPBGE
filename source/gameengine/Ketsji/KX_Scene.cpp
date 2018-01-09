@@ -529,7 +529,7 @@ void KX_Scene::EEVEE_draw_scene()
 		DRW_draw_pass(psl->transparent_pass);
 
 		DRW_state_reset();
-		RenderFonts();
+		RenderFonts(); // TODO: Check if there is no conflict with eevee rendering
 
 		/* Post Process */
 		DRW_stats_group_start("Post FX");
@@ -577,6 +577,14 @@ bool KX_Scene::ObjectsAreStatic(const KX_CullingNodeList& nodes)
 	}
 	return true;
 }
+
+// To avoid ghost effect when we do some operations, we must set effects->taa_current_sample (antialiasing) to 1
+void KX_Scene::ResetTaaSamples()
+{
+	EEVEE_EffectsInfo *effects = EEVEE_engine_data_get()->stl->effects;
+	effects->taa_current_sample = 1;
+}
+
 /************************End of TAA UTILS**************************/
 
 /***********************EEVEE SHADOWS******************************/
@@ -739,7 +747,7 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 
 			effects->taa_current_sample += 1;
 
-			if (effects->taa_current_sample < 50) {
+			if (effects->taa_current_sample < 50) { // This is to avoid quality loss when the image is static during too much time
 				effects->taa_alpha = 1.0f / (float)(effects->taa_current_sample);
 			}
 
@@ -2240,8 +2248,8 @@ void KX_Scene::LogicEndFrame()
 	m_logicmgr->EndFrame();
 
 	if (m_euthanasyobjects.size() > 0) {
-		EEVEE_EffectsInfo *effects = EEVEE_engine_data_get()->stl->effects;
-		effects->taa_current_sample = 1;
+		/* Limit ghosting effect when we remove a gameobject */
+		ResetTaaSamples();
 	}
 
 	for (KX_GameObject *gameobj : m_euthanasyobjects) {

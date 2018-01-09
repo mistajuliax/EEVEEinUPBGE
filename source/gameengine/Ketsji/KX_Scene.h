@@ -351,23 +351,26 @@ public:
 	void InitScenePasses(EEVEE_PassList *psl);
 	std::vector<DRWPass *>GetMaterialPasses();
 
+	void UpdateShadows(RAS_Rasterizer *rasty);
+
 	void AppendToStaticObjects(KX_GameObject *gameobj);
 	void AppendToStaticObjectsInsideFrustum(KX_GameObject *gameobj);
+	bool ObjectsAreStatic(const KX_CullingNodeList& nodes);
 
-	void UpdateShadows(RAS_Rasterizer *rasty);
+	void ResetTaaSamples(); // To avoid ghosting/blending effect when we do some operations
+
+	void EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes);
+	void EeveePostProcessingHackEnd();
 
 	void AppendToProbeList(KX_GameObject *probe);
 	std::vector<KX_GameObject *>GetProbeList();
 	void UpdateProbes();
 
-	bool ObjectsAreStatic(const KX_CullingNodeList& nodes);
-	void EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes);
-	void EeveePostProcessingHackEnd();
-
 	void EEVEE_draw_scene(); /* We need a minimal control on eevee render pipe */
 	void RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer *rasty);
 
 	void RenderFonts(); // old bge method to draw fonts
+
 	/***************End of EEVEE INTEGRATION**********************/
 
 	RAS_BucketManager* GetBucketManager() const;

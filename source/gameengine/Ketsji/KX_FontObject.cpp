@@ -128,6 +128,11 @@ void KX_FontObject::ProcessReplica()
 	m_boundingBox = m_boundingBox->GetReplica();
 }
 
+int KX_FontObject::GetGameObjectType() const
+{
+	return OBJ_TEXT;
+}
+
 void KX_FontObject::AddMeshUser()
 {
 	m_meshUser = new RAS_TextUser(m_pClient_info, m_boundingBox);
@@ -136,10 +141,6 @@ void KX_FontObject::AddMeshUser()
 
 	RAS_BucketManager *bucketManager = GetScene()->GetBucketManager();
 	RAS_DisplayArrayBucket *arrayBucket = bucketManager->GetTextDisplayArrayBucket();
-}
-
-void KX_FontObject::UpdateBuckets()
-{
 }
 
 void KX_FontObject::UpdateFontMatrix()
@@ -163,7 +164,12 @@ void KX_FontObject::SetTextFromProperty()
 {
 	/* Allow for some logic brick control */
 	if (GetProperty("Text")) {
-		m_texts = split_string(GetProperty("Text")->GetText());
+		std::vector<std::string> propertyText = split_string(GetProperty("Text")->GetText());
+		if (m_texts != propertyText) {
+			m_texts = propertyText;
+			/* Limit ghosting effect when we edit texts */
+			GetScene()->ResetTaaSamples();
+		}
 	}
 }
 
@@ -171,16 +177,16 @@ void KX_FontObject::DrawFontText()
 {
 	UpdateFontMatrix();
 
-	UpdateBoundingBox();
-
 	SetTextFromProperty();
+
+	UpdateBoundingBox();
 
 	/* only draws the text if visible */
 	if (!GetVisible()) {
 		return;
 	}
 
-	/* Font Objects don't use the glsl shader, this color management code is copied from gpu_shader_material.glsl */
+	/* Dynamic Font Objects (BLF texts) use Object color (in Object tab) */
 	float color[4];
 	if (m_do_color_management) {
 		linearrgb_to_srgb_v4(color, m_objectColor.getValue());
@@ -192,13 +198,14 @@ void KX_FontObject::DrawFontText()
 	/* HARDCODED MULTIPLICATION FACTOR - this will affect the render resolution directly */
 	const float RES = BGE_FONT_RES * m_resolution;
 
-	const float size = m_fsize * NodeGetWorldScaling()[0] * RES;
+	const float size = fabs(m_fsize * NodeGetWorldScaling()[0] * RES);
 	const float aspect = m_fsize / size;
 
 	/* Get a working copy of the OpenGLMatrix to use */
 	float *mat = m_meshUser->GetMatrix();
 	MT_Matrix4x4 textMat(mat);
 
+	/* Sorry for mix between Moto and other maths APIs */
 	float pers[4][4], mvp[16];
 	DRW_viewport_matrix_get(pers, DRW_MAT_PERS);
 	MT_Matrix4x4 persmat(&pers[0][0]);
@@ -207,7 +214,9 @@ void KX_FontObject::DrawFontText()
 
 	/* Account for offset */
 	MT_Vector3 offset = NodeGetWorldOrientation() * m_offset * NodeGetWorldScaling();
-	mvp[12] += offset[0]; mvp[13] += offset[1]; mvp[14] += offset[2];
+	mvp[12] += offset[0];
+	mvp[13] += offset[1];
+	mvp[14] += offset[2];
 
 	/* Orient the spacing vector */
 	MT_Vector3 spacing = MT_Vector3(0.0f, m_fsize * m_line_spacing, 0.0f);
@@ -216,8 +225,7 @@ void KX_FontObject::DrawFontText()
 	/* Draw each line, taking spacing into consideration */
 	for (int i = 0; i < m_texts.size(); ++i)
 	{
-		if (i != 0)
-		{
+		if (i != 0) {
 			mvp[12] -= spacing[0];
 			mvp[13] -= spacing[1];
 			mvp[14] -= spacing[2];
