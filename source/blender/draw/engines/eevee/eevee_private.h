@@ -152,6 +152,7 @@ typedef struct EEVEE_PassList {
 
 	/* Effects */
 	struct DRWPass *ao_horizon_search;
+	struct DRWPass *ao_horizon_search_layer;
 	struct DRWPass *ao_horizon_debug;
 	struct DRWPass *motion_blur;
 	struct DRWPass *bloom_blit;
@@ -420,9 +421,9 @@ typedef struct EEVEE_LightProbesInfo {
 	float visibility_blur;
 	int shres;
 	int shnbr;
-	bool specular_toggle;
-	bool ssr_toggle;
-	bool sss_toggle;
+	int specular_toggle;
+	int ssr_toggle;
+	int sss_toggle;
 	/* List of probes in the scene. */
 	/* XXX This is fragile, can get out of sync quickly. */
 	struct Object *probes_cube_ref[MAX_PROBE];
@@ -469,6 +470,7 @@ typedef struct EEVEE_EffectsInfo {
 
 	/* Temporal Anti Aliasing */
 	int taa_current_sample;
+	int taa_render_sample;
 	int taa_total_sample;
 	float taa_alpha;
 	bool prev_drw_support;
@@ -484,6 +486,8 @@ typedef struct EEVEE_EffectsInfo {
 	float ao_offset, ao_bounce_fac, ao_quality, ao_settings;
 	float ao_sample_nbr;
 	int ao_texsize[2], hori_tex_layers;
+	int ao_depth_layer;
+	struct GPUTexture *ao_src_depth; /* pointer copy */
 
 	/* Motion Blur */
 	float current_ndc_to_world[4][4];
@@ -720,7 +724,7 @@ void EEVEE_bloom_free(void);
 /* eevee_occlusion.c */
 int EEVEE_occlusion_init(EEVEE_ViewLayerData *sldata, EEVEE_Data *vedata);
 void EEVEE_occlusion_cache_init(EEVEE_ViewLayerData *sldata, EEVEE_Data *vedata);
-void EEVEE_occlusion_compute(EEVEE_ViewLayerData *sldata, EEVEE_Data *vedata);
+void EEVEE_occlusion_compute(EEVEE_ViewLayerData *sldata, EEVEE_Data *vedata, struct GPUTexture *depth_src, int layer);
 void EEVEE_occlusion_draw_debug(EEVEE_ViewLayerData *sldata, EEVEE_Data *vedata);
 void EEVEE_occlusion_free(void);
 
@@ -815,7 +819,6 @@ static const float cubefacemat[6][4][4] = {
 /****************Game engine********************/
 EEVEE_Data *EEVEE_engine_data_get(void);
 void EEVEE_create_shader_motion_blur();
-void EEVEE_lightprobes_render_planars(EEVEE_ViewLayerData *sldata, EEVEE_Data *vedata);
 /**************End of Game engine***************/
 
 #endif /* __EEVEE_PRIVATE_H__ */

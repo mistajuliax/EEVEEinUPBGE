@@ -749,8 +749,9 @@ static void OBJECT_cache_init(void *vedata)
 		DRWState state = DRW_STATE_WRITE_COLOR;
 		struct Gwn_Batch *quad = DRW_cache_fullscreen_quad_get();
 		static float alphaOcclu = 0.35f;
-		static bool bTrue = true;
-		static bool bFalse = false;
+		/* Reminder : bool uniforms need to be 4 bytes. */
+		static const int bTrue = true;
+		static const int bFalse = false;
 
 		psl->outlines_search = DRW_pass_create("Outlines Detect Pass", state);
 
@@ -1499,9 +1500,6 @@ static void DRW_shgroup_lightprobe(OBJECT_StorageList *stl, OBJECT_PassList *psl
 			sub_v3_v3(prb_data->increment_z, prb_data->corner);
 
 			DRWShadingGroup *grp = DRW_shgroup_instance_create(e_data.lightprobe_grid_sh, psl->lightprobes, DRW_cache_sphere_get());
-			/* Dummy call just to save select ID */
-			DRW_shgroup_call_dynamic_add_empty(grp);
-			/* Then overide the instance count */
 			DRW_shgroup_set_instance_count(grp, prb->grid_resolution_x * prb->grid_resolution_y * prb->grid_resolution_z);
 			DRW_shgroup_uniform_vec4(grp, "color", color, 1);
 			DRW_shgroup_uniform_vec3(grp, "corner", prb_data->corner, 1);
@@ -1648,7 +1646,7 @@ static void DRW_shgroup_lightprobe(OBJECT_StorageList *stl, OBJECT_PassList *psl
 
 static void DRW_shgroup_relationship_lines(OBJECT_StorageList *stl, Object *ob)
 {
-	if (ob->parent && BKE_object_is_visible(ob->parent)) {
+	if (ob->parent && DRW_check_object_visible_within_active_context(ob->parent)) {
 		DRW_shgroup_call_dynamic_add(stl->g_data->relationship_lines, ob->obmat[3]);
 		DRW_shgroup_call_dynamic_add(stl->g_data->relationship_lines, ob->parent->obmat[3]);
 	}
@@ -1763,6 +1761,15 @@ static void OBJECT_cache_populate(void *vedata, Object *ob)
 	View3D *v3d = draw_ctx->v3d;
 	int theme_id = TH_UNDEFINED;
 
+	/* Handle particles first in case the emitter itself shouldn't be rendered. */
+	if (ob->type == OB_MESH) {
+		OBJECT_cache_populate_particles(ob, psl);
+	}
+
+	if (DRW_check_object_visible_within_active_context(ob) == false) {
+		return;
+	}
+
 	//CollectionEngineSettings *ces_mode_ob = BKE_layer_collection_engine_evaluated_get(ob, COLLECTION_MODE_OBJECT, "");
 
 	//bool do_wire = BKE_collection_engine_property_value_get_bool(ces_mode_ob, "show_wire");
@@ -1800,8 +1807,6 @@ static void OBJECT_cache_populate(void *vedata, Object *ob)
 					}
 				}
 			}
-
-			OBJECT_cache_populate_particles(ob, psl);
 			break;
 		}
 		case OB_SURF:

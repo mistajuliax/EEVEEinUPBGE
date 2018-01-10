@@ -353,7 +353,7 @@ void KX_Scene::InitEeveeData()
 	ViewLayer *cur_view_layer = BKE_view_layer_from_scene_get(scene);
 	Object *maincam = BKE_view_layer_camera_find(cur_view_layer); // TODO: Find a way to always have a valid camera
 
-	GPUOffScreen *tempGpuOffScreen = GPU_offscreen_create(canvas->GetWidth(), canvas->GetHeight(), 0, nullptr); // TODO: Find a way to free that properly
+	GPUOffScreen *tempGpuOffScreen = GPU_offscreen_create(canvas->GetWidth(), canvas->GetHeight(), 0, false, nullptr); // TODO: Find a way to free that properly
 	DRW_game_render_loop_begin(tempGpuOffScreen, bmain, scene, maincam);
 }
 
@@ -425,30 +425,28 @@ void KX_Scene::EEVEE_draw_scene()
 	* when using opengl render. */
 	int loop_ct = DRW_state_is_image_render() ? 4 : 1;
 
-	static float rand = 0.0f;
-
-	/* XXX temp for denoising render. TODO plug number of samples here */
-	if (DRW_state_is_image_render()) {
-		rand += 1.0f / 16.0f;
-		rand = rand - floorf(rand);
-
-		/* Set jitter offset */
-		EEVEE_update_util_texture(rand);
-	}
-	else if (((stl->effects->enabled_effects & EFFECT_TAA) != 0) && (stl->effects->taa_current_sample > 1)) {
-		double r;
-		BLI_halton_1D(2, 0.0, stl->effects->taa_current_sample - 1, &r);
-
-		/* Set jitter offset */
-		/* PERF This is killing perf ! */
-		EEVEE_update_util_texture((float)r);
-	}
-
 	while (loop_ct--) {
+
+		/* XXX temp for denoising render. TODO plug number of samples here */
+		if (DRW_state_is_image_render()) {
+			double r;
+			BLI_halton_1D(2, 0.0, stl->effects->taa_current_sample - 1, &r);
+
+			/* Set jitter offset */
+			/* PERF This is killing perf ! */
+			EEVEE_update_util_texture((float)r);
+		}
+		else if (((stl->effects->enabled_effects & EFFECT_TAA) != 0) && (stl->effects->taa_current_sample > 1)) {
+			double r;
+			BLI_halton_1D(2, 0.0, stl->effects->taa_current_sample - 1, &r);
+
+			/* Set jitter offset */
+			/* PERF This is killing perf ! */
+			EEVEE_update_util_texture((float)r);
+		}
 
 		/* Refresh Probes */
 		DRW_stats_group_start("Probes Refresh");
-
 		EEVEE_lightprobes_refresh(sldata, vedata);
 		DRW_stats_group_end();
 
@@ -457,33 +455,39 @@ void KX_Scene::EEVEE_draw_scene()
 		EEVEE_draw_shadows(sldata, psl);
 		DRW_stats_group_end();
 
-		/* BGE SPECIFIC CODE */
-		// We need this to update planars in bge
-		EEVEE_lightprobes_render_planars(sldata, vedata);
-		/* End og BGE SPECIFIC CODE */
-
 		/* Attach depth to the hdr buffer and bind it */
 		DRW_framebuffer_texture_detach(dtxl->depth);
 		DRW_framebuffer_texture_attach(fbl->main, dtxl->depth, 0, 0);
 		DRW_framebuffer_bind(fbl->main);
-		DRW_framebuffer_clear(false, true, true, NULL, 1.0f);
+		if (DRW_state_draw_background()) {
+			DRW_framebuffer_clear(false, true, true, NULL, 1.0f);
+		}
+		else {
+			/* We need to clear the alpha chanel in this case. */
+			float clear_col[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			DRW_framebuffer_clear(true, true, true, clear_col, 1.0f);
+		}
 
-		if ((((stl->effects->enabled_effects & EFFECT_TAA) != 0) && stl->effects->taa_current_sample > 1) || m_doingProbeUpdate) {
+		if ((((stl->effects->enabled_effects & EFFECT_TAA) != 0) &&
+			(stl->effects->taa_current_sample > 1) &&
+			!DRW_state_is_image_render()) || m_doingProbeUpdate)
+		{
 			DRW_viewport_matrix_override_set(stl->effects->overide_persmat, DRW_MAT_PERS);
 			DRW_viewport_matrix_override_set(stl->effects->overide_persinv, DRW_MAT_PERSINV);
 			DRW_viewport_matrix_override_set(stl->effects->overide_winmat, DRW_MAT_WIN);
 			DRW_viewport_matrix_override_set(stl->effects->overide_wininv, DRW_MAT_WININV);
 		}
+
 		/* BGE SPECIFIC CODE */
 		if (m_doingProbeUpdate) {
-			KX_Camera *cam = GetActiveCamera();
 			float viewmat[4][4], viewinv[4][4];
+			KX_Camera *cam = GetActiveCamera();
 			cam->GetModelviewMatrix().getValue(&viewmat[0][0]);
 			invert_m4_m4(viewinv, viewmat);
 			DRW_viewport_matrix_override_set(viewmat, DRW_MAT_VIEW);
 			DRW_viewport_matrix_override_set(viewinv, DRW_MAT_VIEWINV);
 		}
-		/* End og BGE SPECIFIC CODE */
+		/* End of BGE SPECIFIC CODE */
 
 		/* Depth prepass */
 		DRW_stats_group_start("Prepass");
@@ -496,12 +500,14 @@ void KX_Scene::EEVEE_draw_scene()
 		EEVEE_create_minmax_buffer(vedata, dtxl->depth, -1);
 		DRW_stats_group_end();
 
-		EEVEE_occlusion_compute(sldata, vedata);
+		EEVEE_occlusion_compute(sldata, vedata, dtxl->depth, -1);
 		EEVEE_volumes_compute(sldata, vedata);
 
 		/* Shading pass */
 		DRW_stats_group_start("Shading");
-		DRW_draw_pass(psl->background_pass);
+		if (DRW_state_draw_background()) {
+			DRW_draw_pass(psl->background_pass);
+		}
 		EEVEE_draw_default_passes(psl);
 		DRW_draw_pass(psl->material_pass);
 		EEVEE_subsurface_data_render(sldata, vedata);
@@ -528,15 +534,17 @@ void KX_Scene::EEVEE_draw_scene()
 		DRW_pass_sort_shgroup_z(psl->transparent_pass);
 		DRW_draw_pass(psl->transparent_pass);
 
+		/* BGE SPECIFIC CODE */
 		DRW_state_reset();
-		RenderFonts(); // TODO: Check if there is no conflict with eevee rendering
+		RenderFonts();
+		/* End of BGE SPECIFIC CODE */
 
 		/* Post Process */
 		DRW_stats_group_start("Post FX");
 		EEVEE_draw_effects(vedata);
 		DRW_stats_group_end();
 
-		if (stl->effects->taa_current_sample > 1 || m_doingProbeUpdate) {
+		if (((stl->effects->taa_current_sample > 1) && !DRW_state_is_image_render()) || m_doingProbeUpdate) {
 			DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
 			DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
 			DRW_viewport_matrix_override_unset(DRW_MAT_WIN);
