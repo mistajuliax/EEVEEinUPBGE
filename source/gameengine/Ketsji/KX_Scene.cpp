@@ -247,7 +247,6 @@ KX_Scene::KX_Scene(SCA_IInputDevice *inputDevice,
 	InitScenePasses(psl);
 
 	m_staticObjects = {};
-	m_staticObjectsInsideFrustum = {};
 	/******************************************************************************************************************************/
 
 #ifdef WITH_PYTHON
@@ -559,28 +558,15 @@ void KX_Scene::EEVEE_draw_scene()
 /*************************End of EEVEE SCENE DRAWING*********************/
 
 /*****************************TAA UTILS**********************************/
-/* Utils for TAA to check if nothing is moving inside view frustum (or anywhere when using probes) */
+/* Utils for TAA to check if nothing is moving */
 void KX_Scene::AppendToStaticObjects(KX_GameObject *gameobj)
 {
 	m_staticObjects.push_back(gameobj);
 }
 
-void KX_Scene::AppendToStaticObjectsInsideFrustum(KX_GameObject *gameobj)
+bool KX_Scene::ObjectsAreStatic()
 {
-	m_staticObjectsInsideFrustum.push_back(gameobj);
-}
-
-bool KX_Scene::ObjectsAreStatic(const KX_CullingNodeList& nodes)
-{
-	if (nodes.size() == 0) {
-		return false;
-	}
-	if (m_lightProbes.size() > 0) {
-		if (m_staticObjects.size() != GetObjectList()->GetCount()) {
-			return false;
-		}
-	}
-	if (m_staticObjectsInsideFrustum.size() != nodes.size()) {
+	if (m_staticObjects.size() != (GetObjectList()->GetCount())) {
 		return false;
 	}
 	return true;
@@ -749,7 +735,7 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 		view_is_valid = view_is_valid && (effects->prev_drw_support == DRW_state_draw_support());
 		effects->prev_drw_support = DRW_state_draw_support();
 
-		view_is_valid = view_is_valid && ObjectsAreStatic(nodes);
+		view_is_valid = view_is_valid && ObjectsAreStatic();
 
 		if (view_is_valid && m_firstFrameRendered) { // Render first frame before applying TAA to avoid artifacts
 
@@ -957,7 +943,6 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 	UpdateProbes();
 
 	m_staticObjects.clear();
-	m_staticObjectsInsideFrustum.clear();
 
 	/* Start Drawing */
 	DRW_state_reset();

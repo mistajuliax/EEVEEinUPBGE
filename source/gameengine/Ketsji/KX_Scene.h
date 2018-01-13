@@ -152,7 +152,6 @@ protected:
 	bool m_doingProbeUpdate;
 
 	std::vector<KX_GameObject *>m_staticObjects;
-	std::vector<KX_GameObject *>m_staticObjectsInsideFrustum;
 
 	std::vector<DRWPass *>m_materialPasses;
 	IDProperty *m_idProperty;
@@ -354,8 +353,7 @@ public:
 	void UpdateShadows(RAS_Rasterizer *rasty);
 
 	void AppendToStaticObjects(KX_GameObject *gameobj);
-	void AppendToStaticObjectsInsideFrustum(KX_GameObject *gameobj);
-	bool ObjectsAreStatic(const KX_CullingNodeList& nodes);
+	bool ObjectsAreStatic();
 
 	void ResetTaaSamples(); // To avoid ghosting/blending effect when we do some operations
 

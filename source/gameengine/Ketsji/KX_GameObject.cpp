@@ -374,9 +374,6 @@ void KX_GameObject::TagForUpdate()
 	m_needShadowUpdate = false;
 	if (staticObject) {
 		GetScene()->AppendToStaticObjects(this);
-		if (!GetCulled()) {
-			GetScene()->AppendToStaticObjectsInsideFrustum(this);
-		}
 	}
 	else {
 		for (Gwn_Batch *batch : m_materialBatches) {
