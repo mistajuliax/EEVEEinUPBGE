@@ -1559,7 +1559,8 @@ static void drw_state_set(DRWState state)
 	{
 		int test;
 		if (CHANGED_ANY_STORE_VAR(
-		        DRW_STATE_BLEND | DRW_STATE_ADDITIVE | DRW_STATE_MULTIPLY | DRW_STATE_TRANSMISSION,
+		        DRW_STATE_BLEND | DRW_STATE_ADDITIVE | DRW_STATE_MULTIPLY | DRW_STATE_TRANSMISSION |
+		        DRW_STATE_ADDITIVE_FULL,
 		        test))
 		{
 			if (test) {
@@ -1579,6 +1580,10 @@ static void drw_state_set(DRWState state)
 					/* Do not let alpha accumulate but premult the source RGB by it. */
 					glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, /* RGB */
 					                    GL_ZERO, GL_ONE); /* Alpha */
+				}
+				else if ((state & DRW_STATE_ADDITIVE_FULL) != 0) {
+					/* Let alpha accumulate. */
+					glBlendFunc(GL_ONE, GL_ONE);
 				}
 				else {
 					BLI_assert(0);
@@ -4173,7 +4178,7 @@ static void drw_game_motion_blur_init()
 // Here I duplicate code in eevee_data.c to avoid to change eevee's sources (static function in eevee_data.c)
 static void drw_game_eevee_view_layer_data_free()
 {
-	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_ensure();
 
 	/* Lights */
 	MEM_SAFE_FREE(sldata->lamps);
@@ -4187,7 +4192,10 @@ static void drw_game_eevee_view_layer_data_free()
 	DRW_TEXTURE_FREE_SAFE(sldata->shadow_cascade_target);
 	DRW_TEXTURE_FREE_SAFE(sldata->shadow_cascade_blur);
 	DRW_TEXTURE_FREE_SAFE(sldata->shadow_pool);
-	BLI_freelistN(&sldata->shadow_casters);
+	MEM_SAFE_FREE(sldata->shcasters_buffers[0].shadow_casters);
+	MEM_SAFE_FREE(sldata->shcasters_buffers[0].flags);
+	MEM_SAFE_FREE(sldata->shcasters_buffers[1].shadow_casters);
+	MEM_SAFE_FREE(sldata->shcasters_buffers[1].flags);
 
 	/* Probes */
 	MEM_SAFE_FREE(sldata->probes);

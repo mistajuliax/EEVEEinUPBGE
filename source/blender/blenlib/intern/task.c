@@ -693,7 +693,7 @@ static TaskPool *task_pool_create_ex(TaskScheduler *scheduler,
 	/* Ensure malloc will go fine from threads,
 	 *
 	 * This is needed because we could be in main thread here
-	 * and malloc could be non-threda safe at this point because
+	 * and malloc could be non-thread safe at this point because
 	 * no other jobs are running.
 	 */
 	BLI_begin_threaded_malloc();
@@ -1029,7 +1029,7 @@ static void parallel_range_func(
 	}
 }
 
-static void palallel_range_single_thread(int start, int stop,
+static void palallel_range_single_thread(const int start, int const stop,
                                          void *userdata,
                                          TaskParallelRangeFunc func,
                                          const ParallelRangeSettings *settings)

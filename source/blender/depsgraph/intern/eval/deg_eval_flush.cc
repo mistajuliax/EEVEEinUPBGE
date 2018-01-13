@@ -71,18 +71,20 @@ typedef std::deque<OperationDepsNode *> FlushQueue;
 
 namespace {
 
-void flush_init_operation_node_func(void *data_v,
-                                    int i,
-                                    const ParallelRangeTLS * /*tls*/)
+void flush_init_operation_node_func(
+        void *__restrict data_v,
+        const int i,
+        const ParallelRangeTLS *__restrict /*tls*/)
 {
 	Depsgraph *graph = (Depsgraph *)data_v;
 	OperationDepsNode *node = graph->operations[i];
 	node->scheduled = false;
 }
 
-void flush_init_id_node_func(void *data_v,
-                             int i,
-                             const ParallelRangeTLS * /*tls*/)
+void flush_init_id_node_func(
+        void *__restrict data_v,
+        const int i,
+        const ParallelRangeTLS *__restrict /*tls*/)
 {
 	Depsgraph *graph = (Depsgraph *)data_v;
 	IDDepsNode *id_node = graph->id_nodes[i];
@@ -98,7 +100,7 @@ BLI_INLINE void flush_prepare(Depsgraph *graph)
 		const int num_operations = graph->operations.size();
 		ParallelRangeSettings settings;
 		BLI_parallel_range_settings_defaults(&settings);
-		settings.use_threading = (num_operations > 256);
+		settings.min_iter_per_thread = 1024;
 		BLI_task_parallel_range(0, num_operations,
 		                        graph,
 		                        flush_init_operation_node_func,
@@ -108,7 +110,7 @@ BLI_INLINE void flush_prepare(Depsgraph *graph)
 		const int num_id_nodes = graph->id_nodes.size();
 		ParallelRangeSettings settings;
 		BLI_parallel_range_settings_defaults(&settings);
-		settings.use_threading = (num_id_nodes > 256);
+		settings.min_iter_per_thread = 1024;
 		BLI_task_parallel_range(0, num_id_nodes,
 		                        graph,
 		                        flush_init_id_node_func,
@@ -292,9 +294,10 @@ void deg_graph_flush_updates(Main *bmain, Depsgraph *graph)
 	flush_editors_id_update(bmain, graph, &update_ctx);
 }
 
-static void graph_clear_func(void *data_v,
-                             int i,
-                             const ParallelRangeTLS * /*tls*/)
+static void graph_clear_func(
+        void *__restrict data_v,
+        const int i,
+        const ParallelRangeTLS *__restrict /*tls*/)
 {
 	Depsgraph *graph = (Depsgraph *)data_v;
 	OperationDepsNode *node = graph->operations[i];
@@ -307,10 +310,9 @@ void deg_graph_clear_tags(Depsgraph *graph)
 {
 	/* Go over all operation nodes, clearing tags. */
 	const int num_operations = graph->operations.size();
-	const bool do_threads = num_operations > 256;
 	ParallelRangeSettings settings;
 	BLI_parallel_range_settings_defaults(&settings);
-	settings.use_threading = do_threads;
+	settings.min_iter_per_thread = 1024;
 	BLI_task_parallel_range(0, num_operations,
 	                        graph,
 	                        graph_clear_func,
