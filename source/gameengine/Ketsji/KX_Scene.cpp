@@ -449,10 +449,8 @@ void KX_Scene::EEVEE_draw_scene()
 		EEVEE_lightprobes_refresh(sldata, vedata);
 		DRW_stats_group_end();
 
-		if (m_doingProbeUpdate) {
-			DRW_viewport_matrix_override_set(stl->effects->overide_persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_override_set(stl->effects->overide_persinv, DRW_MAT_PERSINV);
-		}
+		DRW_viewport_matrix_override_set(stl->effects->overide_persmat, DRW_MAT_PERS);
+		DRW_viewport_matrix_override_set(stl->effects->overide_persinv, DRW_MAT_PERSINV);
 
 		/* Refresh shadows */
 		DRW_stats_group_start("Shadows");
@@ -472,13 +470,8 @@ void KX_Scene::EEVEE_draw_scene()
 			DRW_framebuffer_clear(true, true, true, clear_col, 1.0f);
 		}
 
-		if ((((stl->effects->enabled_effects & EFFECT_TAA) != 0) &&
-			(stl->effects->taa_current_sample > 1) &&
-			!DRW_state_is_image_render()))
-		{
-			DRW_viewport_matrix_override_set(stl->effects->overide_winmat, DRW_MAT_WIN);
-			DRW_viewport_matrix_override_set(stl->effects->overide_wininv, DRW_MAT_WININV);
-		}
+		DRW_viewport_matrix_override_set(stl->effects->overide_winmat, DRW_MAT_WIN);
+		DRW_viewport_matrix_override_set(stl->effects->overide_wininv, DRW_MAT_WININV);
 
 		/* BGE SPECIFIC CODE */
 		if (m_doingProbeUpdate) {
@@ -488,6 +481,7 @@ void KX_Scene::EEVEE_draw_scene()
 			invert_m4_m4(viewinv, viewmat);
 			DRW_viewport_matrix_override_set(viewmat, DRW_MAT_VIEW);
 			DRW_viewport_matrix_override_set(viewinv, DRW_MAT_VIEWINV);
+			m_doingProbeUpdate = false;
 		}
 		/* End of BGE SPECIFIC CODE */
 
@@ -546,12 +540,10 @@ void KX_Scene::EEVEE_draw_scene()
 		EEVEE_draw_effects(vedata);
 		DRW_stats_group_end();
 
-		if (((stl->effects->taa_current_sample > 1) && !DRW_state_is_image_render()) || m_doingProbeUpdate) {
-			DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
-			DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
-			DRW_viewport_matrix_override_unset(DRW_MAT_WIN);
-			DRW_viewport_matrix_override_unset(DRW_MAT_WININV);
-		}
+		DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
+		DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
+		DRW_viewport_matrix_override_unset(DRW_MAT_WIN);
+		DRW_viewport_matrix_override_unset(DRW_MAT_WININV);
 	}
 
 	EEVEE_volumes_free_smoke_textures();
@@ -710,11 +702,16 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 	IDProperty *props = BKE_view_layer_engine_evaluated_get(view_layer, COLLECTION_MODE_NONE, RE_engine_id_BLENDER_EEVEE);
 	KX_Camera *cam = GetActiveCamera();
 
+	float persmat[4][4], viewmat[4][4];
+
+	DRW_viewport_matrix_get(persmat, DRW_MAT_PERS);
+	DRW_viewport_matrix_get(viewmat, DRW_MAT_VIEW);
+	DRW_viewport_matrix_get(effects->overide_winmat, DRW_MAT_WIN);
+
 	/* Update TAA when the view is not moving and nothing in the view frustum is moving */
 	if (effects->enabled_effects & EFFECT_TAA) {
 
 		const float *viewport_size = DRW_viewport_size_get();
-		float persmat[4][4], viewmat[4][4];
 
 		/* Until we support reprojection, we need to make sure
 		* that the history buffer contains correct information. */
@@ -724,10 +721,6 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 
 		effects->taa_total_sample = BKE_collection_engine_property_value_get_int(props, "taa_samples");
 		MAX2(effects->taa_total_sample, 0);
-
-		DRW_viewport_matrix_get(persmat, DRW_MAT_PERS);
-		DRW_viewport_matrix_get(viewmat, DRW_MAT_VIEW);
-		DRW_viewport_matrix_get(effects->overide_winmat, DRW_MAT_WIN);
 
 		bool view_not_changed = compare_m4m4(persmat, effects->prev_drw_persmat, 0.000001);
 
@@ -759,33 +752,8 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 				((float)(ht_point[0]) * 2.0f - 1.0f) / viewport_size[0],
 				((float)(ht_point[1]) * 2.0f - 1.0f) / viewport_size[1]);
 
-			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
-			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
-			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
-
-			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
-			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
-			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
-
 			m_doingTAA = true;
 		}
-		else if (!view_is_valid && m_doingProbeUpdate) {
-
-			effects->taa_current_sample = 1;
-
-			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
-			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
-			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
-
-			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
-			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
-			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
-
-			m_doingTAA = false;
-		}
-
 		else {
 			effects->taa_current_sample = 1;
 
@@ -793,26 +761,14 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 		}
 	}
 
-	else {
-		if (m_doingProbeUpdate) {
-			effects->taa_current_sample = 1;
+	mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
+	invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
+	invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
 
-			float persmat[4][4], viewmat[4][4];
-
-			DRW_viewport_matrix_get(persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_get(viewmat, DRW_MAT_VIEW);
-			DRW_viewport_matrix_get(effects->overide_winmat, DRW_MAT_WIN);
-
-			mul_m4_m4m4(effects->overide_persmat, effects->overide_winmat, viewmat);
-			invert_m4_m4(effects->overide_persinv, effects->overide_persmat);
-			invert_m4_m4(effects->overide_wininv, effects->overide_winmat);
-
-			DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
-			DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
-			DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
-			DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
-		}
-	}
+	DRW_viewport_matrix_override_set(effects->overide_persmat, DRW_MAT_PERS);
+	DRW_viewport_matrix_override_set(effects->overide_persinv, DRW_MAT_PERSINV);
+	DRW_viewport_matrix_override_set(effects->overide_winmat, DRW_MAT_WIN);
+	DRW_viewport_matrix_override_set(effects->overide_wininv, DRW_MAT_WININV);
 
 	if (effects->enabled_effects & EFFECT_VOLUMETRIC) {
 
