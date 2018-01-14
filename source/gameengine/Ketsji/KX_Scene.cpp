@@ -922,7 +922,7 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 		 * but they have no bounding box so we don't apply culling to curves.
 		 */
 		Object *ob = gameobj->GetBlenderObject();
-		bool isCurve = ob && ob->type == OB_CURVE;
+		bool isCurve = ob && ob->type == OB_CURVE; // TODO: See what is OB_SURF...
 
 		if ((gameobj->GetCulled() || !gameobj->GetVisible()) && !isCurve) {
 			gameobj->DiscardMaterialBatches();
