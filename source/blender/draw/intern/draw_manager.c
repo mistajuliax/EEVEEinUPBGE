@@ -4032,6 +4032,28 @@ bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batc
 	return false;
 }
 
+void DRW_shgroup_call_object_add_with_custom_matrix(DRWShadingGroup *shgroup, Gwn_Batch *geom, Object *ob, float matrix[4][4])
+{
+	BLI_assert(geom != NULL);
+	BLI_assert(shgroup->type == DRW_SHG_NORMAL);
+
+	DRWCall *call = BLI_mempool_alloc(DST.vmempool->calls);
+
+	CALL_PREPEND(shgroup, call);
+
+	call->head.type = DRW_CALL_SINGLE;
+#ifdef USE_GPU_SELECT
+	call->head.select_id = g_DRW_select_id;
+#endif
+
+	copy_m4_m4(call->obmat, matrix); // Game engine transition
+	call->geometry = geom;
+	call->ob_data = ob->data;
+
+	call->ob = ob; // Game engine transition
+	call->culled = false; // Game engine transition
+}
+
 /* Update DRWCall obmat with KX_GameObject obmat */
 void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob, float obmat[4][4])
 {
