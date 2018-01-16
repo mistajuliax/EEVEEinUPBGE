@@ -579,7 +579,7 @@ void KX_KetsjiEngine::Render()
 			RAS_FrameBuffer *fb = m_rasterizer->GetFrameBuffer(frameData.m_fbType);
 
 			DRW_framebuffer_texture_attach(fb->GetFrameBuffer(), vedata->stl->effects->source_buffer, 0, 0);
-			DRW_framebuffer_texture_attach(fb->GetFrameBuffer(), vedata->txl->maxzbuffer, 0, 0);
+			DRW_framebuffer_texture_attach(fb->GetFrameBuffer(), vedata->txl->maxzbuffer, 1, 0);
 
 			RAS_Rasterizer::FrameBufferType next = m_rasterizer->NextRenderFrameBuffer(fb->GetType());
 
