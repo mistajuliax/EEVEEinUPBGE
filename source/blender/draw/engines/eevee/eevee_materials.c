@@ -391,16 +391,14 @@ static void add_standard_uniforms(
 		DRW_shgroup_uniform_buffer(shgrp, "colorBuffer", &vedata->txl->refract_color);
 		DRW_shgroup_uniform_float(shgrp, "borderFadeFactor", &vedata->stl->effects->ssr_border_fac, 1);
 		DRW_shgroup_uniform_float(shgrp, "maxRoughness", &vedata->stl->effects->ssr_max_roughness, 1);
-		DRW_shgroup_uniform_int(shgrp, "rayCount", &vedata->stl->effects->ssr_ray_count, 1);
 	}
 
 	if (vedata->stl->effects->use_ao) {
 		DRW_shgroup_uniform_buffer(shgrp, "horizonBuffer", &vedata->txl->gtao_horizons);
-		DRW_shgroup_uniform_ivec2(shgrp, "aoHorizonTexSize", (int *)vedata->stl->effects->ao_texsize, 1);
 	}
 	else {
-		/* Use shadow_pool as fallback to avoid sampling problem on certain platform, see: T52593 */
-		DRW_shgroup_uniform_buffer(shgrp, "horizonBuffer", &sldata->shadow_pool);
+		/* Use maxzbuffer as fallback to avoid sampling problem on certain platform, see: T52593 */
+		DRW_shgroup_uniform_buffer(shgrp, "horizonBuffer", &vedata->txl->maxzbuffer);
 	}
 
 	if (vedata->stl->effects->use_volumetrics && use_alpha_blend) {
@@ -432,7 +430,7 @@ static void create_default_shader(int options)
 	MEM_freeN(frag_str);
 }
 
-void EEVEE_update_util_texture(float offset)
+void EEVEE_update_util_texture(double offsets[3])
 {
 
 	/* TODO: split this into 2 functions : one for init,
@@ -456,12 +454,9 @@ void EEVEE_update_util_texture(float offset)
 
 	/* Copy blue noise in 3rd layer  */
 	for (int i = 0; i < 64 * 64; i++) {
-		float noise;
-		noise = fmod(blue_noise[i][0] + offset, 1.0f);
-		texels_layer[i][0] = noise;
-
-		noise = fmod(blue_noise[i][1] + offset, 1.0f);
-		texels_layer[i][1] = noise * 0.5f + 0.5f;
+		texels_layer[i][0] = fmod(blue_noise[i][0] + (float)offsets[0], 1.0f);
+		texels_layer[i][1] = fmod(blue_noise[i][1] + (float)offsets[1], 1.0f);
+		float noise = fmod(blue_noise[i][1] + (float)offsets[2], 1.0f);
 		texels_layer[i][2] = cosf(noise * 2.0f * M_PI);
 		texels_layer[i][3] = sinf(noise * 2.0f * M_PI);
 	}
@@ -549,7 +544,8 @@ void EEVEE_materials_init(EEVEE_StorageList *stl)
 
 		MEM_freeN(frag_str);
 
-		EEVEE_update_util_texture(0.0f);
+		double offsets[3] = {0.0, 0.0, 0.0};
+		EEVEE_update_util_texture(offsets);
 	}
 
 	{

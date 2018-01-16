@@ -253,6 +253,7 @@ typedef struct EEVEE_TextureList {
 	struct GPUTexture *bloom_upsample[MAX_BLOOM_STEP - 1]; /* R16_G16_B16 */
 	struct GPUTexture *ssr_normal_input;
 	struct GPUTexture *ssr_specrough_input;
+	struct GPUTexture *ssr_hit_output;
 	struct GPUTexture *refract_color;
 
 	struct GPUTexture *volume_prop_scattering;
@@ -501,7 +502,9 @@ typedef struct EEVEE_EffectsInfo {
 	bool use_ssr;
 	bool reflection_trace_full;
 	bool ssr_use_normalization;
-	int ssr_ray_count;
+	int ssr_neighbor_ofs;
+	int ssr_halfres_ofs[2];
+	float ssr_brdf_bias;
 	float ssr_firefly_fac;
 	float ssr_border_fac;
 	float ssr_max_roughness;
@@ -523,7 +526,7 @@ typedef struct EEVEE_EffectsInfo {
 
 	/* Ambient Occlusion */
 	bool use_ao, use_bent_normals;
-	float ao_dist, ao_samples, ao_factor, ao_samples_inv;
+	float ao_dist, pad1, ao_factor, pad2;
 	float ao_offset, ao_bounce_fac, ao_quality, ao_settings;
 	float ao_sample_nbr;
 	int ao_texsize[2], hori_tex_layers;
@@ -707,7 +710,7 @@ typedef struct EEVEE_PrivateData {
 	struct GHash *material_hash;
 	struct GHash *hair_material_hash;
 	struct GPUTexture *minzbuffer;
-	struct GPUTexture *ssr_hit_output[4];
+	struct GPUTexture *ssr_pdf_output;
 	struct GPUTexture *gtao_horizons_debug;
 	float background_alpha; /* TODO find a better place for this. */
 	float viewvecs[2][4];
@@ -748,7 +751,7 @@ struct GPUMaterial *EEVEE_material_mesh_depth_get(struct Scene *scene, Material 
 struct GPUMaterial *EEVEE_material_hair_get(struct Scene *scene, Material *ma, int shadow_method);
 void EEVEE_materials_free(void);
 void EEVEE_draw_default_passes(EEVEE_PassList *psl);
-void EEVEE_update_util_texture(float offset);
+void EEVEE_update_util_texture(double offsets[3]);
 
 /* eevee_lights.c */
 void EEVEE_lights_init(EEVEE_ViewLayerData *sldata);
