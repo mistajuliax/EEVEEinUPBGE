@@ -27,7 +27,7 @@
 
 #include "DRW_render.h"
 
-#include "BLI_dynstr.h"
+#include "BLI_string_utils.h"
 
 #include "DNA_anim_types.h"
 
@@ -49,12 +49,10 @@ extern char datatoc_effect_gtao_frag_glsl[];
 
 static void eevee_create_shader_occlusion(void)
 {
-	char *frag_str;
-
-	DRW_shader_create_lib(frag_str,
-	                      datatoc_bsdf_common_lib_glsl,
-	                      datatoc_ambient_occlusion_lib_glsl,
-	                      datatoc_effect_gtao_frag_glsl);
+	char *frag_str = BLI_string_joinN(
+	        datatoc_bsdf_common_lib_glsl,
+	        datatoc_ambient_occlusion_lib_glsl,
+	        datatoc_effect_gtao_frag_glsl);
 
 	e_data.gtao_sh = DRW_shader_create_fullscreen(frag_str, NULL);
 	e_data.gtao_layer_sh = DRW_shader_create_fullscreen(frag_str, "#define LAYERED_DEPTH\n");

@@ -229,6 +229,7 @@ typedef struct DRWFboTexture {
 	DRWTextureFlag flag;
 } DRWFboTexture;
 
+struct GPUFrameBuffer *DRW_framebuffer_create(void);
 void DRW_framebuffer_init(
         struct GPUFrameBuffer **fb, void *engine_type, int width, int height,
         DRWFboTexture textures[MAX_FBO_TEX], int textures_len);
@@ -258,19 +259,7 @@ void DRW_transform_to_display(struct GPUTexture *tex);
 struct GPUShader *DRW_shader_create(
         const char *vert, const char *geom, const char *frag, const char *defines);
 struct GPUShader *DRW_shader_create_with_lib(
-        const char *vert, const char *geom, const char *frag, const char *defines, ...);
-/* This macro concatenates all strings into its first arg.
- * Remmeber to free the resulting string after use. */
-#define DRW_shader_create_lib(r_lib, ...) do { \
-	const char *array[] = {__VA_ARGS__}; \
-	DynStr *ds_frag = BLI_dynstr_new(); \
-	for (int i = 0; i < (sizeof(array) / sizeof(*array)); ++i) { \
-		BLI_dynstr_append(ds_frag, array[i]); \
-	} \
-	r_lib = BLI_dynstr_get_cstring(ds_frag); \
-	BLI_dynstr_free(ds_frag); \
-} while (0)
-
+        const char *vert, const char *geom, const char *frag, const char *lib, const char *defines);
 struct GPUShader *DRW_shader_create_2D(const char *frag, const char *defines);
 struct GPUShader *DRW_shader_create_3D(const char *frag, const char *defines);
 struct GPUShader *DRW_shader_create_fullscreen(const char *frag, const char *defines);

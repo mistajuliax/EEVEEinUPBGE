@@ -412,6 +412,7 @@ std::vector<KX_GameObject *>KX_Scene::GetProbeList()
 void KX_Scene::EEVEE_draw_scene()
 {
 	EEVEE_Data *vedata = EEVEE_engine_data_get();
+
 	EEVEE_PassList *psl = ((EEVEE_Data *)vedata)->psl;
 	EEVEE_StorageList *stl = ((EEVEE_Data *)vedata)->stl;
 	EEVEE_FramebufferList *fbl = ((EEVEE_Data *)vedata)->fbl;
@@ -432,14 +433,12 @@ void KX_Scene::EEVEE_draw_scene()
 		if (DRW_state_is_image_render()) {
 			BLI_halton_3D(primes, offset, stl->effects->taa_current_sample, r);
 			/* Set jitter offset */
-			/* PERF This is killing perf ! */
-			EEVEE_update_util_texture(r);
+			EEVEE_update_noise(psl, fbl, r);
 		}
 		else if ((stl->effects->enabled_effects & EFFECT_TAA) != 0) {
 			BLI_halton_3D(primes, offset, stl->effects->taa_current_sample, r);
 			/* Set jitter offset */
-			/* PERF This is killing perf ! */
-			EEVEE_update_util_texture(r);
+			EEVEE_update_noise(psl, fbl, r);
 		}
 
 		/* Refresh Probes */
