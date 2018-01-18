@@ -252,6 +252,10 @@ void KX_GameObject::AddMaterialBatches()
 				m_materialBatches.push_back(mat_geom[i]);
 			}
 		}
+		/* Here I thought to do an UI to say if we want to use KX_GameObject matrix to move particles with logic
+		 * or keep the particles matrix of the viewport (to keep things simple) (We'd add hair_geom to materialBatches
+		 * only if we want to move particles with logic).
+		 */
 		for (ModifierData *md = (ModifierData *)ob->modifiers.first; md; md = (ModifierData *)md->next) {
 			if (md->type == eModifierType_ParticleSystem) {
 				ParticleSystem *psys = ((ParticleSystemModifierData *)md)->psys;

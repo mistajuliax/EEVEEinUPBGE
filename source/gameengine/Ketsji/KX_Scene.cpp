@@ -600,7 +600,7 @@ static bool cube_bbox_intersect(const float cube_center[3], float cube_half_dim,
 		minmax_v3v3_v3(min, max, vec);
 	}
 
-	float threshold = cube_half_dim / 10.0f;
+	float threshold = cube_half_dim;
 	if (MAX3(min[0], min[1], min[2]) > cube_half_dim + threshold) {
 		return false;
 	}
