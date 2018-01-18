@@ -124,6 +124,8 @@ extern "C" {
 #  include "DRW_engine.h"
 #  include "DRW_render.h"
 #  include "MEM_guardedalloc.h"
+
+#  include "../draw/engines/clay/clay_engine.h"
 }
 /*********************END OF EEVEE INTEGRATION***************************/
 
@@ -178,10 +180,11 @@ KX_Scene::KX_Scene(SCA_IInputDevice *inputDevice,
 	m_blenderScene(scene),
 	m_isActivedHysteresis(false),
 	m_lodHysteresisValue(0),
-	m_dofInitialized(false),
-	m_doingProbeUpdate(false),
-	m_doingTAA(false),
-	m_firstFrameRendered(false)
+	m_dofInitialized(false), // EEVEE INTEGRATION
+	m_doingProbeUpdate(false), // EEVEE INTEGRATION
+	m_doingTAA(false), // EEVEE INTEGRATION
+	m_firstFrameRendered(false), // EEVEE INTEGRATION
+	m_engineType(0) // EEVEE INTEGRATION
 {
 
 	m_dbvt_culling = false;
@@ -238,13 +241,32 @@ KX_Scene::KX_Scene(SCA_IInputDevice *inputDevice,
 	m_animationPool = BLI_task_pool_create(KX_GetActiveEngine()->GetTaskScheduler(), &m_animationPoolData);
 
 	/*************************************************EEVEE INTEGRATION***********************************************************/
-	InitEeveeData();
+	bool useClay = true;
+	if (!useClay) {
+		m_engineType = 0;
+	}
+	else {
+		m_engineType = 1;
+	}
 
-	ViewLayer *view_layer = BKE_view_layer_from_scene_get(m_blenderScene);
-	m_idProperty = BKE_view_layer_engine_evaluated_get(view_layer, COLLECTION_MODE_NONE, RE_engine_id_BLENDER_EEVEE);
-	EEVEE_PassList *psl = EEVEE_engine_data_get()->psl;
+	if (m_engineType == 0) {
+		InitEeveeData();
 
-	InitScenePasses(psl);
+		ViewLayer *view_layer = BKE_view_layer_from_scene_get(m_blenderScene);
+		m_idProperty = BKE_view_layer_engine_evaluated_get(view_layer, COLLECTION_MODE_NONE, RE_engine_id_BLENDER_EEVEE);
+		EEVEE_PassList *psl = EEVEE_engine_data_get()->psl;
+
+		InitScenePasses(psl);
+	}
+	else {
+		InitClayData();
+
+		ViewLayer *view_layer = BKE_view_layer_from_scene_get(m_blenderScene);
+		m_idProperty = BKE_view_layer_engine_evaluated_get(view_layer, COLLECTION_MODE_NONE, RE_engine_id_BLENDER_CLAY);
+		CLAY_PassList *psl = CLAY_engine_data_get()->psl;
+
+		InitClayScenePasses(psl);
+	}
 
 	m_staticObjects = {};
 	/******************************************************************************************************************************/
@@ -323,7 +345,12 @@ KX_Scene::~KX_Scene()
 	}
 
 	/* EEVEE INTEGRATION */
-	FreeEeveeData();
+	if (m_engineType == 0) { // EEVEE
+		FreeEeveeData();
+	}
+	else { // CLAY
+		FreeClayData();
+	}
 	/* End of EEVEE INTEGRATION */
 
 #ifdef WITH_PYTHON
@@ -341,6 +368,11 @@ KX_Scene::~KX_Scene()
 }
 
 /**********************************************EEVEE INTEGRATION*************************************************/
+
+int KX_Scene::GetEngineType()
+{
+	return m_engineType; // EEVEE -> 0; CLAY -> 1
+}
 
 // Called in scene constructor
 void KX_Scene::InitEeveeData()
@@ -360,6 +392,25 @@ void KX_Scene::InitEeveeData()
 void KX_Scene::FreeEeveeData()
 {
 	DRW_game_render_loop_end();
+}
+
+void KX_Scene::InitClayData()
+{
+	KX_KetsjiEngine *engine = KX_GetActiveEngine();
+	Main *bmain = engine->GetConverter()->GetMain();
+	RAS_ICanvas *canvas = engine->GetCanvas();
+	Scene *scene = GetBlenderScene();
+	ViewLayer *cur_view_layer = BKE_view_layer_from_scene_get(scene);
+	Object *maincam = BKE_view_layer_camera_find(cur_view_layer); // TODO: Find a way to always have a valid camera
+
+	GPUOffScreen *tempGpuOffScreen = GPU_offscreen_create(canvas->GetWidth(), canvas->GetHeight(), 0, false, nullptr); // TODO: Find a way to free that properly
+	DRW_game_clay_render_loop_begin(tempGpuOffScreen, bmain, scene, maincam);
+}
+
+// Called in scene destructor
+void KX_Scene::FreeClayData()
+{
+	DRW_game_clay_render_loop_end();
 }
 
 void KX_Scene::InitScenePasses(EEVEE_PassList *psl)
@@ -392,6 +443,17 @@ void KX_Scene::InitScenePasses(EEVEE_PassList *psl)
 	/* END OF MATERIALS PASSES */
 }
 
+void KX_Scene::InitClayScenePasses(CLAY_PassList *psl)
+{
+	/* MATERIALS PASSES (passes which contain display arrays (Gwn_Batch)) */
+	m_materialPasses.push_back(psl->clay_pass);
+	m_materialPasses.push_back(psl->clay_pass_flat);
+	m_materialPasses.push_back(psl->depth_pass);
+	m_materialPasses.push_back(psl->depth_pass_cull);
+	m_materialPasses.push_back(psl->hair_pass);
+	/* END OF MATERIALS PASSES */
+}
+
 std::vector<DRWPass *>KX_Scene::GetMaterialPasses()
 {
 	return m_materialPasses;
@@ -408,6 +470,40 @@ std::vector<KX_GameObject *>KX_Scene::GetProbeList()
 }
 
 /**********************EEVEE SCENE DRAWING*****************************/
+void KX_Scene::CLAY_draw_scene()
+{
+	CLAY_Data *vedata = CLAY_engine_data_get();
+	CLAY_StaticData *e_data = CLAY_static_data_get();
+
+	CLAY_PassList *psl = ((CLAY_Data *)vedata)->psl;
+	CLAY_FramebufferList *fbl = ((CLAY_Data *)vedata)->fbl;
+	DefaultFramebufferList *dfbl = DRW_viewport_framebuffer_list_get();
+
+	/* Pass 1 : Depth pre-pass */
+	DRW_draw_pass(psl->depth_pass);
+	DRW_draw_pass(psl->depth_pass_cull);
+
+	/* Pass 2 : Duplicate depth */
+	/* Unless we go for deferred shading we need this to avoid manual depth test and artifacts */
+	if (DRW_state_is_fbo()) {
+		/* attach temp textures */
+		DRW_framebuffer_texture_attach(fbl->dupli_depth, e_data->depth_dup, 0, 0);
+
+		DRW_framebuffer_blit(dfbl->default_fb, fbl->dupli_depth, true, false);
+
+		/* detach temp textures */
+		DRW_framebuffer_texture_detach(e_data->depth_dup);
+
+		/* restore default fb */
+		DRW_framebuffer_bind(dfbl->default_fb);
+	}
+
+	/* Pass 3 : Shading */
+	DRW_draw_pass(psl->clay_pass);
+	DRW_draw_pass(psl->clay_pass_flat);
+	DRW_draw_pass(psl->hair_pass);
+}
+
 /* EEVEE's render main loop (see eevee_engine.c) */
 void KX_Scene::EEVEE_draw_scene()
 {
@@ -891,22 +987,28 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 		}
 	}
 
-	UpdateShadows(rasty);
+	if (m_engineType == 0) { // EEVEE
 
-	/* Update of eevee's post processing before scene rendering */
-	EeveePostProcessingHackBegin(nodes);
+		UpdateShadows(rasty);
 
-	UpdateProbes();
+		/* Update of eevee's post processing before scene rendering */
+		EeveePostProcessingHackBegin(nodes);
 
-	m_staticObjects.clear();
+		UpdateProbes();
 
-	/* Start Drawing */
-	DRW_state_reset();
-	EEVEE_draw_scene();
-	DRW_state_reset();
+		m_staticObjects.clear();
 
-	/* Update of eevee's post processing before after rendering */
-	EeveePostProcessingHackEnd();
+		/* Start Drawing */
+		DRW_state_reset();
+		EEVEE_draw_scene();
+		DRW_state_reset();
+
+		/* Update of eevee's post processing before after rendering */
+		EeveePostProcessingHackEnd();
+	}
+	else { // CLAY
+		CLAY_draw_scene();
+	}
 
 	m_firstFrameRendered = true;
 

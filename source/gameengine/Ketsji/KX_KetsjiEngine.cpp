@@ -85,6 +85,7 @@
 
 /* EEVEE INTEGRATION */
 extern "C" {
+#  include "draw/engines/clay/clay_engine.h"
 #  include "DRW_render.h"
 #  include "GPU_framebuffer.h"
 }
@@ -546,8 +547,7 @@ void KX_KetsjiEngine::Render()
 	m_rasterizer->SetViewport(0, 0, width + 1, height + 1);
 
 	m_rasterizer->UpdateFrameBuffers(m_canvas);
-	EEVEE_Data *vedata = EEVEE_engine_data_get();
-	DefaultTextureList *dtxl = DRW_viewport_texture_list_get();
+	
 	RAS_FrameBuffer *lastfb;
 
 	KX_Scene *firstscene = m_scenes->GetFront();
@@ -557,6 +557,8 @@ void KX_KetsjiEngine::Render()
 
 	// Used to detect when a camera is the first rendered an then doesn't request a depth clear.
 	unsigned short pass = 0;
+
+	int engineType = 0;
 
 	for (FrameRenderData& frameData : frameDataList) {
 
@@ -578,14 +580,27 @@ void KX_KetsjiEngine::Render()
 
 			RAS_FrameBuffer *fb = m_rasterizer->GetFrameBuffer(frameData.m_fbType);
 
-			DRW_framebuffer_texture_attach(fb->GetFrameBuffer(), vedata->stl->effects->source_buffer, 0, 0);
-			DRW_framebuffer_texture_attach(fb->GetFrameBuffer(), vedata->txl->maxzbuffer, 1, 0);
+			engineType = scene->GetEngineType();
 
-			RAS_Rasterizer::FrameBufferType next = m_rasterizer->NextRenderFrameBuffer(fb->GetType());
+			if (engineType == 0) { // EEVEE
+				EEVEE_Data *vedata = EEVEE_engine_data_get();
+				DefaultTextureList *dtxl = DRW_viewport_texture_list_get();
+				DRW_framebuffer_texture_attach(fb->GetFrameBuffer(), vedata->stl->effects->source_buffer, 0, 0);
+				DRW_framebuffer_texture_attach(fb->GetFrameBuffer(), vedata->txl->maxzbuffer, 1, 0);
 
-			fb = PostRenderScene(scene, fb, m_rasterizer->GetFrameBuffer(next));
-			lastfb = fb;
+				RAS_Rasterizer::FrameBufferType next = m_rasterizer->NextRenderFrameBuffer(fb->GetType());
 
+				fb = PostRenderScene(scene, fb, m_rasterizer->GetFrameBuffer(next));
+				lastfb = fb;
+			}
+			else {
+				CLAY_Data *vedata = CLAY_engine_data_get();
+				//CLAY_FramebufferList *fbl = ((CLAY_Data *)vedata)->fbl;
+				DefaultFramebufferList *dfbl = DRW_viewport_framebuffer_list_get();
+				GPUTexture *color = GPU_framebuffer_color_texture(dfbl->default_fb);
+				DRW_framebuffer_texture_attach(fb->GetFrameBuffer(), color, 0, 0);
+				lastfb = fb;
+			}
 			frameData.m_fbType = fb->GetType();
 		}
 	}
@@ -594,10 +609,17 @@ void KX_KetsjiEngine::Render()
 	m_rasterizer->SetViewport(viewport.GetLeft(), viewport.GetBottom(), viewport.GetWidth() + 1, viewport.GetHeight() + 1);
 	m_rasterizer->SetScissor(viewport.GetLeft(), viewport.GetBottom(), viewport.GetWidth() + 1, viewport.GetHeight() + 1);
 
-	GPUTexture *lasttex = GPU_framebuffer_color_texture(lastfb->GetFrameBuffer());
+	GPUTexture *lasttex;
+	if (engineType == 0) { // EEVEE
+		EEVEE_Data *vedata = EEVEE_engine_data_get();
+		lasttex = GPU_framebuffer_color_texture(lastfb->GetFrameBuffer());
 
-	DRW_framebuffer_texture_detach(vedata->stl->effects->source_buffer);
-	DRW_framebuffer_texture_detach(vedata->txl->maxzbuffer);
+		DRW_framebuffer_texture_detach(vedata->stl->effects->source_buffer);
+		DRW_framebuffer_texture_detach(vedata->txl->maxzbuffer);
+	}
+	else { // CLAY
+		lasttex = GPU_framebuffer_color_texture(lastfb->GetFrameBuffer());
+	}
 
 	GPU_framebuffer_restore();
 
@@ -833,7 +855,12 @@ void KX_KetsjiEngine::RenderCamera(KX_Scene *scene, const CameraRenderData& came
 							rendercam->NodeGetWorldPosition(), rendercam->NodeGetLocalScaling());
 
 	/* TEMP -> needs to be optimised */
-	rendercam->UpdateViewVecs(EEVEE_engine_data_get()->stl);
+	if (scene->GetEngineType() == 0) { // EEVEE
+		rendercam->UpdateViewVecs();
+	}
+	else { // CLAY
+		rendercam->UpdateClayViewVecs();
+	}
 
 	m_logger.StartLog(tc_scenegraph, m_kxsystem->GetTimeInSeconds());
 

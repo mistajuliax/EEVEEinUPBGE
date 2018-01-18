@@ -361,6 +361,9 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 	KX_Scene *scene = GetScene();
 	std::vector<DRWPass *>allPasses = scene->GetMaterialPasses();
 	for (DRWPass *pass : allPasses) {
+		if (!pass) {
+			continue;
+		}
 		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
 			std::vector<DRWShadingGroup *>::iterator it = std::find(m_materialShGroups.begin(), m_materialShGroups.end(), shgroup);
 			if (it != m_materialShGroups.end()) {

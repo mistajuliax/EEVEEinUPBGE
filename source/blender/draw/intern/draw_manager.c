@@ -4363,4 +4363,118 @@ void DRW_game_render_loop_end()
 
 	memset(&DST, 0xFF, sizeof(DST));
 }
+
+void DRW_game_clay_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
+	Scene *scene, Object *maincam)
+{
+	memset(&DST, 0x0, sizeof(DST));
+
+	ViewLayer *view_layer = BKE_view_layer_from_scene_get(scene);
+	Depsgraph *depsgraph = BKE_scene_get_depsgraph(scene, view_layer, true);
+	BKE_scene_graph_update_tagged(bmain->eval_ctx, depsgraph, bmain, scene, view_layer);
+
+	use_drw_engine(&draw_engine_clay_type);
+
+	DST.viewport = GPU_viewport_create_from_offscreen(ofs);
+
+	GPU_viewport_engine_data_create(DST.viewport, &draw_engine_clay_type);
+
+	const float *viewport_size = DRW_viewport_size_get();
+
+	ARegion ar;
+	ar.winx = (int)viewport_size[0];
+	ar.winy = (int)viewport_size[1];
+
+	View3D v3d;
+
+	Object *obcam;
+	if (!maincam) {
+		default_cam = BKE_camera_add(bmain, "default_cam");
+		obcam = (Object *)default_cam;
+	}
+	else {
+		obcam = maincam;
+	}
+	Camera *cam = (Camera *)obcam;
+	v3d.camera = obcam;
+	v3d.lens = cam->lens;
+	v3d.near = cam->clipsta;
+	v3d.far = cam->clipend;
+
+	RegionView3D rv3d;
+	rv3d.camdx = 0.0f;
+	rv3d.camdy = 0.0f;
+	rv3d.camzoom = 0.0f;
+	rv3d.persp = RV3D_CAMOB;
+	rv3d.is_persp = true;
+	rctf cameraborder;
+	drw_game_camera_border(scene, &ar, &v3d, &rv3d, &cameraborder, false, false);
+	rv3d.viewcamtexcofac[0] = (float)ar.winx / BLI_rctf_size_x(&cameraborder);
+
+	DST.draw_ctx.ar = &ar;
+	DST.draw_ctx.v3d = &v3d;
+	DST.draw_ctx.rv3d = &rv3d;
+
+	/* We don't use bContext in bge
+	* (not possible or very difficult
+	* with blenderplayer I guess
+	*/
+	DST.draw_ctx.evil_C = NULL;
+
+	DST.draw_ctx.v3d->zbuf = true;
+	DST.draw_ctx.scene = scene;
+	DST.draw_ctx.view_layer = view_layer;
+	DST.draw_ctx.obact = OBACT(view_layer);
+
+	drw_viewport_var_init();
+
+	/* Init engines */
+	drw_engines_init();
+
+	drw_engines_cache_init();
+
+	DEG_OBJECT_ITER(depsgraph, ob, DRW_iterator_mode_get(),
+		DEG_ITER_OBJECT_FLAG_LINKED_DIRECTLY |
+		DEG_ITER_OBJECT_FLAG_LINKED_VIA_SET |
+		DEG_ITER_OBJECT_FLAG_DUPLI);
+	{
+		/* We want to populate cache even with objects in invisible layers.
+		* (we'll remove them from eevee's passes later).
+		*/
+		bool is_invisible = (ob->base_flag & BASE_VISIBLED) == 0;
+		if (is_invisible) {
+			ob->base_flag |= BASE_VISIBLED;
+		}
+		drw_engines_cache_populate(ob);
+		if (is_invisible) {
+			ob->base_flag &= ~BASE_VISIBLED;
+		}
+	}
+	DEG_OBJECT_ITER_END
+
+		drw_engines_cache_finish();
+
+	DRW_state_reset();
+	drw_engines_disable();
+}
+
+/* TODO: Fix memory leaks */
+void DRW_game_clay_render_loop_end()
+{
+	if (default_cam) {
+		BKE_camera_free(default_cam);
+	}
+
+	drw_viewport_cache_resize();
+
+	GPU_viewport_free(DST.viewport);
+	MEM_freeN(DST.viewport);
+
+	release_ubo_slots();
+	release_texture_slots();
+
+	draw_engine_clay_type.engine_free();
+
+	memset(&DST, 0xFF, sizeof(DST));
+}
 /***************************Enf of Game engine transition***************************/

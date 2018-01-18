@@ -97,6 +97,7 @@ struct TaskPool;
 
 /*********EEVEE INTEGRATION************/
 struct DRWPass;
+struct CLAY_PassList;
 struct EEVEE_PassList;
 struct IDProperty;
 /**************************************/
@@ -145,6 +146,8 @@ private:
 protected:
 
 	/***************EEVEE INTEGRATION*****************/
+	int m_engineType;
+
 	bool m_dofInitialized;
 	bool m_firstFrameRendered;
 
@@ -347,7 +350,14 @@ public:
 	void InitEeveeData();
 	void FreeEeveeData();
 
+	void InitClayData();
+	void FreeClayData();
+
+	int GetEngineType();
+
 	void InitScenePasses(EEVEE_PassList *psl);
+	void InitClayScenePasses(CLAY_PassList *psl);
+
 	std::vector<DRWPass *>GetMaterialPasses();
 
 	void UpdateShadows(RAS_Rasterizer *rasty);
@@ -364,6 +374,7 @@ public:
 	std::vector<KX_GameObject *>GetProbeList();
 	void UpdateProbes();
 
+	void CLAY_draw_scene();
 	void EEVEE_draw_scene(); /* We need a minimal control on eevee render pipe */
 	void RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer *rasty);
 
