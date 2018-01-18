@@ -475,6 +475,13 @@ void KX_Scene::CLAY_draw_scene()
 	CLAY_Data *vedata = CLAY_engine_data_get();
 	CLAY_StaticData *e_data = CLAY_static_data_get();
 
+	CLAY_StorageList *stl = vedata->stl;
+
+	DRW_uniformbuffer_update(stl->mat_ubo, &stl->storage->mat_storage);
+	DRW_uniformbuffer_update(stl->hair_mat_ubo, &stl->storage->hair_mat_storage);
+
+	
+
 	CLAY_PassList *psl = ((CLAY_Data *)vedata)->psl;
 	CLAY_FramebufferList *fbl = ((CLAY_Data *)vedata)->fbl;
 	DefaultFramebufferList *dfbl = DRW_viewport_framebuffer_list_get();
@@ -1007,7 +1014,12 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 		EeveePostProcessingHackEnd();
 	}
 	else { // CLAY
+		m_staticObjects.clear();
+
+		/* Start Drawing */
+		DRW_state_reset();
 		CLAY_draw_scene();
+		DRW_state_reset();
 	}
 
 	m_firstFrameRendered = true;
