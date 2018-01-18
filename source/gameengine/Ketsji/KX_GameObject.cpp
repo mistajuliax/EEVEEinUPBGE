@@ -240,17 +240,12 @@ void KX_GameObject::AddMaterialBatches()
 
 	if (ELEM(ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
 
-		int materials_len = MAX2(1, ob->totcol);
-		struct GPUMaterial **gpumat_array = (GPUMaterial **)BLI_array_alloca(gpumat_array, materials_len);
-		struct Gwn_Batch **mat_geom = DRW_cache_object_surface_material_get(ob, gpumat_array, materials_len);
-		if (mat_geom) {
-			for (int i = 0; i < materials_len; ++i) {
-				std::vector<Gwn_Batch *>::iterator it = std::find(m_materialBatches.begin(), m_materialBatches.end(), mat_geom[i]);
-				if (it != m_materialBatches.end()) {
-					continue; // I think it's not needed but it costs nothing
-				}
-				m_materialBatches.push_back(mat_geom[i]);
-			}
+		
+		struct Gwn_Batch *geom = DRW_cache_object_surface_get(ob);
+		if (geom) {
+		
+			
+				m_materialBatches.push_back(geom);
 		}
 		/* Here I thought to do an UI to say if we want to use KX_GameObject matrix to move particles with logic
 		 * or keep the particles matrix of the viewport (to keep things simple) (We'd add hair_geom to materialBatches
