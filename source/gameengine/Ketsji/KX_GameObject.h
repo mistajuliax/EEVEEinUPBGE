@@ -88,16 +88,14 @@ class KX_GameObject : public SCA_IObject
 	Py_Header
 protected:
 
-
-
-
+	/* EEVEE INTEGRATION */
 	std::vector<Gwn_Batch *>m_materialBatches;
 	std::vector<DRWShadingGroup *>m_materialShGroups;
 
 	float m_savedObmat[4][4];
 	float m_prevObmat[4][4];
 	bool m_needShadowUpdate; // used for shadow culling
-
+	/* End of EEVEE INTEGRATION */
 
 
 	KX_ClientObjectInfo*				m_pClient_info;
