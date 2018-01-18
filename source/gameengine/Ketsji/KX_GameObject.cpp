@@ -255,7 +255,7 @@ void KX_GameObject::AddMaterialBatches()
 		for (ModifierData *md = (ModifierData *)ob->modifiers.first; md; md = (ModifierData *)md->next) {
 			if (md->type == eModifierType_ParticleSystem) {
 				ParticleSystem *psys = ((ParticleSystemModifierData *)md)->psys;
-					if (psys_check_enabled(ob, psys, false)) {
+				if (psys_check_enabled(ob, psys, false)) {
 					ParticleSettings *part = psys->part;
 					int draw_as = (part->draw_as == PART_DRAW_REND) ? part->ren_as : part->draw_as;
 					if (draw_as == PART_DRAW_PATH && (psys->pathcache || psys->childcache)) {
