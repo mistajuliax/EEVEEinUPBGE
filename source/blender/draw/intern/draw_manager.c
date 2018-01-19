@@ -3463,10 +3463,8 @@ void DRW_draw_render_loop_ex(
 		}
 	}
 
-	extern void view3d_draw_bgpic_test(Scene *scene, ARegion *ar, View3D *v3d,
-	                                   const bool do_foreground, const bool do_camera_frame);
 	if (do_bg_image) {
-		view3d_draw_bgpic_test(scene, ar, v3d, false, true);
+		ED_view3d_draw_bgpic_test(scene, depsgraph, ar, v3d, false, true);
 	}
 
 
@@ -3502,7 +3500,7 @@ void DRW_draw_render_loop_ex(
 	DRW_stats_reset();
 
 	if (do_bg_image) {
-		view3d_draw_bgpic_test(scene, ar, v3d, true, true);
+		ED_view3d_draw_bgpic_test(scene, depsgraph, ar, v3d, true, true);
 	}
 
 	if (G.debug_value > 20) {
@@ -4119,7 +4117,7 @@ DRWShadingGroup *DRW_game_shgroup_next(DRWShadingGroup *current)
 }
 
 static void drw_game_camera_border(
-	const Scene *scene, const ARegion *ar, const View3D *v3d, const RegionView3D *rv3d,
+	const Scene *scene, const Depsgraph *depsgraph, const ARegion *ar, const View3D *v3d, const RegionView3D *rv3d,
 	rctf *r_viewborder, const bool no_shift, const bool no_zoom)
 {
 	CameraParams params;
@@ -4127,7 +4125,7 @@ static void drw_game_camera_border(
 
 	/* get viewport viewplane */
 	BKE_camera_params_init(&params);
-	BKE_camera_params_from_view3d(&params, v3d, rv3d);
+	BKE_camera_params_from_view3d(&params, depsgraph, v3d, rv3d);
 	if (no_zoom)
 		params.zoom = 1.0f;
 	BKE_camera_params_compute_viewplane(&params, ar->winx, ar->winy, 1.0f, 1.0f);
@@ -4283,7 +4281,7 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	rv3d.persp = RV3D_CAMOB;
 	rv3d.is_persp = true;
 	rctf cameraborder;
-	drw_game_camera_border(scene, &ar, &v3d, &rv3d, &cameraborder, false, false);
+	drw_game_camera_border(scene, depsgraph, &ar, &v3d, &rv3d, &cameraborder, false, false);
 	rv3d.viewcamtexcofac[0] = (float)ar.winx / BLI_rctf_size_x(&cameraborder);
 
 	DST.draw_ctx.ar = &ar;

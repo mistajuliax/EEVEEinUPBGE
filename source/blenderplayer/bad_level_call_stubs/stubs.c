@@ -560,11 +560,11 @@ void ED_view3d_shade_update(struct Main *bmain, struct Scene *scene, struct View
 void ED_view3d_clipping_calc_from_boundbox(float clip[6][4], const struct BoundBox *clipbb, const bool is_flip) RET_NONE
 void ED_view3d_clipping_calc(struct BoundBox *bb, float planes[4][4],
 	const struct ARegion *ar, const struct Object *ob, const struct rcti *rect) RET_NONE
+void ED_view3d_draw_bgpic_test(struct Scene *scene, const struct Depsgraph *depsgraph, struct ARegion *ar, struct View3D *v3d, const bool do_foreground, const bool do_camera_frame) RET_NONE
 void ED_view3d_clipping_disable(void) RET_NONE
 void ED_view3d_clipping_enable(void) RET_NONE
 void ED_view3d_init_mats_rv3d(struct Object *ob, struct RegionView3D *rv3d) RET_NONE
 void ED_region_info_draw_multiline(struct ARegion *ar, const char *text_array[], float fill_color[4], const bool full_redraw) RET_NONE
-void view3d_draw_bgpic_test(struct Scene *scene, struct ARegion *ar, struct View3D *v3d, const bool do_foreground, const bool do_camera_frame) RET_NONE
 void view3d_draw_region_info(const struct bContext *C, struct ARegion *ar, const int offset);
 void view3d_draw_region_info(const struct bContext *C, struct ARegion *ar, const int offset) RET_NONE
 void ED_node_shader_default(const struct bContext *C, struct ID *id) RET_NONE

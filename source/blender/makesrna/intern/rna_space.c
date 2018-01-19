@@ -2115,7 +2115,7 @@ static void rna_def_space_outliner(BlenderRNA *brna)
 		{SO_USERDEF, "USER_PREFERENCES", 0, "User Preferences", "Display user preference data"},
 		{SO_ID_ORPHANS, "ORPHAN_DATA", 0, "Orphan Data",
 		                "Display data-blocks which are unused and/or will be lost when the file is reloaded"},
-		{SO_ACT_LAYER, "ACT_LAYER", 0, "Active View Layer", "Display the collections of the active view layer"},
+		{SO_VIEW_LAYER, "VIEW_LAYER", 0, "View Layer", "Display the collections of the active view layer"},
 		{SO_COLLECTIONS, "COLLECTIONS", 0, "Collections", "Display all collections based on the "
 		                 "master collection hierarchy"},
 		{0, NULL, 0, NULL, NULL}
@@ -2140,16 +2140,19 @@ static void rna_def_space_outliner(BlenderRNA *brna)
 	prop = RNA_def_property(srna, "use_filter_case_sensitive", PROP_BOOLEAN, PROP_NONE);
 	RNA_def_property_boolean_sdna(prop, NULL, "search_flags", SO_FIND_CASE_SENSITIVE);
 	RNA_def_property_ui_text(prop, "Case Sensitive Matches Only", "Only use case sensitive matches of search string");
+	RNA_def_property_ui_icon(prop, ICON_SYNTAX_OFF, 0);
 	RNA_def_property_update(prop, NC_SPACE | ND_SPACE_OUTLINER, NULL);
 
 	prop = RNA_def_property(srna, "use_filter_complete", PROP_BOOLEAN, PROP_NONE);
 	RNA_def_property_boolean_sdna(prop, NULL, "search_flags", SO_FIND_COMPLETE);
 	RNA_def_property_ui_text(prop, "Complete Matches Only", "Only use complete matches of search string");
+	RNA_def_property_ui_icon(prop, ICON_OUTLINER_DATA_FONT, 0);
 	RNA_def_property_update(prop, NC_SPACE | ND_SPACE_OUTLINER, NULL);
 
 	prop = RNA_def_property(srna, "use_sort_alpha", PROP_BOOLEAN, PROP_NONE);
 	RNA_def_property_boolean_negative_sdna(prop, NULL, "flag", SO_SKIP_SORT_ALPHA);
 	RNA_def_property_ui_text(prop, "Sort Alphabetically", "");
+	RNA_def_property_ui_icon(prop, ICON_SORTALPHA, 0);
 	RNA_def_property_update(prop, NC_SPACE | ND_SPACE_OUTLINER, NULL);
 
 	prop = RNA_def_property(srna, "show_restrict_columns", PROP_BOOLEAN, PROP_NONE);
