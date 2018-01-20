@@ -122,6 +122,10 @@ public:
 	/* EEVEE INTEGRATION */
 	std::vector<Gwn_Batch *>GetMaterialBatches();
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
+
+	/* WARNING: TEMP... To clean -> issue with deformers... */
+	RAS_BoundingBox *RAS_MeshObject::GetBoundingBox() const;
+	RAS_BoundingBox *m_boundingBox;
 	/*********************/
 
 	// materials

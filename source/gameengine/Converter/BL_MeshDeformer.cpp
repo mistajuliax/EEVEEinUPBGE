@@ -91,7 +91,7 @@ BL_MeshDeformer::BL_MeshDeformer(BL_DeformableGameObject *gameobj, Object *obj, 
 	RAS_BoundingBoxManager *boundingBoxManager = scene->GetBoundingBoxManager();
 	m_boundingBox = boundingBoxManager->CreateBoundingBox();
 	// Set AABB default to mesh bounding box AABB.
-	m_boundingBox->CopyAabb(m_gameobj->GetBoundingBox());
+	m_boundingBox->CopyAabb(meshobj->GetBoundingBox());
 }
 
 BL_MeshDeformer::~BL_MeshDeformer()

@@ -115,7 +115,8 @@ struct RAS_MeshObject::fronttoback
 RAS_MeshObject::RAS_MeshObject(Mesh *mesh, const LayersInfo& layersInfo)
 	:m_name(mesh->id.name + 2),
 	m_layersInfo(layersInfo),
-	m_mesh(mesh)
+	m_mesh(mesh),
+	m_boundingBox(nullptr)
 {
 	m_displayArrayList = {};
 }
@@ -386,6 +387,14 @@ void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
 			}
 		}
 	}
+	// Construct the bounding box of this mesh without deformers.
+	m_boundingBox = boundingBoxManager->CreateMeshBoundingBox(m_displayArrayList);
+	m_boundingBox->Update(true);
+}
+
+RAS_BoundingBox *RAS_MeshObject::GetBoundingBox() const
+{
+	return m_boundingBox;
 }
 
 std::vector<RAS_IDisplayArray *>RAS_MeshObject::GetDisplayArrayList()
