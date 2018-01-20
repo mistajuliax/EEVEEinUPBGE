@@ -60,16 +60,10 @@ extern "C" {
 }
 
 ExceptionID SceneInvalid, CameraInvalid, ObserverInvalid, FrameBufferInvalid;
-ExceptionID MirrorInvalid, MirrorSizeInvalid, MirrorNormalInvalid, MirrorHorizontal, MirrorTooSmall;
 ExpDesc SceneInvalidDesc(SceneInvalid, "Scene object is invalid");
 ExpDesc CameraInvalidDesc(CameraInvalid, "Camera object is invalid");
 ExpDesc ObserverInvalidDesc(ObserverInvalid, "Observer object is invalid");
 ExpDesc FrameBufferInvalidDesc(FrameBufferInvalid, "FrameBuffer object is invalid");
-ExpDesc MirrorInvalidDesc(MirrorInvalid, "Mirror object is invalid");
-ExpDesc MirrorSizeInvalidDesc(MirrorSizeInvalid, "Mirror has no vertex or no size");
-ExpDesc MirrorNormalInvalidDesc(MirrorNormalInvalid, "Cannot determine mirror plane");
-ExpDesc MirrorHorizontalDesc(MirrorHorizontal, "Mirror is horizontal in local space");
-ExpDesc MirrorTooSmallDesc(MirrorTooSmall, "Mirror is too small");
 
 // constructor
 ImageRender::ImageRender (KX_Scene *scene, KX_Camera * camera, unsigned int width, unsigned int height, unsigned short samples) :
@@ -78,12 +72,7 @@ ImageRender::ImageRender (KX_Scene *scene, KX_Camera * camera, unsigned int widt
     m_done(false),
     m_scene(scene),
     m_camera(camera),
-    m_owncamera(false),
-    m_observer(nullptr),
-    m_mirror(nullptr),
-    m_clip(100.f),
-    m_mirrorHalfWidth(0.f),
-    m_mirrorHalfHeight(0.f)
+    m_owncamera(false)
 {
 	// retrieve rendering objects
 	m_engine = KX_GetActiveEngine();
@@ -112,7 +101,7 @@ ImageRender::~ImageRender (void)
 
 int ImageRender::GetColorBindCode() const
 {
-	return GPU_framebuffer_color_bindcode(DRW_viewport_framebuffer_list_get()->default_fb);
+	return GPU_texture_opengl_bindcode(EEVEE_engine_data_get()->stl->effects->source_buffer);
 }
 
 // capture image from viewport
@@ -153,71 +142,6 @@ bool ImageRender::Render()
 		return false;
 	}
 
-	if (m_mirror)
-	{
-		// mirror mode, compute camera frustum, position and orientation
-		// convert mirror position and normal in world space
-		const MT_Matrix3x3 & mirrorObjWorldOri = m_mirror->GetSGNode()->GetWorldOrientation();
-		const MT_Vector3 & mirrorObjWorldPos = m_mirror->GetSGNode()->GetWorldPosition();
-		const MT_Vector3 & mirrorObjWorldScale = m_mirror->GetSGNode()->GetWorldScaling();
-		MT_Vector3 mirrorWorldPos =
-		        mirrorObjWorldPos + mirrorObjWorldScale * (mirrorObjWorldOri * m_mirrorPos);
-		MT_Vector3 mirrorWorldZ = mirrorObjWorldOri * m_mirrorZ;
-		// get observer world position
-		const MT_Vector3 & observerWorldPos = m_observer->GetSGNode()->GetWorldPosition();
-		// get plane D term = mirrorPos . normal
-		MT_Scalar mirrorPlaneDTerm = mirrorWorldPos.dot(mirrorWorldZ);
-		// compute distance of observer to mirror = D - observerPos . normal
-		MT_Scalar observerDistance = mirrorPlaneDTerm - observerWorldPos.dot(mirrorWorldZ);
-		// if distance < 0.01 => observer is on wrong side of mirror, don't render
-		if (observerDistance < 0.01)
-			return false;
-		// set camera world position = observerPos + normal * 2 * distance
-		MT_Vector3 cameraWorldPos = observerWorldPos + (MT_Scalar(2.0)*observerDistance)*mirrorWorldZ;
-		m_camera->GetSGNode()->SetLocalPosition(cameraWorldPos);
-		// set camera orientation: z=normal, y=mirror_up in world space, x= y x z
-		MT_Vector3 mirrorWorldY = mirrorObjWorldOri * m_mirrorY;
-		MT_Vector3 mirrorWorldX = mirrorObjWorldOri * m_mirrorX;
-		MT_Matrix3x3 cameraWorldOri(
-		            mirrorWorldX[0], mirrorWorldY[0], mirrorWorldZ[0],
-		            mirrorWorldX[1], mirrorWorldY[1], mirrorWorldZ[1],
-		            mirrorWorldX[2], mirrorWorldY[2], mirrorWorldZ[2]);
-		m_camera->GetSGNode()->SetLocalOrientation(cameraWorldOri);
-		m_camera->GetSGNode()->UpdateWorldData(0.0);
-		// compute camera frustum:
-		//   get position of mirror relative to camera: offset = mirrorPos-cameraPos
-		MT_Vector3 mirrorOffset = mirrorWorldPos - cameraWorldPos;
-		//   convert to camera orientation
-		mirrorOffset = mirrorOffset * cameraWorldOri;
-		//   scale mirror size to world scale:
-		//     get closest local axis for mirror Y and X axis and scale height and width by local axis scale
-		MT_Scalar x, y;
-		x = fabs(m_mirrorY[0]);
-		y = fabs(m_mirrorY[1]);
-		float height = (x > y) ?
-		            ((x > fabs(m_mirrorY[2])) ? mirrorObjWorldScale[0] : mirrorObjWorldScale[2]):
-		            ((y > fabs(m_mirrorY[2])) ? mirrorObjWorldScale[1] : mirrorObjWorldScale[2]);
-		x = fabs(m_mirrorX[0]);
-		y = fabs(m_mirrorX[1]);
-		float width = (x > y) ?
-		            ((x > fabs(m_mirrorX[2])) ? mirrorObjWorldScale[0] : mirrorObjWorldScale[2]):
-		            ((y > fabs(m_mirrorX[2])) ? mirrorObjWorldScale[1] : mirrorObjWorldScale[2]);
-		width *= m_mirrorHalfWidth;
-		height *= m_mirrorHalfHeight;
-		//   left = offsetx-width
-		//   right = offsetx+width
-		//   top = offsety+height
-		//   bottom = offsety-height
-		//   near = -offsetz
-		//   far = near+100
-		frustum.x1 = mirrorOffset[0]-width;
-		frustum.x2 = mirrorOffset[0]+width;
-		frustum.y1 = mirrorOffset[1]-height;
-		frustum.y2 = mirrorOffset[1]+height;
-		frustum.camnear = -mirrorOffset[2];
-		frustum.camfar = -mirrorOffset[2]+m_clip;
-	}
-
 	m_rasterizer->BeginFrame(m_engine->GetClockTime());
 
 	m_rasterizer->SetViewport(m_position[0], m_position[1], m_position[0] + m_capSize[0], m_position[1] + m_capSize[1]);
@@ -227,16 +151,7 @@ bool ImageRender::Render()
 
 	m_rasterizer->SetAuxilaryClientInfo(m_scene);
 
-	if (m_mirror)
-	{
-		// frustum was computed above
-		// get frustum matrix and set projection matrix
-		MT_Matrix4x4 projmat = m_rasterizer->GetFrustumMatrix(
-		            frustum.x1, frustum.x2, frustum.y1, frustum.y2, frustum.camnear, frustum.camfar);
-
-		m_camera->SetProjectionMatrix(projmat);
-	}
-	else if (!m_camera->hasValidProjectionMatrix()) {
+	if (!m_camera->hasValidProjectionMatrix()) {
 		float lens = m_camera->GetLens();
 		float sensor_x = m_camera->GetSensorWidth();
 		float sensor_y = m_camera->GetSensorHeight();

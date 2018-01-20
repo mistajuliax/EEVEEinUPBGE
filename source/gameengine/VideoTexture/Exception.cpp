@@ -218,11 +218,6 @@ void registerAllExceptions(void)
 	SceneInvalidDesc.registerDesc();
 	CameraInvalidDesc.registerDesc();
 	ObserverInvalidDesc.registerDesc();
-	MirrorInvalidDesc.registerDesc();
-	MirrorSizeInvalidDesc.registerDesc();
-	MirrorNormalInvalidDesc.registerDesc();
-	MirrorHorizontalDesc.registerDesc();
-	MirrorTooSmallDesc.registerDesc();
 	SourceVideoEmptyDesc.registerDesc();
 	SourceVideoCreationDesc.registerDesc();
 	FrameBufferInvalidDesc.registerDesc();
