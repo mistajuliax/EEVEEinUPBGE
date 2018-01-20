@@ -185,8 +185,8 @@ bool BL_Action::Play(const std::string& name,
 	}
 
 	// Now try materials
-	for (unsigned short i = 0, meshcount = m_obj->GetMeshCount(); i < meshcount; ++i) {
-		RAS_MeshObject *mesh = m_obj->GetMesh(i);
+	if (m_obj->GetRasMeshObject()) {
+		RAS_MeshObject *mesh = m_obj->GetRasMeshObject();
 		for (unsigned short j = 0, matcount = mesh->NumMaterials(); j < matcount; ++j) {
 			RAS_MeshMaterial *meshmat = mesh->GetMeshMaterial(j);
 			RAS_IPolyMaterial *polymat = meshmat->GetBucket()->GetPolyMaterial();

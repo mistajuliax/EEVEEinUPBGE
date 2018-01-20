@@ -134,6 +134,7 @@ KX_GameObject::KX_GameObject(
 	  m_wasculled(false), // eevee integration
 	  m_needShadowUpdate(true), // eevee integration
 	  m_wasVisible(true), // eevee integration
+	  m_rasMeshObject(nullptr),
       m_actionManager(nullptr)
 #ifdef WITH_PYTHON
     , m_attr_dict(nullptr),
@@ -174,7 +175,7 @@ KX_GameObject::~KX_GameObject()
 		copy_m4_m4(GetBlenderObject()->obmat, m_savedObmat);
 	}
 
-	RemoveMeshes();
+	RemoveRasMeshObject();
 
 	// is this delete somewhere ?
 	//if (m_sumoObj)
@@ -898,8 +899,8 @@ void KX_GameObject::UpdateBlenderObjectMatrix(Object* blendobj)
 
 void KX_GameObject::AddMeshUser()
 {
-	for (size_t i = 0; i < m_meshes.size(); ++i) {
-		m_meshUser = m_meshes[i]->AddMeshUser(m_pClient_info, GetDeformer());
+	if (m_rasMeshObject) {
+		m_meshUser = m_rasMeshObject->AddMeshUser(m_pClient_info, GetDeformer());
 	}
 
 	if (m_meshUser) {
@@ -919,17 +920,24 @@ void KX_GameObject::UpdateBuckets()
 	m_meshUser->SetFrontFace(!m_bIsNegativeScaling);
 }
 
-void KX_GameObject::RemoveMeshes()
+RAS_MeshObject *KX_GameObject::GetRasMeshObject() const
+{
+	return m_rasMeshObject;
+}
+
+void KX_GameObject::SetRasMeshObject(RAS_MeshObject *meshobj)
+{
+	m_rasMeshObject = meshobj;
+}
+
+void KX_GameObject::RemoveRasMeshObject()
 {
 	// Remove all mesh slots.
 	if (m_meshUser) {
 		delete m_meshUser;
 		m_meshUser = nullptr;
 	}
-
-	//note: meshes can be shared, and are deleted by KX_BlenderSceneConverter
-
-	m_meshes.clear();
+	m_rasMeshObject = nullptr;
 }
 
 RAS_MeshUser *KX_GameObject::GetMeshUser() const
@@ -982,7 +990,7 @@ void KX_GameObject::UpdateLod(const MT_Vector3& cam_pos, float lodfactor)
 
 	if (lodLevel) {
 		RAS_MeshObject *mesh = lodLevel->GetMesh();
-		if (mesh != m_meshes[0]) {
+		if (mesh != m_rasMeshObject) {
 			scene->ReplaceMesh(this, mesh, true, false);
 		}
 
@@ -3132,14 +3140,11 @@ int KX_GameObject::pyattr_set_state(PyObjectPlus *self_v, const KX_PYATTRIBUTE_D
 PyObject *KX_GameObject::pyattr_get_meshes(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef)
 {
 	KX_GameObject* self = static_cast<KX_GameObject*>(self_v);
-	PyObject *meshes= PyList_New(self->m_meshes.size());
-	int i;
-	
-	for (i=0; i < (int)self->m_meshes.size(); i++)
-	{
-		KX_MeshProxy* meshproxy = new KX_MeshProxy(self->m_meshes[i]);
-		PyList_SET_ITEM(meshes, i, meshproxy->NewProxy(true));
-	}
+	PyObject *meshes= PyList_New(1);
+
+	/* Here we keep a list for backward compatibility (own.meshes[0]...) but gameobj has only 1 RasMeshObject */
+	KX_MeshProxy* meshproxy = new KX_MeshProxy(self->m_rasMeshObject);
+	PyList_SET_ITEM(meshes, 0, meshproxy->NewProxy(true));
 	
 	return meshes;
 }

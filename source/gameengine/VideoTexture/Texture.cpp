@@ -201,10 +201,9 @@ void loadTexture(unsigned int texId, unsigned int *texture, short *size,
 RAS_IPolyMaterial *getMaterial(KX_GameObject *gameObj, short matID)
 {
 	// get pointer to texture image
-	if (gameObj->GetMeshCount() > 0)
-	{
+	if (gameObj->GetRasMeshObject()) {
 		// get material from mesh
-		RAS_MeshObject * mesh = gameObj->GetMesh(0);
+		RAS_MeshObject * mesh = gameObj->GetRasMeshObject();
 		RAS_MeshMaterial *meshMat = mesh->GetMeshMaterial(matID);
 		if (meshMat != nullptr && meshMat->GetBucket() != nullptr)
 			// return pointer to polygon or blender material

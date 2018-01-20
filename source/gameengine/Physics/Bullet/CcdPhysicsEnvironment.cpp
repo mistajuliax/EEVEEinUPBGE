@@ -1866,8 +1866,8 @@ struct  DbvtCullingCallback : btDbvt::ICollide {
 				m_ocb->SetModelMatrix(fl);
 				float face = (gameobj->IsNegativeScaling()) ? -1.0f : 1.0f;
 				// walk through the meshes and for each add to buffer
-				for (int i = 0; i < gameobj->GetMeshCount(); i++) {
-					RAS_MeshObject *meshobj = gameobj->GetMesh(i);
+				if (gameobj->GetRasMeshObject()) {
+					RAS_MeshObject *meshobj = gameobj->GetRasMeshObject();
 					const float *v1, *v2, *v3, *v4;
 
 					int polycount = meshobj->NumPolygons();

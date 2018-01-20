@@ -211,8 +211,8 @@ bool KX_CollisionSensor::BroadPhaseSensorFilterCollision(void *obj1, void *obj2)
 	bool found = m_touchedpropname.empty();
 	if (!found) {
 		if (m_bFindMaterial) {
-			for (unsigned int i = 0; i < otherobj->GetMeshCount(); ++i) {
-				RAS_MeshObject *meshObj = otherobj->GetMesh(i);
+			if (otherobj->GetRasMeshObject()) {
+				RAS_MeshObject *meshObj = otherobj->GetRasMeshObject();
 				for (unsigned int j = 0; j < meshObj->NumMaterials(); ++j) {
 					found = (m_touchedpropname == std::string(meshObj->GetMaterialName(j), 2));
 					if (found) {
@@ -252,8 +252,8 @@ bool KX_CollisionSensor::NewHandleCollision(void *object1, void *object2, const 
 		bool hitMaterial = false;
 		if (!found) {
 			if (m_bFindMaterial) {
-				for (unsigned int i = 0; i < gameobj->GetMeshCount(); ++i) {
-					RAS_MeshObject *meshObj = gameobj->GetMesh(i);
+				if (gameobj->GetRasMeshObject()) {
+					RAS_MeshObject *meshObj = gameobj->GetRasMeshObject();
 					for (unsigned int j = 0; j < meshObj->NumMaterials(); ++j) {
 						found = (m_touchedpropname == std::string(meshObj->GetMaterialName(j), 2));
 						if (found) {

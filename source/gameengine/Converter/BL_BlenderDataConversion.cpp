@@ -1023,14 +1023,14 @@ static KX_GameObject *gameobject_from_blenderobject(
 		if (ob->gameflag & OB_NAVMESH)
 		{
 			gameobj = new KX_NavMeshObject(kxscene,KX_Scene::m_callbacks);
-			gameobj->AddMesh(meshobj);
+			gameobj->SetRasMeshObject(meshobj);
 			break;
 		}
 
 		gameobj = new BL_DeformableGameObject(ob,kxscene,KX_Scene::m_callbacks);
 	
 		// set transformation
-		gameobj->AddMesh(meshobj);
+		gameobj->SetRasMeshObject(meshobj);
 
 		// gather levels of detail
 		KX_LodManager *lodManager = lodmanager_from_blenderobject(ob, kxscene, rasty, converter, libloading);
@@ -1309,8 +1309,9 @@ static void bl_ConvertBlenderObject_Single(
 
 	// needed for group duplication
 	logicmgr->RegisterGameObj(blenderobject, gameobj);
-	for (int i = 0; i < gameobj->GetMeshCount(); i++)
-		logicmgr->RegisterGameMeshName(gameobj->GetMesh(i)->GetName(), blenderobject);
+	if (gameobj->GetRasMeshObject()) {
+		logicmgr->RegisterGameMeshName(gameobj->GetRasMeshObject()->GetName(), blenderobject);
+	}
 
 	converter.RegisterGameObject(gameobj, blenderobject);
 	// this was put in rapidly, needs to be looked at more closely
@@ -1693,7 +1694,7 @@ void BL_ConvertBlenderObjects(struct Main* maggie,
 		bool occlusion = false;
 		for (KX_GameObject *gameobj : sumolist) {
 			// The object can be culled ?
-			if (gameobj->GetMeshCount() || gameobj->GetGameObjectType() == SCA_IObject::OBJ_TEXT) {
+			if (gameobj->GetRasMeshObject() || gameobj->GetGameObjectType() == SCA_IObject::OBJ_TEXT) {
 				bool isactive = objectlist->SearchValue(gameobj);
 				BL_CreateGraphicObjectNew(gameobj, kxscene, isactive, physics_engine);
 				if (gameobj->GetOccluder())
@@ -1734,11 +1735,11 @@ void BL_ConvertBlenderObjects(struct Main* maggie,
 	// create physics information
 	for (KX_GameObject *gameobj : sumolist) {
 		struct Object* blenderobject = gameobj->GetBlenderObject();
-		int nummeshes = gameobj->GetMeshCount();
+		int nummeshes = gameobj->GetRasMeshObject() ? 1 : 0;
 		RAS_MeshObject* meshobj = 0;
 		if (nummeshes > 0)
 		{
-			meshobj = gameobj->GetMesh(0);
+			meshobj = gameobj->GetRasMeshObject();
 		}
 		int layerMask = (groupobj.find(blenderobject) == groupobj.end()) ? activeLayerBitInfo : 0;
 		BL_CreatePhysicsObjectNew(gameobj,blenderobject,meshobj,kxscene,layerMask,converter,processCompoundChildren);
@@ -1748,11 +1749,11 @@ void BL_ConvertBlenderObjects(struct Main* maggie,
 	// create physics information
 	for (KX_GameObject *gameobj : sumolist) {
 		struct Object* blenderobject = gameobj->GetBlenderObject();
-		int nummeshes = gameobj->GetMeshCount();
+		int nummeshes = gameobj->GetRasMeshObject() ? 1 : 0;
 		RAS_MeshObject* meshobj = 0;
 		if (nummeshes > 0)
 		{
-			meshobj = gameobj->GetMesh(0);
+			meshobj = gameobj->GetRasMeshObject();
 		}
 		int layerMask = (groupobj.find(blenderobject) == groupobj.end()) ? activeLayerBitInfo : 0;
 		BL_CreatePhysicsObjectNew(gameobj,blenderobject,meshobj,kxscene,layerMask,converter,processCompoundChildren);

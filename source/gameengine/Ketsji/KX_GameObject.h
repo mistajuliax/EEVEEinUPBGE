@@ -102,7 +102,7 @@ protected:
 	std::string							m_name;
 	std::string							m_text;
 	int									m_layer;
-	std::vector<RAS_MeshObject*>		m_meshes;
+	RAS_MeshObject						*m_rasMeshObject;
 	KX_LodManager						*m_lodManager;
 	short								m_currentLodLevel;
 	RAS_MeshUser						*m_meshUser;
@@ -745,9 +745,7 @@ public:
 	 * and remove from the bucketing system.
 	 * Don't think this actually deletes any of the meshes.
 	 */
-		void
-	RemoveMeshes(
-	);
+	void RemoveRasMeshObject();
 
 	/**
 	 * Add a mesh to the set of meshes associated with this
@@ -755,12 +753,15 @@ public:
 	 * Make sure you call RemoveMeshes() before deleting the
 	 * mesh though,
 	 */
-		void
-	AddMesh(
-		RAS_MeshObject* mesh
-	) {
-		m_meshes.push_back(mesh);
-	}
+	void SetRasMeshObject(RAS_MeshObject* meshobj);
+
+	/**
+	* Pick out a mesh associated with the integer 'num'.
+	*/
+	RAS_MeshObject *GetRasMeshObject() const;
+
+	/// Return the mesh user of this game object.
+	RAS_MeshUser *GetMeshUser() const;
 
 
 	/** Set current lod manager, can be nullptr.
@@ -774,29 +775,6 @@ public:
 	 * Updates the current lod level based on distance from camera.
 	 */
 	void UpdateLod(const MT_Vector3& cam_pos, float lodfactor);
-
-	/**
-	 * Pick out a mesh associated with the integer 'num'.
-	 */
-		RAS_MeshObject*
-	GetMesh(
-		int num
-	) const { 
-		return m_meshes[num]; 
-	}
-
-	/**
-	 * Return the number of meshes currently associated with this
-	 * game object.
-	 */
-		int
-	GetMeshCount(
-	) const { 
-		return m_meshes.size(); 
-	}
-
-	/// Return the mesh user of this game object.
-	RAS_MeshUser *GetMeshUser() const;
 
 	/// Return true when the object can be culled.
 	bool UseCulling() const;

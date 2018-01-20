@@ -646,11 +646,10 @@ bool KX_BlenderConverter::FreeBlendFile(Main *maggie)
 					else {
 						gameobj->RemoveTaggedActions();
 						// free the mesh, we could be referecing a linked one!
-						int mesh_index = gameobj->GetMeshCount();
-						while (mesh_index--) {
-							RAS_MeshObject *mesh = gameobj->GetMesh(mesh_index);
+						if (gameobj->GetRasMeshObject()) {
+							RAS_MeshObject *mesh = gameobj->GetRasMeshObject();
 							if (IS_TAGGED(mesh->GetMesh())) {
-								gameobj->RemoveMeshes(); /* XXX - slack, should only remove meshes that are library items but mostly objects only have 1 mesh */
+								gameobj->RemoveRasMeshObject(); /* XXX - slack, should only remove meshes that are library items but mostly objects only have 1 mesh */
 								break;
 							}
 							else {
@@ -658,7 +657,7 @@ bool KX_BlenderConverter::FreeBlendFile(Main *maggie)
 								int mat_index = mesh->NumMaterials();
 								while (mat_index--) {
 									if (IS_TAGGED(mesh->GetMeshMaterial(mat_index)->GetBucket()->GetPolyMaterial()->GetBlenderMaterial())) {
-										gameobj->RemoveMeshes(); // XXX - slack, same as above
+										gameobj->RemoveRasMeshObject(); // XXX - slack, same as above
 										break;
 									}
 								}

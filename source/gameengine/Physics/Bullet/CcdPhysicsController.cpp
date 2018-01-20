@@ -2116,8 +2116,8 @@ bool CcdShapeConstructionInfo::UpdateMesh(class KX_GameObject *gameobj, class RA
 
 		// game object first mesh
 		if (!meshobj) {
-			if (gameobj->GetMeshCount() > 0) {
-				meshobj = gameobj->GetMesh(0);
+			if (gameobj->GetRasMeshObject()) {
+				meshobj = gameobj->GetRasMeshObject();
 			}
 		}
 	}

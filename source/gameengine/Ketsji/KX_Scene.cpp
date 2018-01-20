@@ -1655,7 +1655,7 @@ bool KX_Scene::NewRemoveObject(KX_GameObject *gameobj)
 		m_obstacleSimulation->DestroyObstacleForObj(gameobj);
 	}
 
-	gameobj->RemoveMeshes();
+	gameobj->RemoveRasMeshObject();
 
 	bool ret = true;
 	if (gameobj->GetGameObjectType()==SCA_IObject::OBJ_LIGHT && m_lightlist->RemoveValue(static_cast<KX_LightObject *>(gameobj)))
@@ -1719,8 +1719,8 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 		gameobj->AddNewMaterialBatchesToPasses();
 		/* End of EEVEE INTEGRATION */
 
-		gameobj->RemoveMeshes();
-		gameobj->AddMesh(mesh);
+		gameobj->RemoveRasMeshObject();
+		gameobj->SetRasMeshObject(mesh);
 
 		if (gameobj->IsDeformable())
 		{
@@ -2130,7 +2130,7 @@ static void update_anim_thread_func(TaskPool *pool, void *taskdata, int UNUSED(t
 				break;
 			}
 
-			if (child->GetMeshCount() == 0)
+			if (!child->GetRasMeshObject())
 				has_non_mesh = true;
 			else
 				has_mesh = true;
@@ -2441,8 +2441,8 @@ static void MergeScene_GameObject(KX_GameObject* gameobj, KX_Scene *to, KX_Scene
 	to->GetLogicManager()->RegisterGameObjectName(gameobj->GetName(), gameobj);
 	to->GetLogicManager()->RegisterGameObj(gameobj->GetBlenderObject(), gameobj);
 
-	for (int i = 0; i < gameobj->GetMeshCount(); ++i) {
-		RAS_MeshObject *meshobj = gameobj->GetMesh(i);
+	if (gameobj->GetRasMeshObject()) {
+		RAS_MeshObject *meshobj = gameobj->GetRasMeshObject();
 		// Register the mesh object by name and blender object.
 		to->GetLogicManager()->RegisterGameMeshName(meshobj->GetName(), gameobj->GetBlenderObject());
 		to->GetLogicManager()->RegisterMeshName(meshobj->GetName(), meshobj);
