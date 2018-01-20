@@ -57,7 +57,6 @@ class KX_RayCast;
 class KX_LodManager;
 class KX_CullingNode;
 class RAS_MeshObject;
-class RAS_MeshUser;
 class PHY_IGraphicController;
 class PHY_IPhysicsEnvironment;
 class PHY_IPhysicsController;
@@ -69,6 +68,8 @@ struct bAction;
 
 /* EEVEE INTEGRATION */
 struct Gwn_Batch;
+
+class RAS_BoundingBox;
 /* End of EEVEE INTEGRATION */
 
 #ifdef WITH_PYTHON
@@ -89,12 +90,23 @@ class KX_GameObject : public SCA_IObject
 protected:
 
 	/* EEVEE INTEGRATION */
+
 	std::vector<Gwn_Batch *>m_materialBatches;
 	std::vector<DRWShadingGroup *>m_materialShGroups;
 
 	float m_savedObmat[4][4];
 	float m_prevObmat[4][4];
 	bool m_needShadowUpdate; // used for shadow culling
+
+	// Moved RAS_MeshUser API here
+	RAS_BoundingBox *m_boundingBox;
+	/// OpenGL face wise.
+	bool m_frontFace;
+	/// Object color.
+	MT_Vector4 m_color;
+	/// Object transformation matrix.
+	float m_matrix[16];
+
 	/* End of EEVEE INTEGRATION */
 
 
@@ -105,7 +117,6 @@ protected:
 	RAS_MeshObject						*m_rasMeshObject;
 	KX_LodManager						*m_lodManager;
 	short								m_currentLodLevel;
-	RAS_MeshUser						*m_meshUser;
 	struct Object*						m_pBlenderObject;
 	struct Object*						m_pBlenderGroupObject;
 	
@@ -142,6 +153,7 @@ protected:
 public:
 
 	/* EEVEE INTEGRATION */
+
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
 	void ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups); // ReplaceMesh
 
@@ -160,8 +172,17 @@ public:
 
 	bool NeedShadowUpdate();
 	bool m_wasculled;
-
 	bool m_wasVisible;
+
+	// Moved RAS_MeshUser API here
+	bool GetFrontFace() const;
+	const MT_Vector4& GetColor() const;
+	float *GetMatrix();
+	RAS_BoundingBox *GetBoundingBox() const;
+
+	void SetFrontFace(bool frontFace);
+	void SetColor(const MT_Vector4& color);
+
 	/* End of EEVEE INTEGRATION */
 
 
@@ -725,13 +746,13 @@ public:
 	 * \section Mesh accessor functions.
 	 */
 
+	void AddBoundingBox();
+
 	/**
 	 * Update buckets to indicate that there is a new
 	 * user of this object's meshes.
 	 */
-	virtual void
-	AddMeshUser(
-	);
+	virtual void AddDisplayArrays(); // Read only Display arrays
 	
 	/**
 	 * Update buckets with data about the mesh after
@@ -759,9 +780,6 @@ public:
 	* Pick out a mesh associated with the integer 'num'.
 	*/
 	RAS_MeshObject *GetRasMeshObject() const;
-
-	/// Return the mesh user of this game object.
-	RAS_MeshUser *GetMeshUser() const;
 
 
 	/** Set current lod manager, can be nullptr.

@@ -1134,7 +1134,8 @@ KX_GameObject* KX_Scene::AddNodeReplicaObject(SG_Node* node, KX_GameObject *game
 			break;
 		}
 	}
-	newobj->AddMeshUser();
+	newobj->AddBoundingBox();
+	newobj->AddDisplayArrays();
 
 	// logic cannot be replicated, until the whole hierarchy is replicated.
 	m_logicHierarchicalGameObjects.push_back(newobj);
@@ -1848,7 +1849,8 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 			}
 		}
 
-		gameobj->AddMeshUser();
+		gameobj->AddBoundingBox();
+		gameobj->AddDisplayArrays();
 	}
 
 	if (use_phys) { /* update the new assigned mesh with the physics mesh */

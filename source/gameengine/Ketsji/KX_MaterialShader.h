@@ -21,7 +21,7 @@ public:
 	virtual bool IsValid() const;
 	virtual void Activate(RAS_Rasterizer *rasty);
 	virtual void Desactivate();
-	virtual void Update(RAS_Rasterizer *rasty, RAS_MeshUser *meshUser);
+	virtual void Update(RAS_Rasterizer *rasty, KX_GameObject *gameobj);
 
 };
 

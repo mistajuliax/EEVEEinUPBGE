@@ -47,7 +47,6 @@
 #include "MT_Vector2.h"
 #include <string>
 
-class RAS_MeshUser;
 class RAS_Deformer;
 class RAS_Polygon;
 class RAS_ITexVert;
@@ -109,11 +108,9 @@ private:
 	struct backtofront;
 	struct fronttoback;
 
-	/// The mesh bounding box.
-	RAS_BoundingBox *m_boundingBox;
-
 protected:
 	RAS_MeshMaterialList m_materials;
+	std::vector<RAS_IDisplayArray *> m_displayArrayList;
 	Mesh *m_mesh;
 
 public:
@@ -160,6 +157,7 @@ public:
 				const unsigned int origindex);
 
 	// vertex and polygon acces
+	std::vector<RAS_IDisplayArray *> GetDisplayArrayList();
 	RAS_IDisplayArray *GetDisplayArray(unsigned int matid) const;
 	RAS_ITexVert *GetVertex(unsigned int matid, unsigned int index);
 	const float *GetVertexLocation(unsigned int orig_index);
@@ -167,9 +165,8 @@ public:
 	int NumPolygons();
 	RAS_Polygon *GetPolygon(int num) const;
 
-	RAS_BoundingBox *GetBoundingBox() const;
 	// buckets
-	RAS_MeshUser *AddMeshUser(void *clientobj, RAS_Deformer *deformer);
+	void AddDisplayArrays(RAS_Deformer *deformer);
 
 	void EndConversion(RAS_BoundingBoxManager *boundingBoxManager);
 

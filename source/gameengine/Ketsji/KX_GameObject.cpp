@@ -41,7 +41,6 @@
 #include "KX_Light.h"  // only for their ::Type
 #include "KX_FontObject.h"  // only for their ::Type
 #include "RAS_MeshObject.h"
-#include "RAS_MeshUser.h"
 #include "RAS_BoundingBoxManager.h"
 #include "RAS_Deformer.h"
 #include "RAS_IDisplayArray.h"
@@ -103,6 +102,8 @@ extern "C" {
 #  include "GPU_immediate.h"
 #  include "eevee_private.h"
 }
+
+#include "RAS_BoundingBox.h"
 /* End of EEVEE INTEGRATION */
 
 static MT_Vector3 dummy_point= MT_Vector3(0.0f, 0.0f, 0.0f);
@@ -118,7 +119,6 @@ KX_GameObject::KX_GameObject(
       m_layer(0),
       m_lodManager(nullptr),
       m_currentLodLevel(0),
-      m_meshUser(nullptr),
       m_pBlenderObject(nullptr),
       m_pBlenderGroupObject(nullptr),
       m_bIsNegativeScaling(false),
@@ -134,6 +134,11 @@ KX_GameObject::KX_GameObject(
 	  m_wasculled(false), // eevee integration
 	  m_needShadowUpdate(true), // eevee integration
 	  m_wasVisible(true), // eevee integration
+
+	  m_frontFace(true),
+	  m_color(MT_Vector4(0.0f, 0.0f, 0.0f, 0.0f)),
+	  m_boundingBox(nullptr),
+
 	  m_rasMeshObject(nullptr),
       m_actionManager(nullptr)
 #ifdef WITH_PYTHON
@@ -229,9 +234,44 @@ KX_GameObject::~KX_GameObject()
 	if (m_materialBatches.size()) {
 		RemoveMaterialBatches();
 	}
+	if (m_boundingBox) {
+		m_boundingBox->RemoveUser();
+	}
 }
 
 /*********************************EEVEE INTEGRATION**************************************/
+
+/* Move RAS_MeshUser API in KX_GameObject */
+bool KX_GameObject::GetFrontFace() const
+{
+	return m_frontFace;
+}
+
+const MT_Vector4& KX_GameObject::GetColor() const
+{
+	return m_color;
+}
+
+float *KX_GameObject::GetMatrix()
+{
+	return m_matrix;
+}
+
+RAS_BoundingBox *KX_GameObject::GetBoundingBox() const
+{
+	return m_boundingBox;
+}
+
+void KX_GameObject::SetFrontFace(bool frontFace)
+{
+	m_frontFace = frontFace;
+}
+
+void KX_GameObject::SetColor(const MT_Vector4& color)
+{
+	m_color = color;
+}
+/* Enf of Move RAS_MeshUser API in KX_GameObject */
 
 /* This function adds all display arrays used for this gameobject */
 void KX_GameObject::AddMaterialBatches()
@@ -716,7 +756,6 @@ void KX_GameObject::ProcessReplica()
 	m_actionManager = nullptr;
 	m_state = 0;
 
-	m_meshUser = nullptr;
 	if (m_lodManager) {
 		m_lodManager->AddRef();
 	}
@@ -897,14 +936,32 @@ void KX_GameObject::UpdateBlenderObjectMatrix(Object* blendobj)
 	}
 }
 
-void KX_GameObject::AddMeshUser()
+void KX_GameObject::AddBoundingBox()
 {
 	if (m_rasMeshObject) {
-		m_meshUser = m_rasMeshObject->AddMeshUser(m_pClient_info, GetDeformer());
+		RAS_Deformer *deformer = GetDeformer();
+		if (deformer) {
+			m_boundingBox = deformer->GetBoundingBox();
+			m_boundingBox->AddUser();
+		}
+		else {
+			std::vector<RAS_IDisplayArray *>arrayList = m_rasMeshObject->GetDisplayArrayList();
+			// Construct the bounding box of this mesh without deformers.
+			m_boundingBox = GetScene()->GetBoundingBoxManager()->CreateMeshBoundingBox(arrayList);
+			m_boundingBox->AddUser();
+			m_boundingBox->Update(true);
+		}
 	}
+	if (GetBlenderObject()->type == OB_FONT) {
+		m_boundingBox = new RAS_BoundingBox(GetScene()->GetBoundingBoxManager());
+		m_boundingBox->AddUser();
+	}
+}
 
-	if (m_meshUser) {
-		NodeGetWorldTransform().getValue(m_meshUser->GetMatrix());
+void KX_GameObject::AddDisplayArrays()
+{
+	if (m_rasMeshObject) {
+		m_rasMeshObject->AddDisplayArrays(GetDeformer());
 	}
 }
 
@@ -912,12 +969,12 @@ void KX_GameObject::UpdateBuckets()
 {
 	// Update datas and add mesh slot to be rendered only if the object is not culled.
 	if (m_pSGNode->IsDirty(SG_Node::DIRTY_RENDER)) {
-		NodeGetWorldTransform().getValue(m_meshUser->GetMatrix());
+		NodeGetWorldTransform().getValue(GetMatrix());
 		m_pSGNode->ClearDirty(SG_Node::DIRTY_RENDER);
 	}
 
-	m_meshUser->SetColor(m_objectColor);
-	m_meshUser->SetFrontFace(!m_bIsNegativeScaling);
+	SetColor(m_objectColor);
+	SetFrontFace(!m_bIsNegativeScaling);
 }
 
 RAS_MeshObject *KX_GameObject::GetRasMeshObject() const
@@ -932,22 +989,12 @@ void KX_GameObject::SetRasMeshObject(RAS_MeshObject *meshobj)
 
 void KX_GameObject::RemoveRasMeshObject()
 {
-	// Remove all mesh slots.
-	if (m_meshUser) {
-		delete m_meshUser;
-		m_meshUser = nullptr;
-	}
 	m_rasMeshObject = nullptr;
-}
-
-RAS_MeshUser *KX_GameObject::GetMeshUser() const
-{
-	return m_meshUser;
 }
 
 bool KX_GameObject::UseCulling() const
 {
-	return (m_meshUser != nullptr);
+	return (m_boundingBox != nullptr);
 }
 
 void KX_GameObject::SetLodManager(KX_LodManager *lodManager)
@@ -1550,11 +1597,11 @@ MT_Transform KX_GameObject::NodeGetLocalTransform() const
 
 void KX_GameObject::UpdateBounds(bool force)
 {
-	if ((!m_autoUpdateBounds && !force) || !m_meshUser) {
+	if ((!m_autoUpdateBounds && !force) || !m_boundingBox) {
 		return;
 	}
 
-	RAS_BoundingBox *boundingBox = m_meshUser->GetBoundingBox();
+	RAS_BoundingBox *boundingBox = GetBoundingBox();
 	if (!boundingBox || (!boundingBox->GetModified() && !force)) {
 		return;
 	}

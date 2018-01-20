@@ -42,7 +42,6 @@
 #include "RAS_BucketManager.h"
 #include "RAS_MaterialBucket.h"
 #include "RAS_BoundingBox.h"
-#include "RAS_MeshUser.h"
 
 /* paths needed for font load */
 #include "BLI_blenlib.h"
@@ -102,8 +101,6 @@ KX_FontObject::KX_FontObject(void *sgReplicationInfo,
 
 	m_fontid = GetFontId(text->vfont);
 
-	m_boundingBox = new RAS_BoundingBox(boundingBoxManager);
-
 	m_text = std::string(text->str);
 	m_texts = split_string(m_text);
 }
@@ -133,21 +130,11 @@ int KX_FontObject::GetGameObjectType() const
 	return OBJ_TEXT;
 }
 
-void KX_FontObject::AddMeshUser()
-{
-	m_meshUser = new RAS_MeshUser(m_pClient_info, m_boundingBox);
-
-	NodeGetWorldTransform().getValue(m_meshUser->GetMatrix());
-
-	RAS_BucketManager *bucketManager = GetScene()->GetBucketManager();
-	RAS_DisplayArrayBucket *arrayBucket = bucketManager->GetTextDisplayArrayBucket();
-}
-
 void KX_FontObject::UpdateFontMatrix()
 {
 	// Update datas and add mesh slot to be rendered only if the object is not culled.
 	if (m_pSGNode->IsDirty(SG_Node::DIRTY_RENDER)) {
-		NodeGetWorldTransform().getValue(m_meshUser->GetMatrix());
+		NodeGetWorldTransform().getValue(GetMatrix());
 		m_pSGNode->ClearDirty(SG_Node::DIRTY_RENDER);
 	}
 }
@@ -202,7 +189,7 @@ void KX_FontObject::DrawFontText()
 	const float aspect = m_fsize / size;
 
 	/* Get a working copy of the OpenGLMatrix to use */
-	float *mat = m_meshUser->GetMatrix();
+	float *mat = GetMatrix();
 	MT_Matrix4x4 textMat(mat);
 
 	/* Sorry for mix between Moto and other maths APIs */

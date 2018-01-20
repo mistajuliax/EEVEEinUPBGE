@@ -33,7 +33,6 @@
 #include "BL_DeformableGameObject.h"
 #include "BL_ShapeDeformer.h"
 #include "RAS_MeshObject.h"
-#include "RAS_MeshUser.h"
 #include "RAS_MaterialBucket.h"
 #include "RAS_BoundingBoxManager.h"
 
@@ -103,7 +102,7 @@ bool BL_DeformableGameObject::GetShape(std::vector<float> &shape)
 void BL_DeformableGameObject::SetDeformer(class RAS_Deformer* deformer)
 {
 	// Make sure that the object doesn't already have a mesh user.
-	BLI_assert(m_meshUser == nullptr);
+	BLI_assert(m_boundingBox == nullptr);
 	m_pDeformer = deformer;
 }
 

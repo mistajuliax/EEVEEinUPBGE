@@ -32,7 +32,6 @@
 #include "DNA_mesh_types.h"
 
 #include "RAS_MeshObject.h"
-#include "RAS_MeshUser.h"
 #include "RAS_BoundingBoxManager.h"
 #include "RAS_Polygon.h"
 #include "RAS_IPolygonMaterial.h"
@@ -116,9 +115,9 @@ struct RAS_MeshObject::fronttoback
 RAS_MeshObject::RAS_MeshObject(Mesh *mesh, const LayersInfo& layersInfo)
 	:m_name(mesh->id.name + 2),
 	m_layersInfo(layersInfo),
-	m_boundingBox(nullptr),
 	m_mesh(mesh)
 {
+	m_displayArrayList = {};
 }
 
 RAS_MeshObject::~RAS_MeshObject()
@@ -335,16 +334,8 @@ const float *RAS_MeshObject::GetVertexLocation(unsigned int orig_index)
 	return it->m_darray->GetVertex(it->m_offset)->getXYZ();
 }
 
-RAS_BoundingBox *RAS_MeshObject::GetBoundingBox() const
+void RAS_MeshObject::AddDisplayArrays(RAS_Deformer *deformer)
 {
-	return m_boundingBox;
-}
-
-RAS_MeshUser* RAS_MeshObject::AddMeshUser(void *clientobj, RAS_Deformer *deformer)
-{
-	RAS_BoundingBox *boundingBox = (deformer) ? deformer->GetBoundingBox() : m_boundingBox;
-	RAS_MeshUser *meshUser = new RAS_MeshUser(clientobj, boundingBox);
-
 	for (RAS_MeshMaterial *mmat : m_materials) {
 		RAS_DisplayArrayBucket *arrayBucket;
 		/* Duplicate the display array bucket and the display array if needed to store
@@ -365,7 +356,6 @@ RAS_MeshUser* RAS_MeshObject::AddMeshUser(void *clientobj, RAS_Deformer *deforme
 			arrayBucket = mmat->GetDisplayArrayBucket();
 		}
 	}
-	return meshUser;
 }
 
 void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
@@ -376,8 +366,6 @@ void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
 	shared_null.swap(m_sharedvertex_map);   /* really free the memory */
 #endif
 
-	RAS_IDisplayArrayList arrayList;
-
 	// Construct a list of all the display arrays used by this mesh.
 	for (RAS_MeshMaterialList::iterator it = m_materials.begin(), end = m_materials.end(); it != end; ++it) {
 		RAS_MeshMaterial *meshmat = *it;
@@ -385,7 +373,7 @@ void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
 		RAS_IDisplayArray *array = meshmat->GetDisplayArray();
 		if (array) {
 			array->UpdateCache();
-			arrayList.push_back(array);
+			m_displayArrayList.push_back(array);
 
 			const std::string materialname = meshmat->GetBucket()->GetPolyMaterial()->GetName();
 			if (array->GetVertexCount() == 0) {
@@ -398,10 +386,11 @@ void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
 			}
 		}
 	}
+}
 
-	// Construct the bounding box of this mesh without deformers.
-	m_boundingBox = boundingBoxManager->CreateMeshBoundingBox(arrayList);
-	m_boundingBox->Update(true);
+std::vector<RAS_IDisplayArray *>RAS_MeshObject::GetDisplayArrayList()
+{
+	return m_displayArrayList;
 }
 
 const RAS_MeshObject::LayersInfo& RAS_MeshObject::GetLayersInfo() const

@@ -49,7 +49,6 @@ public:
 
 	virtual ~KX_FontObject();
 
-	virtual void AddMeshUser();
 	void GetTextAabb(MT_Vector2& min, MT_Vector2& max);
 	/// Return text dimensions in blender unit.
 	const MT_Vector2 GetTextDimensions();
@@ -80,8 +79,6 @@ protected:
 	float m_line_spacing;
 	MT_Vector3 m_offset;
 
-	/// Text bounding box for mesh/text user.
-	RAS_BoundingBox *m_boundingBox;
 	/// needed for drawing routine
 	class RAS_Rasterizer *m_rasterizer;
 

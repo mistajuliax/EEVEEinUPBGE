@@ -38,7 +38,6 @@
 #include <string>
 #include "RAS_IPolygonMaterial.h"
 #include "RAS_MeshObject.h"
-#include "RAS_MeshUser.h"
 #include "RAS_BoundingBox.h"
 
 #include "DNA_armature_types.h"

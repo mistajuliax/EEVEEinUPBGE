@@ -42,7 +42,6 @@
 #include "BL_MeshDeformer.h"
 #include "RAS_BoundingBoxManager.h"
 #include "RAS_MeshObject.h"
-#include "RAS_MeshUser.h"
 #include "RAS_Polygon.h"
 #include "DNA_mesh_types.h"
 #include "DNA_meshdata_types.h"
@@ -92,7 +91,7 @@ BL_MeshDeformer::BL_MeshDeformer(BL_DeformableGameObject *gameobj, Object *obj, 
 	RAS_BoundingBoxManager *boundingBoxManager = scene->GetBoundingBoxManager();
 	m_boundingBox = boundingBoxManager->CreateBoundingBox();
 	// Set AABB default to mesh bounding box AABB.
-	m_boundingBox->CopyAabb(m_mesh->GetBoundingBox());
+	m_boundingBox->CopyAabb(m_gameobj->GetBoundingBox());
 }
 
 BL_MeshDeformer::~BL_MeshDeformer()
