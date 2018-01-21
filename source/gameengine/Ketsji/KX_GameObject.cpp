@@ -940,17 +940,8 @@ void KX_GameObject::AddBoundingBox()
 {
 	if (m_rasMeshObject) {
 		RAS_Deformer *deformer = GetDeformer();
-		if (deformer) {
-			m_boundingBox = deformer->GetBoundingBox();
-			m_boundingBox->AddUser();
-		}
-		else {
-			std::vector<RAS_IDisplayArray *>arrayList = m_rasMeshObject->GetDisplayArrayList();
-			// Construct the bounding box of this mesh without deformers.
-			m_boundingBox = GetScene()->GetBoundingBoxManager()->CreateMeshBoundingBox(arrayList);
-			m_boundingBox->AddUser();
-			m_boundingBox->Update(true);
-		}
+		m_boundingBox = deformer ? deformer->GetBoundingBox() : m_rasMeshObject->GetBoundingBox();
+		m_boundingBox->AddUser();
 	}
 	if (GetBlenderObject()->type == OB_FONT) {
 		m_boundingBox = new RAS_BoundingBox(GetScene()->GetBoundingBoxManager());

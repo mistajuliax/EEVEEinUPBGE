@@ -110,7 +110,6 @@ private:
 
 protected:
 	RAS_MeshMaterialList m_materials;
-	std::vector<RAS_IDisplayArray *> m_displayArrayList;
 	Mesh *m_mesh;
 
 public:
@@ -161,7 +160,6 @@ public:
 				const unsigned int origindex);
 
 	// vertex and polygon acces
-	std::vector<RAS_IDisplayArray *> GetDisplayArrayList();
 	RAS_IDisplayArray *GetDisplayArray(unsigned int matid) const;
 	RAS_ITexVert *GetVertex(unsigned int matid, unsigned int index);
 	const float *GetVertexLocation(unsigned int orig_index);

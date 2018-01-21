@@ -118,7 +118,6 @@ RAS_MeshObject::RAS_MeshObject(Mesh *mesh, const LayersInfo& layersInfo)
 	m_mesh(mesh),
 	m_boundingBox(nullptr)
 {
-	m_displayArrayList = {};
 }
 
 RAS_MeshObject::~RAS_MeshObject()
@@ -367,6 +366,7 @@ void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
 	shared_null.swap(m_sharedvertex_map);   /* really free the memory */
 #endif
 
+	RAS_IDisplayArrayList arrayList;
 	// Construct a list of all the display arrays used by this mesh.
 	for (RAS_MeshMaterialList::iterator it = m_materials.begin(), end = m_materials.end(); it != end; ++it) {
 		RAS_MeshMaterial *meshmat = *it;
@@ -374,7 +374,7 @@ void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
 		RAS_IDisplayArray *array = meshmat->GetDisplayArray();
 		if (array) {
 			array->UpdateCache();
-			m_displayArrayList.push_back(array);
+			arrayList.push_back(array);
 
 			const std::string materialname = meshmat->GetBucket()->GetPolyMaterial()->GetName();
 			if (array->GetVertexCount() == 0) {
@@ -388,18 +388,13 @@ void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
 		}
 	}
 	// Construct the bounding box of this mesh without deformers.
-	m_boundingBox = boundingBoxManager->CreateMeshBoundingBox(m_displayArrayList);
+	m_boundingBox = boundingBoxManager->CreateMeshBoundingBox(arrayList);
 	m_boundingBox->Update(true);
 }
 
 RAS_BoundingBox *RAS_MeshObject::GetBoundingBox() const
 {
 	return m_boundingBox;
-}
-
-std::vector<RAS_IDisplayArray *>RAS_MeshObject::GetDisplayArrayList()
-{
-	return m_displayArrayList;
 }
 
 const RAS_MeshObject::LayersInfo& RAS_MeshObject::GetLayersInfo() const
