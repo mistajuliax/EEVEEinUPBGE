@@ -154,6 +154,8 @@ protected:
 	std::vector<KX_GameObject *>m_staticObjects;
 
 	std::vector<DRWPass *>m_materialPasses;
+	std::vector<DRWPass *>m_shadowPasses;
+
 	IDProperty *m_idProperty;
 	std::vector<KX_GameObject *>m_lightProbes;
 	/*************************************************/
@@ -349,6 +351,7 @@ public:
 
 	void InitScenePasses(EEVEE_PassList *psl);
 	std::vector<DRWPass *>GetMaterialPasses();
+	std::vector<DRWPass *>GetShadowPasses();
 
 	void UpdateShadows(RAS_Rasterizer *rasty);
 

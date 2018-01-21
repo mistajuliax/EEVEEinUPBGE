@@ -69,6 +69,10 @@ struct bAction;
 /* EEVEE INTEGRATION */
 struct Gwn_Batch;
 
+typedef struct BGEShCaster {
+	float obmat[4][4];
+} BGEShCaster;
+
 class RAS_BoundingBox;
 /* End of EEVEE INTEGRATION */
 
@@ -93,6 +97,10 @@ protected:
 
 	std::vector<Gwn_Batch *>m_materialBatches;
 	std::vector<DRWShadingGroup *>m_materialShGroups;
+
+	std::vector<DRWShadingGroup *>m_shadowShGroups;
+	BGEShCaster m_shcaster;
+	float m_hideShCasterObmat[4][4];
 
 	float m_savedObmat[4][4];
 	float m_prevObmat[4][4];
@@ -155,6 +163,7 @@ public:
 	/* EEVEE INTEGRATION */
 
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
+
 	void ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups); // ReplaceMesh
 
 	std::vector<Gwn_Batch *>GetMaterialBatches();
@@ -170,7 +179,14 @@ public:
 
 	void TagForUpdate(); // It was UpdateBuckets before
 
+
+	// Shadows
+	std::vector<DRWShadingGroup *>GetShadowShadingGroups();
+	void FreeShadowShadingGroups();
+	BGEShCaster *GetShadowCaster();
 	bool NeedShadowUpdate();
+
+
 	bool m_wasculled;
 	bool m_wasVisible;
 

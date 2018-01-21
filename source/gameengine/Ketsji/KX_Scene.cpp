@@ -390,11 +390,19 @@ void KX_Scene::InitScenePasses(EEVEE_PassList *psl)
 	m_materialPasses.push_back(psl->refract_depth_pass_clip_cull);
 	m_materialPasses.push_back(psl->sss_pass);
 	/* END OF MATERIALS PASSES */
+
+	m_shadowPasses.push_back(psl->shadow_cascade_pass);
+	m_shadowPasses.push_back(psl->shadow_cube_pass);
 }
 
 std::vector<DRWPass *>KX_Scene::GetMaterialPasses()
 {
 	return m_materialPasses;
+}
+
+std::vector<DRWPass *>KX_Scene::GetShadowPasses()
+{
+	return m_shadowPasses;
 }
 
 void KX_Scene::AppendToProbeList(KX_GameObject *probe)
@@ -618,7 +626,7 @@ static void light_tag_shadow_update(KX_LightObject *light, KX_GameObject *gameob
 	Object *ob = gameobj->GetBlenderObject();
 	EEVEE_LampEngineData *led = EEVEE_lamp_data_get(oblamp);
 
-	bool is_inside_range = cube_bbox_intersect(oblamp->obmat[3], la->clipend, BKE_object_boundbox_get(ob), ob->obmat);
+	bool is_inside_range = cube_bbox_intersect(oblamp->obmat[3], la->clipend, BKE_object_boundbox_get(ob), gameobj->GetShadowCaster()->obmat);
 
 	if (is_inside_range) {
 		if (gameobj->NeedShadowUpdate()) {

@@ -103,6 +103,7 @@ extern "C" {
 #  include "eevee_private.h"
 }
 
+#include "KX_BlenderConverter.h"
 #include "RAS_BoundingBox.h"
 /* End of EEVEE INTEGRATION */
 
@@ -156,6 +157,9 @@ KX_GameObject::KX_GameObject(
 		KX_NormalParentRelation::New();
 	m_pSGNode->SetParentRelation(parent_relation);
 	unit_m4(m_prevObmat);
+
+	unit_m4(m_hideShCasterObmat);
+	translate_m4(m_hideShCasterObmat, 9999.0f, 9999.0f, 9999.0f);
 };
 
 
@@ -231,9 +235,18 @@ KX_GameObject::~KX_GameObject()
 	if (m_lodManager) {
 		m_lodManager->Release();
 	}
+
+	/* We need to have material batches available to "remove" shadows
+	 * so we call FreeShadowShadingGroups before RemoveMaterialBatches
+	 */
+	if (m_shadowShGroups.size()) {
+		FreeShadowShadingGroups();
+	}
+
 	if (m_materialBatches.size()) {
 		RemoveMaterialBatches();
 	}
+
 	if (m_boundingBox) {
 		m_boundingBox->RemoveUser();
 	}
@@ -425,6 +438,41 @@ void KX_GameObject::ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>s
 	m_materialShGroups = shgroups;
 }
 
+/* GET + CREATE IF DOESN'T EXIST */
+std::vector<DRWShadingGroup *>KX_GameObject::GetShadowShadingGroups()
+{
+	if (m_shadowShGroups.size() > 0) {
+		return m_shadowShGroups;
+	}
+	KX_Scene *scene = GetScene();
+	std::vector<DRWPass *>allPasses = scene->GetShadowPasses();
+	for (DRWPass *pass : allPasses) {
+		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
+			std::vector<DRWShadingGroup *>::iterator it = std::find(m_shadowShGroups.begin(), m_shadowShGroups.end(), shgroup);
+			if (it != m_shadowShGroups.end()) {
+				continue; // I think it's not needed but it costs nothing
+			}
+			for (Gwn_Batch *batch : GetMaterialBatches()) {
+				if (DRW_game_shadow_batch_belongs_to_shgroup(shgroup, batch)) {
+					m_shadowShGroups.push_back(shgroup);
+					//break;
+				}
+			}
+		}
+	}
+	return m_shadowShGroups;
+}
+
+void KX_GameObject::FreeShadowShadingGroups()
+{
+	for (DRWShadingGroup *sh : m_shadowShGroups) {
+		for (Gwn_Batch *b : m_materialBatches) {
+			DRW_game_shadow_call_free(sh, b);
+		}
+	}
+	copy_m4_m4(m_shcaster.obmat, m_hideShCasterObmat);
+}
+
 void KX_GameObject::TagForUpdate()
 {
 	float obmat[4][4];
@@ -449,6 +497,11 @@ void KX_GameObject::TagForUpdate()
 bool KX_GameObject::NeedShadowUpdate() // used for shadow culling
 {
 	return m_needShadowUpdate;
+}
+
+BGEShCaster *KX_GameObject::GetShadowCaster()
+{
+	return &m_shcaster;
 }
 
 /************************END OF EEVEE INTEGRATION******************************/
@@ -756,6 +809,17 @@ void KX_GameObject::ProcessReplica()
 	m_actionManager = nullptr;
 	m_state = 0;
 
+	Object *source = GetBlenderObject();
+	if (source && ELEM(source->type, OB_MESH, OB_FONT, OB_CURVE)) {
+		Object *source = GetBlenderObject();
+		Main *bmain = KX_GetActiveEngine()->GetConverter()->GetMain();
+		EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+		EEVEE_Data *vedata = EEVEE_engine_data_get();
+		for (Gwn_Batch *b : m_materialBatches) {
+			EEVEE_lights_cache_shcaster_add(sldata, vedata->psl, b, m_shcaster.obmat);
+		}
+	}
+
 	if (m_lodManager) {
 		m_lodManager->AddRef();
 	}
@@ -931,6 +995,7 @@ void KX_GameObject::UpdateBlenderObjectMatrix(Object* blendobj)
 		float obmat[4][4];
 		NodeGetWorldTransform().getValue(&obmat[0][0]);
 		copy_m4_m4(blendobj->obmat, obmat);
+		copy_m4_m4(m_shcaster.obmat, obmat);
 		/* Making sure it's updated. (To move volumes) */
 		invert_m4_m4(blendobj->imat, blendobj->obmat);
 	}

@@ -4021,16 +4021,6 @@ void DRW_game_shgroup_call_add(DRWShadingGroup *shgroup, Gwn_Batch *geom, void *
 	call->culled = false; // Game engine transition
 }
 
-bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)
-{
-	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
-		if (call->geometry == batch) {
-			return true;
-		}
-	}
-	return false;
-}
-
 void DRW_shgroup_call_object_add_with_custom_matrix(DRWShadingGroup *shgroup, Gwn_Batch *geom, Object *ob, float matrix[4][4])
 {
 	BLI_assert(geom != NULL);
@@ -4051,6 +4041,31 @@ void DRW_shgroup_call_object_add_with_custom_matrix(DRWShadingGroup *shgroup, Gw
 
 	call->ob = ob; // Game engine transition
 	call->culled = false; // Game engine transition
+}
+
+void DRW_game_shadow_call_free(DRWShadingGroup *shgroup, Gwn_Batch *batch)
+{
+	if (shgroup->instance_geom == batch) {
+		shgroup->interface.instance_count = 0; // temp hack
+	}
+}
+
+bool DRW_game_shadow_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)
+{
+	if (shgroup->instance_geom == batch) {
+		return true;
+	}
+	return false;
+}
+
+bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)
+{
+	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
+		if (call->geometry == batch) {
+			return true;
+		}
+	}
+	return false;
 }
 
 /* Update DRWCall obmat with KX_GameObject obmat */

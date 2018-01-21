@@ -475,6 +475,10 @@ void DRW_game_call_remove_geometry(DRWShadingGroup *shgroup, struct Gwn_Batch *b
 void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, struct Gwn_Batch *batch, void *kxob);
 bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, struct Gwn_Batch *batch);
 
+// Shadows
+bool DRW_game_shadow_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, struct Gwn_Batch *batch);
+void DRW_game_shadow_call_free(DRWShadingGroup *shgroup, struct Gwn_Batch *batch);
+
 //temp
 void DRW_shgroup_call_object_add_with_custom_matrix(DRWShadingGroup *shgroup, struct Gwn_Batch *geom, struct Object *ob, float matrix[4][4]);
 /**************************END OF GAME ENGINE*******************************/

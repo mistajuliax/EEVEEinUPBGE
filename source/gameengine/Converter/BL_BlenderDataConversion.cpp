@@ -1325,6 +1325,7 @@ static void bl_ConvertBlenderObject_Single(
 	 */
 	gameobj->GetMaterialShadingGroups(); // The getter is also used as setter
 	gameobj->SetKXGameObjectCallsPointer(); // Set pointer to KX_GameObject in each KX_GameObject DRWCall
+	gameobj->GetShadowShadingGroups();
 	/* End of EEVEE INTEGRATION */
 
 	if (isInActiveLayer)
@@ -1344,6 +1345,7 @@ static void bl_ConvertBlenderObject_Single(
 
 		/* EEVEE INTEGRATION (cull/desactivate objects in anactive layers (collections)) */
 		gameobj->DiscardMaterialBatches();
+		gameobj->FreeShadowShadingGroups();
 		/* End of EEVEE INTEGRATION */
 	}
 }
