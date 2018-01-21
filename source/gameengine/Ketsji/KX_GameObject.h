@@ -98,9 +98,11 @@ protected:
 	std::vector<Gwn_Batch *>m_materialBatches;
 	std::vector<DRWShadingGroup *>m_materialShGroups;
 
+	/* SHADOWS EXPERIMENTAL */
 	std::vector<DRWShadingGroup *>m_shadowShGroups;
 	BGEShCaster m_shcaster;
 	float m_hideShCasterObmat[4][4];
+	/* End of SHADOWS EXPERIMENTAL */
 
 	float m_savedObmat[4][4];
 	float m_prevObmat[4][4];
@@ -180,10 +182,12 @@ public:
 	void TagForUpdate(); // It was UpdateBuckets before
 
 
-	// Shadows
+	/* SHADOWS EXPERIMENTAL */
 	std::vector<DRWShadingGroup *>GetShadowShadingGroups();
 	void FreeShadowShadingGroups();
 	BGEShCaster *GetShadowCaster();
+	/* End of SHADOWS EXPERMIENTAL */
+
 	bool NeedShadowUpdate();
 
 

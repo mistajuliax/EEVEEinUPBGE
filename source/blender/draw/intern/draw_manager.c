@@ -4043,6 +4043,7 @@ void DRW_shgroup_call_object_add_with_custom_matrix(DRWShadingGroup *shgroup, Gw
 	call->culled = false; // Game engine transition
 }
 
+/* SHADOWS EXPERIMENTAL */
 void DRW_game_shadow_call_free(DRWShadingGroup *shgroup, Gwn_Batch *batch)
 {
 	if (shgroup->instance_geom == batch) {
@@ -4057,6 +4058,7 @@ bool DRW_game_shadow_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batc
 	}
 	return false;
 }
+/* End of SHADOWS EXPERIMENTAL */
 
 bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)
 {

@@ -158,8 +158,10 @@ KX_GameObject::KX_GameObject(
 	m_pSGNode->SetParentRelation(parent_relation);
 	unit_m4(m_prevObmat);
 
+	/* SHADOWS EXPERIMENTAL */
 	unit_m4(m_hideShCasterObmat);
 	translate_m4(m_hideShCasterObmat, 9999.0f, 9999.0f, 9999.0f);
+	/* End of SHADOWS EXPERIMENTAL */
 };
 
 
@@ -438,41 +440,6 @@ void KX_GameObject::ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>s
 	m_materialShGroups = shgroups;
 }
 
-/* GET + CREATE IF DOESN'T EXIST */
-std::vector<DRWShadingGroup *>KX_GameObject::GetShadowShadingGroups()
-{
-	if (m_shadowShGroups.size() > 0) {
-		return m_shadowShGroups;
-	}
-	KX_Scene *scene = GetScene();
-	std::vector<DRWPass *>allPasses = scene->GetShadowPasses();
-	for (DRWPass *pass : allPasses) {
-		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
-			std::vector<DRWShadingGroup *>::iterator it = std::find(m_shadowShGroups.begin(), m_shadowShGroups.end(), shgroup);
-			if (it != m_shadowShGroups.end()) {
-				continue; // I think it's not needed but it costs nothing
-			}
-			for (Gwn_Batch *batch : GetMaterialBatches()) {
-				if (DRW_game_shadow_batch_belongs_to_shgroup(shgroup, batch)) {
-					m_shadowShGroups.push_back(shgroup);
-					//break;
-				}
-			}
-		}
-	}
-	return m_shadowShGroups;
-}
-
-void KX_GameObject::FreeShadowShadingGroups()
-{
-	for (DRWShadingGroup *sh : m_shadowShGroups) {
-		for (Gwn_Batch *b : m_materialBatches) {
-			DRW_game_shadow_call_free(sh, b);
-		}
-	}
-	copy_m4_m4(m_shcaster.obmat, m_hideShCasterObmat);
-}
-
 void KX_GameObject::TagForUpdate()
 {
 	float obmat[4][4];
@@ -493,6 +460,44 @@ void KX_GameObject::TagForUpdate()
 	}
 	copy_m4_m4(m_prevObmat, obmat);
 }
+
+/* SHADOWS EXPERIMENTAL */
+
+/* GET + CREATE IF DOESN'T EXIST */
+std::vector<DRWShadingGroup *>KX_GameObject::GetShadowShadingGroups()
+{
+	if (m_shadowShGroups.size() > 0) {
+		return m_shadowShGroups;
+	}
+	KX_Scene *scene = GetScene();
+	std::vector<DRWPass *>allPasses = scene->GetShadowPasses();
+	for (DRWPass *pass : allPasses) {
+		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
+			std::vector<DRWShadingGroup *>::iterator it = std::find(m_shadowShGroups.begin(), m_shadowShGroups.end(), shgroup);
+			if (it != m_shadowShGroups.end()) {
+				continue; // I think it's not needed but it costs nothing
+			}
+			for (Gwn_Batch *batch : GetMaterialBatches()) {
+				if (DRW_game_shadow_batch_belongs_to_shgroup(shgroup, batch)) {
+					m_shadowShGroups.push_back(shgroup);
+				}
+			}
+		}
+	}
+	return m_shadowShGroups;
+}
+
+void KX_GameObject::FreeShadowShadingGroups()
+{
+	for (DRWShadingGroup *sh : m_shadowShGroups) {
+		for (Gwn_Batch *b : m_materialBatches) {
+			DRW_game_shadow_call_free(sh, b);
+		}
+	}
+	copy_m4_m4(m_shcaster.obmat, m_hideShCasterObmat);
+}
+
+/* End of SHADOWS EXPERIMENTAL */
 
 bool KX_GameObject::NeedShadowUpdate() // used for shadow culling
 {
@@ -809,6 +814,7 @@ void KX_GameObject::ProcessReplica()
 	m_actionManager = nullptr;
 	m_state = 0;
 
+	/* SHADOWS EXPERIMENTAL */
 	Object *source = GetBlenderObject();
 	if (source && ELEM(source->type, OB_MESH, OB_FONT, OB_CURVE)) {
 		Object *source = GetBlenderObject();
@@ -819,6 +825,7 @@ void KX_GameObject::ProcessReplica()
 			EEVEE_lights_cache_shcaster_add(sldata, vedata->psl, b, m_shcaster.obmat);
 		}
 	}
+	/* End of SHADOWS EXPERIMENTAL */
 
 	if (m_lodManager) {
 		m_lodManager->AddRef();

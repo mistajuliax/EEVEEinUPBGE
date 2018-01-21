@@ -391,8 +391,10 @@ void KX_Scene::InitScenePasses(EEVEE_PassList *psl)
 	m_materialPasses.push_back(psl->sss_pass);
 	/* END OF MATERIALS PASSES */
 
+	/* SHADOW PASSES */
 	m_shadowPasses.push_back(psl->shadow_cascade_pass);
 	m_shadowPasses.push_back(psl->shadow_cube_pass);
+	/* End of SHADOW PASSES */
 }
 
 std::vector<DRWPass *>KX_Scene::GetMaterialPasses()

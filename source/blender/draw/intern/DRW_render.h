@@ -475,11 +475,12 @@ void DRW_game_call_remove_geometry(DRWShadingGroup *shgroup, struct Gwn_Batch *b
 void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, struct Gwn_Batch *batch, void *kxob);
 bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, struct Gwn_Batch *batch);
 
-// Shadows
+/* SHADOWS EXPERIMENTAL */
 bool DRW_game_shadow_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, struct Gwn_Batch *batch);
 void DRW_game_shadow_call_free(DRWShadingGroup *shgroup, struct Gwn_Batch *batch);
+/* End of SHADOWS EXPERIMENTAL */
 
-//temp
+//Used for particles system so they can use KX_GameObject matrix: TODO: UI to choose if we want to use KX_GameObject matrix or not
 void DRW_shgroup_call_object_add_with_custom_matrix(DRWShadingGroup *shgroup, struct Gwn_Batch *geom, struct Object *ob, float matrix[4][4]);
 /**************************END OF GAME ENGINE*******************************/
 
