@@ -108,13 +108,11 @@ protected:
 	float m_prevObmat[4][4];
 	bool m_needShadowUpdate; // used for shadow culling
 
-	// Moved RAS_MeshUser API here
+	/// Moved RAS_MeshUser API here
 	RAS_BoundingBox *m_boundingBox;
-	/// OpenGL face wise.
+	// OpenGL face wise.
 	bool m_frontFace;
-	/// Object color.
-	MT_Vector4 m_color;
-	/// Object transformation matrix.
+	// Object transformation matrix.
 	float m_matrix[16];
 
 	/* End of EEVEE INTEGRATION */
@@ -196,12 +194,10 @@ public:
 
 	// Moved RAS_MeshUser API here
 	bool GetFrontFace() const;
-	const MT_Vector4& GetColor() const;
 	float *GetMatrix();
 	RAS_BoundingBox *GetBoundingBox() const;
 
 	void SetFrontFace(bool frontFace);
-	void SetColor(const MT_Vector4& color);
 
 	/* End of EEVEE INTEGRATION */
 
