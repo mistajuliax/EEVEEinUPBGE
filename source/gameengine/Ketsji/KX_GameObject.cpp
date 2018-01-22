@@ -256,11 +256,6 @@ KX_GameObject::~KX_GameObject()
 /*********************************EEVEE INTEGRATION**************************************/
 
 /* Move RAS_MeshUser API in KX_GameObject */
-bool KX_GameObject::GetFrontFace() const
-{
-	return m_frontFace;
-}
-
 float *KX_GameObject::GetMatrix()
 {
 	return m_matrix;

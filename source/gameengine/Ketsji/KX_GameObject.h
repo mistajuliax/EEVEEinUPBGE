@@ -193,7 +193,6 @@ public:
 	bool m_wasVisible;
 
 	// Moved RAS_MeshUser API here
-	bool GetFrontFace() const;
 	float *GetMatrix();
 	RAS_BoundingBox *GetBoundingBox() const;
 
