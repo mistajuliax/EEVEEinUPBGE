@@ -436,7 +436,7 @@ RenderEngineType DRW_engine_viewport_eevee_type = {
 
 #undef EEVEE_ENGINE
 
-/***************************Game engine******************************/
+/***************************Game engine transition******************************/
 #define GAME_ENGINE "BLENDER_GAME"
 
 RenderEngineType DRW_engine_viewport_game_type = {
@@ -450,4 +450,4 @@ RenderEngineType DRW_engine_viewport_game_type = {
 };
 
 #undef GAME_ENGINE
-/************************End of Game engine**************************/
+/************************End of Game engine transition**************************/

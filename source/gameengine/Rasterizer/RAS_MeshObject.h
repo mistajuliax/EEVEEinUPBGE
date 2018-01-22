@@ -123,7 +123,7 @@ public:
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
 
 	/* WARNING: TEMP... To clean -> issue with deformers... */
-    RAS_BoundingBox *GetBoundingBox() const;
+	RAS_BoundingBox *GetBoundingBox() const;
 	RAS_BoundingBox *m_boundingBox;
 	/*********************/
 

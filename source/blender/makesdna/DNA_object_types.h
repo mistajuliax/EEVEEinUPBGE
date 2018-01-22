@@ -282,12 +282,12 @@ typedef struct Object {
 	short softflag;			/* softbody settings */
 	float anisotropicFriction[3];
 
-	/************Game engine**************/
-	/* dynamic properties */
+	/************Game engine transition**************/
+	/* dynamic properties moved from DNA_material_types to here */
 	float friction, rolling_friction, fh, reflect;
 	float fhdist, xyfrict;
 	short dynamode, pad8[3];
-	/********End of Game engine***********/
+	/********End of Game engine transition***********/
 
 	ListBase constraints;		/* object constraints */
 	ListBase nlastrips  DNA_DEPRECATED;			// XXX deprecated... old animation system

@@ -27,6 +27,9 @@
 #define __EEVEE_ENGINE_H__
 
 extern struct RenderEngineType DRW_engine_viewport_eevee_type;
+
+/* Game engine transition */
 extern struct RenderEngineType DRW_engine_viewport_game_type;
+/* End of Game engine transition */
 
 #endif /* __EEVEE_ENGINE_H__ */

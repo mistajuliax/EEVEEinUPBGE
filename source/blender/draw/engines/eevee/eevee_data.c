@@ -151,10 +151,10 @@ EEVEE_LampEngineData *EEVEE_lamp_data_ensure(Object *ob)
 	return *ledata;
 }
 
-/********************Game engine*************************/
+/********************Game engine transition*************************/
 EEVEE_Data *EEVEE_engine_data_get(void)
 {
 	EEVEE_Data *data = (EEVEE_Data *)DRW_viewport_engine_data_ensure(&draw_engine_eevee_type);
 	return data;
 }
-/*****************End of Game engine*********************/
+/*****************End of Game engine transition*********************/

@@ -180,10 +180,18 @@ typedef struct Material {
 	struct Group *group;	/* light group */
 	struct PreviewImage *preview;
 
-	/* dynamic properties */
-	float friction DNA_DEPRECATED, fh DNA_DEPRECATED, reflect DNA_DEPRECATED;
-	float fhdist DNA_DEPRECATED, xyfrict DNA_DEPRECATED;
-	short dynamode DNA_DEPRECATED, pad2;
+	/* Game engine transition */
+	/* dynamic properties moved to DNA_object_types
+	 * (I think this is the only modification in DNA)
+	 */
+	float friction DNA_DEPRECATED;
+	float fh DNA_DEPRECATED;
+	float reflect DNA_DEPRECATED;
+	float fhdist DNA_DEPRECATED;
+	float xyfrict DNA_DEPRECATED;
+	short dynamode DNA_DEPRECATED;
+	short pad2;
+	/* End of Game engine transition */
 
 	/* subsurface scattering */
 	float sss_radius[3], sss_col[3];

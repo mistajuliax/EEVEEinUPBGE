@@ -465,7 +465,7 @@ typedef struct DRWContextState {
 
 const DRWContextState *DRW_context_state_get(void);
 
-/*****************************GAME ENGINE***********************************/
+/*****************************Game engine transition***********************************/
 void *DRW_viewport_engine_data_ensure(void *engine_type);
 DRWShadingGroup *DRW_game_shgroups_from_pass_get(DRWPass *pass);
 DRWShadingGroup *DRW_game_shgroup_next(DRWShadingGroup *current);
@@ -484,6 +484,6 @@ void DRW_game_shadow_call_free(DRWShadingGroup *shgroup, struct Gwn_Batch *batch
 
 //Used for particles system so they can use KX_GameObject matrix: TODO: UI to choose if we want to use KX_GameObject matrix or not
 void DRW_shgroup_call_object_add_with_custom_matrix(DRWShadingGroup *shgroup, struct Gwn_Batch *geom, struct Object *ob, float matrix[4][4]);
-/**************************END OF GAME ENGINE*******************************/
+/**************************End of Game engine transition*******************************/
 
 #endif /* __DRW_RENDER_H__ */

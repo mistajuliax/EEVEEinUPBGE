@@ -294,7 +294,7 @@ void KX_GameObject::AddMaterialBatches()
 	/* Get per-material split surface */
 	Object *ob = GetBlenderObject();
 
-	if (ELEM(ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
+	if (ob && ELEM(ob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
 
 		int materials_len = MAX2(1, ob->totcol);
 		struct GPUMaterial **gpumat_array = (GPUMaterial **)BLI_array_alloca(gpumat_array, materials_len);
@@ -368,7 +368,7 @@ void KX_GameObject::RemoveMaterialBatches()
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
 			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
-                DRW_game_call_remove_geometry(sh, (void *)this);
+				DRW_game_call_remove_geometry(sh, (void *)this);
 			}
 		}
 	}
@@ -385,7 +385,7 @@ void KX_GameObject::RemoveMaterialBatches()
 void KX_GameObject::DiscardMaterialBatches()
 {
     for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-        DRW_game_call_discard_geometry(sh, (void *)this);
+		DRW_game_call_discard_geometry(sh, (void *)this);
 	}
 }
 
@@ -393,7 +393,7 @@ void KX_GameObject::DiscardMaterialBatches()
 void KX_GameObject::RestoreMaterialBatches()
 {
 	for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-        DRW_game_call_restore_geometry(sh, (void *)this);
+		DRW_game_call_restore_geometry(sh, (void *)this);
 	}
 }
 
@@ -448,7 +448,9 @@ void KX_GameObject::TagForUpdate()
 	}
 	else {
         for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-            DRW_game_call_update_obmat(sh, (void *)this, obmat);
+			if (m_materialBatches.size()) {
+				DRW_game_call_update_obmat(sh, (void *)this, obmat);
+			}
 		}
 		m_needShadowUpdate = true;
 	}
