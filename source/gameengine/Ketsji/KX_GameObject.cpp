@@ -256,9 +256,9 @@ KX_GameObject::~KX_GameObject()
 /*********************************EEVEE INTEGRATION**************************************/
 
 /* Move RAS_MeshUser API in KX_GameObject */
-float *KX_GameObject::GetMatrix()
+float *KX_GameObject::GetObjectMatrix()
 {
-	return m_matrix;
+	return m_objectMatrix;
 }
 
 RAS_BoundingBox *KX_GameObject::GetBoundingBox() const
@@ -1012,7 +1012,7 @@ void KX_GameObject::UpdateBuckets()
 {
 	// Update datas and add mesh slot to be rendered only if the object is not culled.
 	if (m_pSGNode->IsDirty(SG_Node::DIRTY_RENDER)) {
-		NodeGetWorldTransform().getValue(GetMatrix());
+		NodeGetWorldTransform().getValue(m_objectMatrix);
 		m_pSGNode->ClearDirty(SG_Node::DIRTY_RENDER);
 	}
 

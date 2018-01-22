@@ -113,7 +113,7 @@ protected:
 	// OpenGL face wise.
 	bool m_frontFace;
 	// Object transformation matrix.
-	float m_matrix[16];
+	float m_objectMatrix[16];
 
 	/* End of EEVEE INTEGRATION */
 
@@ -193,7 +193,7 @@ public:
 	bool m_wasVisible;
 
 	// Moved RAS_MeshUser API here
-	float *GetMatrix();
+	float *GetObjectMatrix();
 	RAS_BoundingBox *GetBoundingBox() const;
 
 	void SetFrontFace(bool frontFace);

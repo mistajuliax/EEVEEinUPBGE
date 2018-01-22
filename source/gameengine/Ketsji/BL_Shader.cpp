@@ -91,7 +91,7 @@ void BL_Shader::Update(RAS_Rasterizer *rasty, KX_GameObject *gameobj)
 	}
 #endif  // WITH_PYTHON
 
-	RAS_Shader::Update(rasty, MT_Matrix4x4(gameobj->GetMatrix()));
+	RAS_Shader::Update(rasty, MT_Matrix4x4(gameobj->GetObjectMatrix()));
 }
 
 #ifdef WITH_PYTHON

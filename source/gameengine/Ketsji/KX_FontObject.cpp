@@ -134,7 +134,7 @@ void KX_FontObject::UpdateFontMatrix()
 {
 	// Update datas and add mesh slot to be rendered only if the object is not culled.
 	if (m_pSGNode->IsDirty(SG_Node::DIRTY_RENDER)) {
-		NodeGetWorldTransform().getValue(GetMatrix());
+		NodeGetWorldTransform().getValue(m_objectMatrix);
 		m_pSGNode->ClearDirty(SG_Node::DIRTY_RENDER);
 	}
 }
@@ -189,7 +189,7 @@ void KX_FontObject::DrawFontText()
 	const float aspect = m_fsize / size;
 
 	/* Get a working copy of the OpenGLMatrix to use */
-	float *mat = GetMatrix();
+	float *mat = m_objectMatrix;
 	MT_Matrix4x4 textMat(mat);
 
 	/* Sorry for mix between Moto and other maths APIs */
