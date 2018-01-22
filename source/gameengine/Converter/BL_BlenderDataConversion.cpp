@@ -1343,7 +1343,7 @@ static void bl_ConvertBlenderObject_Single(
 
 		/* EEVEE INTEGRATION (cull/desactivate objects in anactive layers (collections)) */
 		gameobj->DiscardMaterialBatches();
-		gameobj->FreeShadowShadingGroups();
+		gameobj->RemoveShadowShadingGroups();
 		/* End of EEVEE INTEGRATION */
 	}
 }

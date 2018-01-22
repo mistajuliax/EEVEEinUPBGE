@@ -505,4 +505,27 @@ std::vector<DRWShadingGroup *>RAS_MeshObject::GetMaterialShadingGroups()
 	return m_materialShGroups;
 }
 
+std::vector<DRWShadingGroup *>RAS_MeshObject::GetShadowShadingGroups()
+{
+	if (m_shadowShGroups.size() > 0) {
+		return m_shadowShGroups;
+	}
+	KX_Scene *scene = KX_GetActiveScene();
+	std::vector<DRWPass *>allPasses = scene->GetShadowPasses();
+	for (DRWPass *pass : allPasses) {
+		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
+			std::vector<DRWShadingGroup *>::iterator it = std::find(m_shadowShGroups.begin(), m_shadowShGroups.end(), shgroup);
+			if (it != m_shadowShGroups.end()) {
+				continue;
+			}
+			for (Gwn_Batch *batch : GetMaterialBatches()) {
+				if (DRW_game_shadow_batch_belongs_to_shgroup(shgroup, batch)) {
+					m_shadowShGroups.push_back(shgroup);
+				}
+			}
+		}
+	}
+	return m_shadowShGroups;
+}
+
 /*******************************************************/

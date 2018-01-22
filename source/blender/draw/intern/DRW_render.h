@@ -479,7 +479,7 @@ bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, struct Gwn_Batc
 
 /* SHADOWS EXPERIMENTAL */
 bool DRW_game_shadow_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, struct Gwn_Batch *batch);
-void DRW_game_shadow_call_free(DRWShadingGroup *shgroup, struct Gwn_Batch *batch);
+void DRW_game_shadow_call_remove_shgroup(DRWShadingGroup *shgroup, struct Gwn_Batch *batch); // To rename and modify the function
 /* End of SHADOWS EXPERIMENTAL */
 
 //Used for particles system so they can use KX_GameObject matrix: TODO: UI to choose if we want to use KX_GameObject matrix or not

@@ -4044,7 +4044,7 @@ void DRW_shgroup_call_object_add_with_custom_matrix(DRWShadingGroup *shgroup, Gw
 }
 
 /* SHADOWS EXPERIMENTAL */
-void DRW_game_shadow_call_free(DRWShadingGroup *shgroup, Gwn_Batch *batch)
+void DRW_game_shadow_call_remove_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)
 {
 	if (shgroup->instance_geom == batch) {
 		shgroup->interface.instance_count = 0; // temp hack

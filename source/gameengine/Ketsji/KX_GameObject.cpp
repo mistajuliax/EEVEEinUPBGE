@@ -239,7 +239,7 @@ KX_GameObject::~KX_GameObject()
 	 * so we call FreeShadowShadingGroups before RemoveMaterialBatches
 	 */
 	if (m_shadowShGroups.size()) {
-		FreeShadowShadingGroups();
+		RemoveShadowShadingGroups();
 	}
 
 	if (m_materialBatches.size()) {
@@ -460,14 +460,34 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetShadowShadingGroups()
 	return m_shadowShGroups;
 }
 
-void KX_GameObject::FreeShadowShadingGroups()
+void KX_GameObject::RemoveShadowShadingGroups()
 {
 	for (DRWShadingGroup *sh : m_shadowShGroups) {
 		for (Gwn_Batch *b : m_materialBatches) {
-			DRW_game_shadow_call_free(sh, b);
+			DRW_game_shadow_call_remove_shgroup(sh, b);
 		}
 	}
 	copy_m4_m4(m_shcaster.obmat, m_hideShCasterObmat);
+}
+
+void KX_GameObject::ReplaceShadowShadingGroups(std::vector<DRWShadingGroup *>shadowShgroups)
+{
+	m_shadowShGroups.clear();
+	m_shadowShGroups = shadowShgroups;
+}
+
+void KX_GameObject::AddNewShadowShadingGroupsToPasses()
+{
+	Object *source = GetBlenderObject();
+	if (source && ELEM(source->type, OB_MESH, OB_FONT, OB_CURVE)) {
+		Object *source = GetBlenderObject();
+		Main *bmain = KX_GetActiveEngine()->GetConverter()->GetMain();
+		EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+		EEVEE_Data *vedata = EEVEE_engine_data_get();
+		for (Gwn_Batch *b : m_materialBatches) {
+			EEVEE_lights_cache_shcaster_add(sldata, vedata->psl, b, m_shcaster.obmat);
+		}
+	}
 }
 
 /* End of SHADOWS EXPERIMENTAL */
@@ -786,19 +806,6 @@ void KX_GameObject::ProcessReplica()
 	m_pClient_info->m_gameobject = this;
 	m_actionManager = nullptr;
 	m_state = 0;
-
-	/* SHADOWS EXPERIMENTAL */
-	Object *source = GetBlenderObject();
-	if (source && ELEM(source->type, OB_MESH, OB_FONT, OB_CURVE)) {
-		Object *source = GetBlenderObject();
-		Main *bmain = KX_GetActiveEngine()->GetConverter()->GetMain();
-		EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
-		EEVEE_Data *vedata = EEVEE_engine_data_get();
-		for (Gwn_Batch *b : m_materialBatches) {
-			EEVEE_lights_cache_shcaster_add(sldata, vedata->psl, b, m_shcaster.obmat);
-		}
-	}
-	/* End of SHADOWS EXPERIMENTAL */
 
 	if (m_lodManager) {
 		m_lodManager->AddRef();

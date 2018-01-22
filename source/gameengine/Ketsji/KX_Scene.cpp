@@ -901,6 +901,8 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 		}
 	}
 
+	UpdateObjectLods(GetActiveCamera(), nodes);
+
 	UpdateShadows(rasty);
 
 	/* Update of eevee's post processing before scene rendering */
@@ -1553,6 +1555,7 @@ KX_GameObject *KX_Scene::AddReplicaObject(KX_GameObject *originalobject, KX_Game
 	/* Add new display arrays to draw with eevee code */
 	if (replica->GetMaterialBatches().size() > 0) {
 		replica->AddNewMaterialBatchesToPasses();
+		replica->AddNewShadowShadingGroupsToPasses();
 	}
 
 	//	don't release replica here because we are returning it, not done with it...
@@ -1729,11 +1732,15 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 		/* EEVEE INTEGRATION */
 		std::vector<Gwn_Batch *>meshBatches = mesh->GetMaterialBatches();
 		std::vector<DRWShadingGroup *>meshShgroups = mesh->GetMaterialShadingGroups();
+		std::vector<DRWShadingGroup *>meshShadowShgroups = mesh->GetShadowShadingGroups();
 
-		gameobj->RemoveMaterialBatches();
+		gameobj->RemoveShadowShadingGroups();
+		gameobj->DiscardMaterialBatches();
 		gameobj->ReplaceMaterialBatches(meshBatches);
 		gameobj->ReplaceMaterialShadingGroups(meshShgroups);
 		gameobj->AddNewMaterialBatchesToPasses();
+		gameobj->ReplaceShadowShadingGroups(meshShadowShgroups);
+		gameobj->AddNewShadowShadingGroupsToPasses();
 		/* End of EEVEE INTEGRATION */
 
 		gameobj->RemoveRasMeshObject();

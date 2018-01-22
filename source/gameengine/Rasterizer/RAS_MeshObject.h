@@ -96,6 +96,9 @@ private:
 	/* EEVEE INTEGRATION */
 	std::vector<Gwn_Batch *>m_materialBatches;
 	std::vector<DRWShadingGroup *>m_materialShGroups;
+
+	/* Shadows experimental */
+	std::vector<DRWShadingGroup *>m_shadowShGroups;
 	/*********************/
 	std::string m_name;
 
@@ -121,6 +124,9 @@ public:
 	/* EEVEE INTEGRATION */
 	std::vector<Gwn_Batch *>GetMaterialBatches();
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
+
+	/* Shadows experimental */
+	std::vector<DRWShadingGroup *>GetShadowShadingGroups();
 
 	/* WARNING: TEMP... To clean -> issue with deformers... */
 	RAS_BoundingBox *GetBoundingBox() const;

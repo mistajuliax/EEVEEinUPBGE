@@ -180,7 +180,9 @@ public:
 
 	/* SHADOWS EXPERIMENTAL */
 	std::vector<DRWShadingGroup *>GetShadowShadingGroups();
-	void FreeShadowShadingGroups();
+	void RemoveShadowShadingGroups();
+	void ReplaceShadowShadingGroups(std::vector<DRWShadingGroup *>shadowShgroups);
+	void AddNewShadowShadingGroupsToPasses();
 	BGEShCaster *GetShadowCaster();
 	/* End of SHADOWS EXPERMIENTAL */
 
