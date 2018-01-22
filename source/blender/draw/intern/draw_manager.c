@@ -4071,7 +4071,7 @@ bool DRW_game_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batc
 }
 
 /* Update DRWCall obmat with KX_GameObject obmat */
-void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob, float obmat[4][4])
+void DRW_game_call_update_obmat(DRWShadingGroup *shgroup, void *kxob, float obmat[4][4])
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
 		if (call->kxob == kxob) {
@@ -4091,7 +4091,7 @@ void DRW_game_call_set_kxob_pointer(DRWShadingGroup *shgroup, Gwn_Batch *batch, 
 }
 
 /* Used for render culling */
-void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob)
+void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, void *kxob)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
 		if (call->kxob == kxob) {
@@ -4101,7 +4101,7 @@ void DRW_game_call_discard_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, 
 }
 
 /* Used for render culling */
-void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob)
+void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, void *kxob)
 {
 	for (DRWCall *call = shgroup->calls_first; call; call = call->head.prev) {
 		if (call->kxob == kxob) {
@@ -4111,7 +4111,7 @@ void DRW_game_call_restore_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, 
 }
 
 /* Used to Remove a DRWCall from DRWShadingGroup (when we end object) */
-void DRW_game_call_remove_geometry(DRWShadingGroup *shgroup, Gwn_Batch *batch, void *kxob)
+void DRW_game_call_remove_geometry(DRWShadingGroup *shgroup, void *kxob)
 {
 	/* I hope this is correct... */
 	shgroup->calls = NULL;
@@ -4168,7 +4168,7 @@ static void drw_game_camera_border(
 	r_viewborder->ymax = ((rect_camera.ymax - rect_view.ymin) / BLI_rctf_size_y(&rect_view)) * ar->winy;
 }
 
-static void drw_game_disable_double_buffer_check()
+static void drw_game_disable_double_buffer_check(void)
 {
 	/* When uniforms are passed to the shaders, there is a control if
 	 * stl->g_data->valid_double_buffer is true if we want to enable SSR
@@ -4181,7 +4181,7 @@ static void drw_game_disable_double_buffer_check()
 }
 
 /* Custom code for BGE to allow us to use camera motion blur eevee's shader */
-static void drw_game_motion_blur_init()
+static void drw_game_motion_blur_init(void)
 {
 	EEVEE_Data *vedata = EEVEE_engine_data_get();
 	EEVEE_StorageList *stl = vedata->stl;
@@ -4189,10 +4189,6 @@ static void drw_game_motion_blur_init()
 
 	const DRWContextState *draw_ctx = DRW_context_state_get();
 	ViewLayer *view_layer = draw_ctx->view_layer;
-	Scene *scene = draw_ctx->scene;
-	View3D *v3d = draw_ctx->v3d;
-	RegionView3D *rv3d = draw_ctx->rv3d;
-	ARegion *ar = draw_ctx->ar;
 	IDProperty *props = BKE_view_layer_engine_evaluated_get(view_layer, COLLECTION_MODE_NONE, RE_engine_id_BLENDER_EEVEE);
 
 	if (BKE_collection_engine_property_value_get_bool(props, "motion_blur_enable")) {
@@ -4214,7 +4210,7 @@ static void drw_game_motion_blur_init()
 }
 
 // Here I duplicate code in eevee_data.c to avoid to change eevee's sources (static function in eevee_data.c)
-static void drw_game_eevee_view_layer_data_free()
+static void drw_game_eevee_view_layer_data_free(void)
 {
 	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_ensure();
 
@@ -4353,8 +4349,8 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	/* Fixes issue with volumetrics at blenderplayer start but creates issues in embedded
 	 * (e_data.update_world?)
 	 */
-	EEVEE_Data *vedata = EEVEE_engine_data_get();
-	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+    //EEVEE_Data *vedata = EEVEE_engine_data_get();
+    //EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
 	//EEVEE_lightprobes_refresh(sldata, vedata);
 }
 

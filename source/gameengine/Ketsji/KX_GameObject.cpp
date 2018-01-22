@@ -368,7 +368,7 @@ void KX_GameObject::RemoveMaterialBatches()
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
 			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
-				DRW_game_call_remove_geometry(sh, b, (void *)this);
+                DRW_game_call_remove_geometry(sh, (void *)this);
 			}
 		}
 	}
@@ -384,10 +384,8 @@ void KX_GameObject::RemoveMaterialBatches()
 /* Use for culling */
 void KX_GameObject::DiscardMaterialBatches()
 {
-	for (Gwn_Batch *b : m_materialBatches) {
-		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-			DRW_game_call_discard_geometry(sh, b, (void *)this);
-		}
+    for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
+        DRW_game_call_discard_geometry(sh, (void *)this);
 	}
 }
 
@@ -395,9 +393,7 @@ void KX_GameObject::DiscardMaterialBatches()
 void KX_GameObject::RestoreMaterialBatches()
 {
 	for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-		for (int i = 0; i < m_materialBatches.size(); i++) {
-			DRW_game_call_restore_geometry(sh, m_materialBatches[i], (void *)this);
-		}
+        DRW_game_call_restore_geometry(sh, (void *)this);
 	}
 }
 
@@ -451,10 +447,8 @@ void KX_GameObject::TagForUpdate()
 		GetScene()->AppendToStaticObjects(this);
 	}
 	else {
-		for (Gwn_Batch *batch : m_materialBatches) {
-			for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-				DRW_game_call_update_obmat(sh, batch, (void *)this, obmat);
-			}
+        for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
+            DRW_game_call_update_obmat(sh, (void *)this, obmat);
 		}
 		m_needShadowUpdate = true;
 	}

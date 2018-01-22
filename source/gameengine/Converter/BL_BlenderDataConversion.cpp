@@ -200,8 +200,6 @@ extern Material defmaterial;	/* material.c */
 
 #include "BLI_threads.h"
 
-static bool default_light_mode = 0;
-
 static std::map<int, SCA_IInputDevice::SCA_EnumInputs> create_translate_table()
 {
 	std::map<int, SCA_IInputDevice::SCA_EnumInputs> m;
@@ -1764,7 +1762,6 @@ void BL_ConvertBlenderObjects(struct Main* maggie,
 
 	// Create and set bounding volume.
 	for (KX_GameObject *gameobj : sumolist) {
-		Object *blenderobject = gameobj->GetBlenderObject();
 
 		// The object allow AABB auto update only if there's no predefined bound.
 		gameobj->SetAutoUpdateBounds(true);

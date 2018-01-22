@@ -197,8 +197,6 @@ void KX_BlenderMaterial::InitTextures()
 		return;
 	}
 
-	GPUShader *shader = GPU_pass_shader(gpupass);
-
 	/* Converting dynamic GPUInput to DRWUniform */
 	ListBase *inputs = &gpupass->inputs;
 
