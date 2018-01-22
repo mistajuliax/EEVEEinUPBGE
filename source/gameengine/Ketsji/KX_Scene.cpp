@@ -1586,6 +1586,12 @@ void KX_Scene::RemoveDupliGroup(KX_GameObject *gameobj)
 
 void KX_Scene::DelayedRemoveObject(KX_GameObject *gameobj)
 {
+	/* We always need at least 1 active camera in the scene,
+	 * so we prevent it to be removed.
+	 */
+	if (gameobj == static_cast<KX_GameObject *>(GetActiveCamera())) {
+		return;
+	}
 	RemoveDupliGroup(gameobj);
 
 	if (std::find(m_euthanasyobjects.begin(), m_euthanasyobjects.end(), gameobj) == m_euthanasyobjects.end()) {
