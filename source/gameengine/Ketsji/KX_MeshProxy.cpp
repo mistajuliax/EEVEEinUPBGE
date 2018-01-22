@@ -205,6 +205,11 @@ PyObject *KX_MeshProxy::PyGetPolygon(PyObject *args, PyObject *kwds)
 
 PyObject *KX_MeshProxy::PyTransform(PyObject *args, PyObject *kwds)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_MeshProxy::transform is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_NONE;
+	/* End of EEVEE INTEGRATION */
+
 	int matindex;
 	PyObject *pymat;
 	bool ok = false;
@@ -262,6 +267,11 @@ PyObject *KX_MeshProxy::PyTransform(PyObject *args, PyObject *kwds)
 
 PyObject *KX_MeshProxy::PyTransformUV(PyObject *args, PyObject *kwds)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_MeshProxy::transformUV is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_NONE;
+	/* End of EEVEE INTEGRATION */
+
 	int matindex;
 	PyObject *pymat;
 	int uvindex = -1;
@@ -341,6 +351,11 @@ PyObject *KX_MeshProxy::PyTransformUV(PyObject *args, PyObject *kwds)
 
 PyObject *KX_MeshProxy::PyReplaceMaterial(PyObject *args, PyObject *kwds)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_MeshProxy::replaceMaterial is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_NONE;
+	/* End of EEVEE INTEGRATION */
+
 	unsigned short matindex;
 	PyObject *pymat;
 	KX_BlenderMaterial *mat;

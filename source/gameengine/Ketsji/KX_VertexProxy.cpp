@@ -275,6 +275,11 @@ PyObject *KX_VertexProxy::pyattr_get_normal(PyObjectPlus *self_v, const KX_PYATT
 
 int KX_VertexProxy::pyattr_set_x(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::x setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		float val = PyFloat_AsDouble(value);
@@ -289,6 +294,11 @@ int KX_VertexProxy::pyattr_set_x(PyObjectPlus *self_v, const struct KX_PYATTRIBU
 
 int KX_VertexProxy::pyattr_set_y(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::y setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		float val = PyFloat_AsDouble(value);
@@ -303,6 +313,11 @@ int KX_VertexProxy::pyattr_set_y(PyObjectPlus *self_v, const struct KX_PYATTRIBU
 
 int KX_VertexProxy::pyattr_set_z(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::z setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		float val = PyFloat_AsDouble(value);
@@ -317,6 +332,11 @@ int KX_VertexProxy::pyattr_set_z(PyObjectPlus *self_v, const struct KX_PYATTRIBU
 
 int KX_VertexProxy::pyattr_set_u(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::u setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		float val = PyFloat_AsDouble(value);
@@ -331,6 +351,11 @@ int KX_VertexProxy::pyattr_set_u(PyObjectPlus *self_v, const struct KX_PYATTRIBU
 
 int KX_VertexProxy::pyattr_set_v(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::v setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		float val = PyFloat_AsDouble(value);
@@ -345,6 +370,11 @@ int KX_VertexProxy::pyattr_set_v(PyObjectPlus *self_v, const struct KX_PYATTRIBU
 
 int KX_VertexProxy::pyattr_set_u2(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::u2 setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		if (self->GetVertex()->getUvSize() > 1) {
@@ -361,6 +391,11 @@ int KX_VertexProxy::pyattr_set_u2(PyObjectPlus *self_v, const struct KX_PYATTRIB
 
 int KX_VertexProxy::pyattr_set_v2(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::v2 setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		if (self->GetVertex()->getUvSize() > 1) {
@@ -377,6 +412,11 @@ int KX_VertexProxy::pyattr_set_v2(PyObjectPlus *self_v, const struct KX_PYATTRIB
 
 int KX_VertexProxy::pyattr_set_r(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::r setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		float val = PyFloat_AsDouble(value);
@@ -393,6 +433,11 @@ int KX_VertexProxy::pyattr_set_r(PyObjectPlus *self_v, const struct KX_PYATTRIBU
 
 int KX_VertexProxy::pyattr_set_g(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::g setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		float val = PyFloat_AsDouble(value);
@@ -409,6 +454,11 @@ int KX_VertexProxy::pyattr_set_g(PyObjectPlus *self_v, const struct KX_PYATTRIBU
 
 int KX_VertexProxy::pyattr_set_b(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::b setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		float val = PyFloat_AsDouble(value);
@@ -425,6 +475,11 @@ int KX_VertexProxy::pyattr_set_b(PyObjectPlus *self_v, const struct KX_PYATTRIBU
 
 int KX_VertexProxy::pyattr_set_a(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::a setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PyFloat_Check(value)) {
 		float val = PyFloat_AsDouble(value);
@@ -441,6 +496,11 @@ int KX_VertexProxy::pyattr_set_a(PyObjectPlus *self_v, const struct KX_PYATTRIBU
 
 int KX_VertexProxy::pyattr_set_XYZ(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::XYZ setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PySequence_Check(value)) {
 		MT_Vector3 vec;
@@ -455,6 +515,11 @@ int KX_VertexProxy::pyattr_set_XYZ(PyObjectPlus *self_v, const struct KX_PYATTRI
 
 int KX_VertexProxy::pyattr_set_UV(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::UV setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PySequence_Check(value)) {
 		MT_Vector2 vec;
@@ -469,6 +534,11 @@ int KX_VertexProxy::pyattr_set_UV(PyObjectPlus *self_v, const struct KX_PYATTRIB
 
 int KX_VertexProxy::pyattr_set_uvs(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::uvs setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PySequence_Check(value)) {
 		MT_Vector2 vec;
@@ -490,6 +560,11 @@ int KX_VertexProxy::pyattr_set_uvs(PyObjectPlus *self_v, const struct KX_PYATTRI
 
 int KX_VertexProxy::pyattr_set_color(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::color setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PySequence_Check(value)) {
 		MT_Vector4 vec;
@@ -504,6 +579,11 @@ int KX_VertexProxy::pyattr_set_color(PyObjectPlus *self_v, const struct KX_PYATT
 
 int KX_VertexProxy::pyattr_set_colors(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::colors setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PySequence_Check(value)) {
 		MT_Vector4 vec;
@@ -525,6 +605,11 @@ int KX_VertexProxy::pyattr_set_colors(PyObjectPlus *self_v, const struct KX_PYAT
 
 int KX_VertexProxy::pyattr_set_normal(PyObjectPlus *self_v, const struct KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::normal setter is disabled during EEVEE integration" << std::endl;
+	return PY_SET_ATTR_FAIL;
+	/* End of EEVEE INTEGRATION */
+
 	KX_VertexProxy *self = static_cast<KX_VertexProxy *>(self_v);
 	if (PySequence_Check(value)) {
 		MT_Vector3 vec;
@@ -571,6 +656,11 @@ PyObject *KX_VertexProxy::PyGetXYZ()
 
 PyObject *KX_VertexProxy::PySetXYZ(PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::setXYZ is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_NONE;
+	/* End of EEVEE INTEGRATION */
+
 	MT_Vector3 vec;
 	if (!PyVecTo(value, vec))
 		return nullptr;
@@ -587,6 +677,11 @@ PyObject *KX_VertexProxy::PyGetNormal()
 
 PyObject *KX_VertexProxy::PySetNormal(PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::setNormal is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_NONE;
+	/* End of EEVEE INTEGRATION */
+
 	MT_Vector3 vec;
 	if (!PyVecTo(value, vec))
 		return nullptr;
@@ -604,6 +699,11 @@ PyObject *KX_VertexProxy::PyGetRGBA()
 
 PyObject *KX_VertexProxy::PySetRGBA(PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::setRGBA is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_NONE;
+	/* End of EEVEE INTEGRATION */
+
 	if (PyLong_Check(value)) {
 		int rgba = PyLong_AsLong(value);
 		m_vertex->SetRGBA(0, rgba);
@@ -630,6 +730,11 @@ PyObject *KX_VertexProxy::PyGetUV1()
 
 PyObject *KX_VertexProxy::PySetUV1(PyObject *value)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::setUV1 is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_NONE;
+	/* End of EEVEE INTEGRATION */
+
 	MT_Vector2 vec;
 	if (!PyVecTo(value, vec))
 		return nullptr;
@@ -646,6 +751,11 @@ PyObject *KX_VertexProxy::PyGetUV2()
 
 PyObject *KX_VertexProxy::PySetUV2(PyObject *args)
 {
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_VertexProxy::setUV2 is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_NONE;
+	/* End of EEVEE INTEGRATION */
+
 	MT_Vector2 vec;
 	if (!PyVecTo(args, vec))
 		return nullptr;
