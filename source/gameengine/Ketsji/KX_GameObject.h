@@ -110,8 +110,6 @@ protected:
 
 	/// Moved RAS_MeshUser API here
 	RAS_BoundingBox *m_boundingBox;
-	// OpenGL face wise.
-	bool m_frontFace;
 	// Object transformation matrix.
 	float m_objectMatrix[16];
 
@@ -188,19 +186,15 @@ public:
 
 	bool NeedShadowUpdate();
 
-
 	bool m_wasculled;
 	bool m_wasVisible;
 
 	// Moved RAS_MeshUser API here
 	float *GetObjectMatrix();
 	RAS_BoundingBox *GetBoundingBox() const;
-
-	void SetFrontFace(bool frontFace);
+	// End of Moved RAS_MeshUser API here
 
 	/* End of EEVEE INTEGRATION */
-
-
 
 	/**
 	 * KX_GameObject custom infos for ray cast, it contains property name,

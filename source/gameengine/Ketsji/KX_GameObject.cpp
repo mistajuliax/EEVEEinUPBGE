@@ -135,9 +135,7 @@ KX_GameObject::KX_GameObject(
 	  m_wasculled(false), // eevee integration
 	  m_needShadowUpdate(true), // eevee integration
 	  m_wasVisible(true), // eevee integration
-
-	  m_frontFace(true),
-	  m_boundingBox(nullptr),
+	  m_boundingBox(nullptr), // eevee integration (moved from RAS_MeshUser)
 
 	  m_rasMeshObject(nullptr),
       m_actionManager(nullptr)
@@ -264,11 +262,6 @@ float *KX_GameObject::GetObjectMatrix()
 RAS_BoundingBox *KX_GameObject::GetBoundingBox() const
 {
 	return m_boundingBox;
-}
-
-void KX_GameObject::SetFrontFace(bool frontFace)
-{
-	m_frontFace = frontFace;
 }
 /* Enf of Move RAS_MeshUser API in KX_GameObject */
 
@@ -1017,7 +1010,6 @@ void KX_GameObject::UpdateBuckets()
 	}
 
 	SetObjectColor(m_objectColor);
-	SetFrontFace(!m_bIsNegativeScaling);
 }
 
 RAS_MeshObject *KX_GameObject::GetRasMeshObject() const
