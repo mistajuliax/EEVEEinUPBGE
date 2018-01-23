@@ -1695,7 +1695,7 @@ void BL_ConvertBlenderObjects(struct Main* maggie,
 		bool occlusion = false;
 		for (KX_GameObject *gameobj : sumolist) {
 			// The object can be culled ?
-			if (gameobj->GetRasMeshObject() || gameobj->GetGameObjectType() == SCA_IObject::OBJ_TEXT) {
+			if (gameobj->GetRasMeshObject() || gameobj->GetGameObjectType() == SCA_IObject::OBJ_TEXT || gameobj->GetBlenderObject()->type == OB_CURVE) {
 				bool isactive = objectlist->SearchValue(gameobj);
 				BL_CreateGraphicObjectNew(gameobj, kxscene, isactive, physics_engine);
 				if (gameobj->GetOccluder())

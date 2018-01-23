@@ -160,7 +160,7 @@ void RAS_MeshBoundingBox::Update(bool force)
 		return;
 	}
 
-	if (!m_ob || !ELEM(m_ob->type, OB_MESH)) { // Once we'll have removed RAS_MeshObject, we could include CURVES and FONTS here
+	if (!m_ob || !ELEM(m_ob->type, OB_MESH, OB_CURVE)) {
 		return;
 	}
 

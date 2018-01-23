@@ -881,13 +881,7 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 		gameobj->UpdateBlenderObjectMatrix(nullptr);
 		gameobj->TagForUpdate();
 
-		/* Curves are converted as empty objects so they can be moved with logic,
-		 * but they have no bounding box so we don't apply culling to curves.
-		 */
-		Object *ob = gameobj->GetBlenderObject();
-		bool isCurve = ob && ob->type == OB_CURVE; // TODO: See what is OB_SURF...
-
-		if ((gameobj->GetCulled() || !gameobj->GetVisible()) && !isCurve) {
+		if ((gameobj->GetCulled() || !gameobj->GetVisible())) {
 			gameobj->DiscardMaterialBatches();
 			gameobj->m_wasculled = true; // TODO: replace with functions getter/setter
 			gameobj->m_wasVisible = false; // TODO: replace with functions getter/setter

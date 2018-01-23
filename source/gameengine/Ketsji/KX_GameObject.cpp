@@ -995,6 +995,11 @@ void KX_GameObject::AddBoundingBox()
 		m_boundingBox = deformer ? deformer->GetBoundingBox() : m_rasMeshObject->GetBoundingBox();
 		m_boundingBox->AddUser();
 	}
+	if (GetBlenderObject()->type == OB_CURVE) {
+		m_boundingBox = GetScene()->GetBoundingBoxManager()->CreateMeshBoundingBox(GetBlenderObject());
+		m_boundingBox->Update(true);
+		m_boundingBox->AddUser();
+	}
 	if (GetBlenderObject()->type == OB_FONT) {
 		m_boundingBox = new RAS_BoundingBox(GetScene()->GetBoundingBoxManager());
 		m_boundingBox->AddUser();
