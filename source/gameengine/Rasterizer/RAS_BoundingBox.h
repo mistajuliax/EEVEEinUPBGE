@@ -66,7 +66,7 @@ public:
 	void SetManager(RAS_BoundingBoxManager *manager);
 
 	/** Return true when the bounding box AABB was set or when the display
-	 * array were modified in case of RAS_MeshBoundingBox instance.
+	 * array were modified in case of RAS_BoundingBoxFromObject instance.
 	 */
 	bool GetModified() const;
 	/// Set the bounding box unmodified.
@@ -82,15 +82,15 @@ public:
 	virtual void Update(bool force);
 };
 
-class RAS_MeshBoundingBox : public RAS_BoundingBox
+class RAS_BoundingBoxFromObject : public RAS_BoundingBox
 {
 private:
 	/// The display arrays used to compute the AABB.
 	Object *m_ob;
 
 public:
-	RAS_MeshBoundingBox(RAS_BoundingBoxManager *manager, Object *ob);
-	virtual ~RAS_MeshBoundingBox();
+	RAS_BoundingBoxFromObject(RAS_BoundingBoxManager *manager, Object *ob);
+	virtual ~RAS_BoundingBoxFromObject();
 
 	virtual RAS_BoundingBox *GetReplica();
 

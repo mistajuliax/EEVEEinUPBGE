@@ -49,7 +49,7 @@ RAS_BoundingBox *RAS_BoundingBoxManager::CreateBoundingBox()
 
 RAS_BoundingBox *RAS_BoundingBoxManager::CreateMeshBoundingBox(struct Object *ob)
 {
-	RAS_BoundingBox *boundingBox = new RAS_MeshBoundingBox(this, ob);
+	RAS_BoundingBox *boundingBox = new RAS_BoundingBoxFromObject(this, ob);
 
 	return boundingBox;
 }

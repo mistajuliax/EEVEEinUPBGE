@@ -136,30 +136,26 @@ void RAS_BoundingBox::Update(bool force)
 {
 }
 
-RAS_MeshBoundingBox::RAS_MeshBoundingBox(RAS_BoundingBoxManager *manager, Object *ob)
+RAS_BoundingBoxFromObject::RAS_BoundingBoxFromObject(RAS_BoundingBoxManager *manager, Object *ob)
 	:RAS_BoundingBox(manager),
 	m_ob(ob)
 {
 }
 
-RAS_MeshBoundingBox::~RAS_MeshBoundingBox()
+RAS_BoundingBoxFromObject::~RAS_BoundingBoxFromObject()
 {
 }
 
-RAS_BoundingBox *RAS_MeshBoundingBox::GetReplica()
+RAS_BoundingBox *RAS_BoundingBoxFromObject::GetReplica()
 {
-	RAS_MeshBoundingBox *boundingBox = new RAS_MeshBoundingBox(*this);
+	RAS_BoundingBoxFromObject *boundingBox = new RAS_BoundingBoxFromObject(*this);
 	boundingBox->m_users = 0;
 	return boundingBox;
 }
 
-void RAS_MeshBoundingBox::Update(bool force)
+void RAS_BoundingBoxFromObject::Update(bool force)
 {
 	/* EEVEE INTEGRATION: Don't update in realtime for now */
-	if (!m_ob) {
-		return;
-	}
-
 	if (!m_ob || !ELEM(m_ob->type, OB_MESH, OB_CURVE)) {
 		return;
 	}
