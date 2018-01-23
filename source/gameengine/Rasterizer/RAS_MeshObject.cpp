@@ -51,6 +51,7 @@
 extern "C" {
 #  include "BLI_alloca.h"
 #  include "../draw/intern/draw_cache_impl.h"
+#  include "DNA_object_types.h"
 #  include "DRW_render.h"
 }
 
@@ -112,11 +113,12 @@ struct RAS_MeshObject::fronttoback
 
 // mesh object
 
-RAS_MeshObject::RAS_MeshObject(Mesh *mesh, const LayersInfo& layersInfo)
+RAS_MeshObject::RAS_MeshObject(Object *ob, Mesh *mesh, const LayersInfo& layersInfo)
 	:m_name(mesh->id.name + 2),
 	m_layersInfo(layersInfo),
 	m_mesh(mesh),
-	m_boundingBox(nullptr)
+	m_boundingBox(nullptr),
+	m_ob(ob)
 {
 }
 
@@ -388,7 +390,7 @@ void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
 		}
 	}
 	// Construct the bounding box of this mesh without deformers.
-	m_boundingBox = boundingBoxManager->CreateMeshBoundingBox(arrayList);
+	m_boundingBox = boundingBoxManager->CreateMeshBoundingBox(m_ob);
 	m_boundingBox->Update(true);
 }
 

@@ -28,6 +28,13 @@
 #include "RAS_BoundingBoxManager.h"
 #include <algorithm>
 
+/* EEVEE INTEGRATION */
+extern "C" {
+#  include "BKE_object.h"
+#  include "DNA_object_types.h"
+}
+/* End of EEVEE INTEGRATION */
+
 RAS_BoundingBox::RAS_BoundingBox(RAS_BoundingBoxManager *manager)
 	:m_modified(false),
 	m_aabbMin(0.0f, 0.0f, 0.0f),
@@ -129,9 +136,9 @@ void RAS_BoundingBox::Update(bool force)
 {
 }
 
-RAS_MeshBoundingBox::RAS_MeshBoundingBox(RAS_BoundingBoxManager *manager, const RAS_IDisplayArrayList displayArrayList)
+RAS_MeshBoundingBox::RAS_MeshBoundingBox(RAS_BoundingBoxManager *manager, Object *ob)
 	:RAS_BoundingBox(manager),
-	m_displayArrayList(displayArrayList)
+	m_ob(ob)
 {
 }
 
@@ -148,40 +155,38 @@ RAS_BoundingBox *RAS_MeshBoundingBox::GetReplica()
 
 void RAS_MeshBoundingBox::Update(bool force)
 {
-	bool modified = false;
-	// Detect if a display array was modified.
-	for (RAS_IDisplayArrayList::iterator it = m_displayArrayList.begin(), end = m_displayArrayList.end(); it != end; ++it) {
-		if ((*it)->GetModifiedFlag() & RAS_IDisplayArray::AABB_MODIFIED) {
-			modified = true;
-			break;
-		}
-	}
-
-	if (!modified && !force) {
+	/* EEVEE INTEGRATION: Don't update in realtime for now */
+	if (!m_ob) {
 		return;
 	}
 
-	for (unsigned short i = 0, size = m_displayArrayList.size(); i < size; ++i) {
-		RAS_IDisplayArray *displayArray = m_displayArrayList[i];
-		// For each vertex.
-		for (unsigned int j = 0, size = displayArray->GetVertexCount(); j < size; ++j) {
-			RAS_ITexVert *vert = displayArray->GetVertex(j);
-			const MT_Vector3 vertPos = vert->xyz();
-
-			// Initialize the AABB to the first vertex position.
-			if (j == 0 && i == 0) {
-				m_aabbMin = m_aabbMax = vertPos;
-				continue;
-			}
-
-			m_aabbMin.x() = std::min(m_aabbMin.x(), vertPos.x());
-			m_aabbMin.y() = std::min(m_aabbMin.y(), vertPos.y());
-			m_aabbMin.z() = std::min(m_aabbMin.z(), vertPos.z());
-			m_aabbMax.x() = std::max(m_aabbMax.x(), vertPos.x());
-			m_aabbMax.y() = std::max(m_aabbMax.y(), vertPos.y());
-			m_aabbMax.z() = std::max(m_aabbMax.z(), vertPos.z());
-		}
+	if (!m_ob || !ELEM(m_ob->type, OB_MESH)) { // Once we'll have removed RAS_MeshObject, we could include CURVES and FONTS here
+		return;
 	}
+
+	BoundBox *bbox = BKE_object_boundbox_get(m_ob);
+
+	float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX, maxX = FLT_MIN, maxY = FLT_MIN, maxZ = FLT_MIN;
+
+	for (int i = 0; i < 8; i++) {
+		float x = bbox->vec[i][0];
+		float y = bbox->vec[i][1];
+		float z = bbox->vec[i][2];
+
+		if (x < minX) minX = x;
+		if (y < minY) minY = y;
+		if (z < minZ) minZ = z;
+		if (x > maxX) maxX = x;
+		if (y > maxY) maxY = y;
+		if (z > maxZ) maxZ = z;
+	}
+
+	m_aabbMin.x() = minX;
+	m_aabbMin.y() = minY;
+	m_aabbMin.z() = minZ;
+	m_aabbMax.x() = maxX;
+	m_aabbMax.y() = maxY;
+	m_aabbMax.z() = maxZ;
 
 	m_modified = true;
 }

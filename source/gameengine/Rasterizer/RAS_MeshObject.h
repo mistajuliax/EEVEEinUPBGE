@@ -59,6 +59,7 @@ struct MCol;
 /* EEVEE INTEGRATION */
 struct DRWShadingGroup;
 struct Gwn_Batch;
+struct Object;
 /*********************/
 
 /* RAS_MeshObject is a mesh used for rendering. It stores polygons,
@@ -97,6 +98,8 @@ private:
 	std::vector<Gwn_Batch *>m_materialBatches;
 	std::vector<DRWShadingGroup *>m_materialShGroups;
 
+	Object *m_ob; // will be used to create local bounding box
+
 	/* Shadows experimental */
 	std::vector<DRWShadingGroup *>m_shadowShGroups;
 	/*********************/
@@ -117,7 +120,7 @@ protected:
 
 public:
 	// for now, meshes need to be in a certain layer (to avoid sorting on lights in realtime)
-	RAS_MeshObject(Mesh *mesh, const LayersInfo& layersInfo);
+	RAS_MeshObject(Object *ob, Mesh *mesh, const LayersInfo& layersInfo);
 	virtual ~RAS_MeshObject();
 
 

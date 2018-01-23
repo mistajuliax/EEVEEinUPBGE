@@ -32,6 +32,8 @@
 
 class RAS_BoundingBoxManager;
 
+struct Object;
+
 class RAS_BoundingBox
 {
 protected:
@@ -84,10 +86,10 @@ class RAS_MeshBoundingBox : public RAS_BoundingBox
 {
 private:
 	/// The display arrays used to compute the AABB.
-	RAS_IDisplayArrayList m_displayArrayList;
+	Object *m_ob;
 
 public:
-	RAS_MeshBoundingBox(RAS_BoundingBoxManager *manager, const RAS_IDisplayArrayList displayArrayList);
+	RAS_MeshBoundingBox(RAS_BoundingBoxManager *manager, Object *ob);
 	virtual ~RAS_MeshBoundingBox();
 
 	virtual RAS_BoundingBox *GetReplica();
