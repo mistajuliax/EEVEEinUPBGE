@@ -160,29 +160,31 @@ void RAS_BoundingBoxFromObject::Update(bool force)
 		return;
 	}
 
-	BoundBox *bbox = BKE_object_boundbox_get(m_ob);
+	if (force) {
+		BoundBox *bbox = BKE_object_boundbox_get(m_ob);
 
-	float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX, maxX = FLT_MIN, maxY = FLT_MIN, maxZ = FLT_MIN;
+		float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX, maxX = FLT_MIN, maxY = FLT_MIN, maxZ = FLT_MIN;
 
-	for (int i = 0; i < 8; i++) {
-		float x = bbox->vec[i][0];
-		float y = bbox->vec[i][1];
-		float z = bbox->vec[i][2];
+		for (int i = 0; i < 8; i++) {
+			float x = bbox->vec[i][0];
+			float y = bbox->vec[i][1];
+			float z = bbox->vec[i][2];
 
-		if (x < minX) minX = x;
-		if (y < minY) minY = y;
-		if (z < minZ) minZ = z;
-		if (x > maxX) maxX = x;
-		if (y > maxY) maxY = y;
-		if (z > maxZ) maxZ = z;
+			if (x < minX) minX = x;
+			if (y < minY) minY = y;
+			if (z < minZ) minZ = z;
+			if (x > maxX) maxX = x;
+			if (y > maxY) maxY = y;
+			if (z > maxZ) maxZ = z;
+		}
+
+		m_aabbMin.x() = minX;
+		m_aabbMin.y() = minY;
+		m_aabbMin.z() = minZ;
+		m_aabbMax.x() = maxX;
+		m_aabbMax.y() = maxY;
+		m_aabbMax.z() = maxZ;
+
+		m_modified = true;
 	}
-
-	m_aabbMin.x() = minX;
-	m_aabbMin.y() = minY;
-	m_aabbMin.z() = minZ;
-	m_aabbMax.x() = maxX;
-	m_aabbMax.y() = maxY;
-	m_aabbMax.z() = maxZ;
-
-	m_modified = true;
 }
