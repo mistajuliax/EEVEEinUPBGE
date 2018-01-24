@@ -671,7 +671,7 @@ static void outliner_draw_userbuts(uiBlock *block, ARegion *ar, SpaceOops *soops
 	}
 }
 
-static void outliner_draw_rnacols(ARegion *ar, int sizex)
+static void UNUSED_FUNCTION(outliner_draw_rnacols)(ARegion *ar, int sizex)
 {
 	View2D *v2d = &ar->v2d;
 
@@ -697,6 +697,7 @@ static void outliner_draw_rnacols(ARegion *ar, int sizex)
 	immUnbindProgram();
 }
 
+#if 0
 static void outliner_draw_rnabuts(uiBlock *block, ARegion *ar, SpaceOops *soops, int sizex, ListBase *lb)
 {
 	TreeElement *te;
@@ -741,6 +742,7 @@ static void outliner_draw_rnabuts(uiBlock *block, ARegion *ar, SpaceOops *soops,
 
 	UI_block_emboss_set(block, UI_EMBOSS);
 }
+#endif
 
 static void outliner_buttons(const bContext *C, uiBlock *block, ARegion *ar, TreeElement *te)
 {
@@ -1415,16 +1417,12 @@ static void outliner_draw_tree_element(
 			te->flag |= TE_ACTIVE; // for lookup in display hierarchies
 		}
 		
-		if ((soops->outlinevis == SO_COLLECTIONS) && te->parent == NULL) {
+		if ((soops->outlinevis == SO_COLLECTIONS) && (tselem->type == TSE_SCENE_COLLECTION) && (te->parent == NULL)) {
 			/* Master collection can't expand/collapse. */
 		}
 		else if (te->subtree.first || (tselem->type == 0 && te->idcode == ID_SCE) || (te->flag & TE_LAZY_CLOSED)) {
 		/* open/close icon, only when sublevels, except for scene */
-			int icon_x;
-			if (tselem->type == 0 && ELEM(te->idcode, ID_OB, ID_SCE))
-				icon_x = startx;
-			else
-				icon_x = startx + 5 * ufac;
+			int icon_x = startx;
 
 			// icons a bit higher
 			if (TSELEM_OPEN(tselem, soops))
@@ -1720,7 +1718,9 @@ static void outliner_draw_highlights_recursive(
         int start_x, int *io_start_y)
 {
 	const bool is_searching = SEARCHING_OUTLINER(soops) ||
-	                          (soops->outlinevis == SO_DATABLOCKS && soops->search_string[0] != 0);
+	                          (soops->outlinevis == SO_DATABLOCKS &&
+	                           (soops->filter & SO_FILTER_SEARCH) &&
+	                           soops->search_string[0] != 0);
 
 	for (TreeElement *te = lb->first; te; te = te->next) {
 		const TreeStoreElem *tselem = TREESTORE(te);
@@ -1786,7 +1786,7 @@ static void outliner_draw_tree(
 
 	glBlendFunc(GL_SRC_ALPHA,  GL_ONE_MINUS_SRC_ALPHA); // only once
 
-	if (ELEM(soops->outlinevis, SO_DATABLOCKS, SO_USERDEF)) {
+	if (soops->outlinevis == SO_DATABLOCKS) {
 		/* struct marks */
 		starty = (int)ar->v2d.tot.ymax - UI_UNIT_Y - OL_Y_OFFSET;
 		outliner_draw_struct_marks(ar, soops, &soops->tree, &starty);
@@ -1810,7 +1810,7 @@ static void outliner_draw_tree(
 	// gray hierarchy lines
 	
 	starty = (int)ar->v2d.tot.ymax - UI_UNIT_Y / 2 - OL_Y_OFFSET;
-	startx = 6;
+	startx = UI_UNIT_X / 2 - 1.0f;
 	outliner_draw_hierarchy_lines(soops, &soops->tree, startx, &starty);
 
 	// items themselves
@@ -1904,12 +1904,12 @@ void draw_outliner(const bContext *C)
 	TreeElement *te_edit = NULL;
 	bool has_restrict_icons;
 
-	outliner_build_tree(mainvar, scene, view_layer, soops); // always
+	outliner_build_tree(mainvar, scene, view_layer, soops, ar); // always
 	
 	/* get extents of data */
 	outliner_height(soops, &soops->tree, &sizey);
 
-	if (ELEM(soops->outlinevis, SO_DATABLOCKS, SO_USERDEF)) {
+	if (soops->outlinevis == SO_DATABLOCKS) {
 		/* RNA has two columns:
 		 *  - column 1 is (max_width + OL_RNA_COL_SPACEX) or
 		 *				 (OL_RNA_COL_X), whichever is wider...
@@ -1956,13 +1956,8 @@ void draw_outliner(const bContext *C)
 	outliner_back(ar);
 	block = UI_block_begin(C, ar, __func__, UI_EMBOSS);
 	outliner_draw_tree((bContext *)C, block, scene, view_layer, ar, soops, has_restrict_icons, &te_edit);
-	
-	if (ELEM(soops->outlinevis, SO_DATABLOCKS, SO_USERDEF)) {
-		/* draw rna buttons */
-		outliner_draw_rnacols(ar, sizex_rna);
-		outliner_draw_rnabuts(block, ar, soops, sizex_rna, &soops->tree);
-	}
-	else if ((soops->outlinevis == SO_ID_ORPHANS) && has_restrict_icons) {
+
+	if ((soops->outlinevis == SO_ID_ORPHANS) && has_restrict_icons) {
 		/* draw user toggle columns */
 		outliner_draw_restrictcols(ar);
 		outliner_draw_userbuts(block, ar, soops, &soops->tree);

@@ -459,6 +459,9 @@ void KX_Scene::EEVEE_draw_scene()
 		DRW_viewport_matrix_override_set(stl->effects->overide_persmat, DRW_MAT_PERS);
 		DRW_viewport_matrix_override_set(stl->effects->overide_persinv, DRW_MAT_PERSINV);
 
+		/* Update common buffer after probe rendering. */
+		DRW_uniformbuffer_update(sldata->common_ubo, &sldata->common_data);
+
 		/* Refresh shadows */
 		DRW_stats_group_start("Shadows");
 		EEVEE_draw_shadows(sldata, psl);
@@ -544,7 +547,7 @@ void KX_Scene::EEVEE_draw_scene()
 
 		/* Post Process */
 		DRW_stats_group_start("Post FX");
-		EEVEE_draw_effects(vedata);
+		EEVEE_draw_effects(sldata, vedata);
 		DRW_stats_group_end();
 
 		DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
@@ -703,6 +706,8 @@ void KX_Scene::UpdateProbes()
 void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 {
 	EEVEE_Data *vedata = EEVEE_engine_data_get();
+	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+	EEVEE_CommonUniformBuffer *common_data = &sldata->common_data;
 	EEVEE_EffectsInfo *effects = vedata->stl->effects;
 	EEVEE_StorageList *stl = vedata->stl;
 	ViewLayer *view_layer = BKE_view_layer_from_scene_get(GetBlenderScene());
@@ -779,8 +784,6 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 
 	if (effects->enabled_effects & EFFECT_VOLUMETRIC) {
 
-		EEVEE_VolumetricsInfo *volumetrics = EEVEE_view_layer_data_get()->volumetrics;
-
 		/* Temporal Super sampling jitter */
 		double ht_point[3];
 		double ht_offset[3] = { 0.0, 0.0 };
@@ -791,7 +794,7 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 		bool do_taa = ((effects->enabled_effects & EFFECT_TAA) != 0) && m_doingTAA;
 
 		if (do_taa) {
-			volumetrics->history_alpha = 0.0f;
+			common_data->vol_history_alpha = 0.0f;
 			current_sample = effects->taa_current_sample - 1;
 			effects->volume_current_sample = -1;
 		}
@@ -806,9 +809,9 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 		}
 		BLI_halton_3D(ht_primes, ht_offset, current_sample, ht_point);
 
-		volumetrics->jitter[0] = (float)ht_point[0];
-		volumetrics->jitter[1] = (float)ht_point[1];
-		volumetrics->jitter[2] = (float)ht_point[2];
+		common_data->vol_jitter[0] = (float)ht_point[0];
+		common_data->vol_jitter[1] = (float)ht_point[1];
+		common_data->vol_jitter[2] = (float)ht_point[2];
 	}
 
 	if (effects->enabled_effects & EFFECT_DOF && !m_dofInitialized) {

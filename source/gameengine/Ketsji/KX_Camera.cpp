@@ -100,14 +100,15 @@ void KX_Camera::ProcessReplica()
 	m_delete_node = false;
 }
 
-void KX_Camera::UpdateViewVecs(EEVEE_StorageList *stl)
+void KX_Camera::UpdateViewVecs()
 {
-	/* Update viewvecs */
+	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+	/* Update view_vecs */
 	const bool is_persp = DRW_viewport_is_persp_get();
 	float invproj[4][4], winmat[4][4];
 	/* view vectors for the corners of the view frustum.
 	* Can be used to recreate the world space position easily */
-	float viewvecs[3][4] = {
+	float view_vecs[3][4] = {
 		{ -1.0f, -1.0f, -1.0f, 1.0f },
 		{ 1.0f, -1.0f, -1.0f, 1.0f },
 		{ -1.0f, 1.0f, -1.0f, 1.0f }
@@ -115,33 +116,32 @@ void KX_Camera::UpdateViewVecs(EEVEE_StorageList *stl)
 
 	/* invert the view matrix */
 	DRW_viewport_matrix_get(winmat, DRW_MAT_WIN);
-	//GetProjectionMatrix().getValue(&winmat[0][0]);
 	invert_m4_m4(invproj, winmat);
 
 	/* convert the view vectors to view space */
 	for (int i = 0; i < 3; i++) {
-		mul_m4_v4(invproj, viewvecs[i]);
+		mul_m4_v4(invproj, view_vecs[i]);
 		/* normalized trick see:
 		* http://www.derschmale.com/2014/01/26/reconstructing-positions-from-the-depth-buffer */
-		mul_v3_fl(viewvecs[i], 1.0f / viewvecs[i][3]);
+		mul_v3_fl(view_vecs[i], 1.0f / view_vecs[i][3]);
 		if (is_persp)
-			mul_v3_fl(viewvecs[i], 1.0f / viewvecs[i][2]);
-		viewvecs[i][3] = 1.0;
+			mul_v3_fl(view_vecs[i], 1.0f / view_vecs[i][2]);
+		view_vecs[i][3] = 1.0;
 	}
 
-	copy_v4_v4(stl->g_data->viewvecs[0], viewvecs[0]);
-	copy_v4_v4(stl->g_data->viewvecs[1], viewvecs[1]);
+	copy_v4_v4(sldata->common_data.view_vecs[0], view_vecs[0]);
+	copy_v4_v4(sldata->common_data.view_vecs[1], view_vecs[1]);
 
 	/* we need to store the differences */
-	stl->g_data->viewvecs[1][0] -= viewvecs[0][0];
-	stl->g_data->viewvecs[1][1] = viewvecs[2][1] - viewvecs[0][1];
+	sldata->common_data.view_vecs[1][0] -= view_vecs[0][0];
+	sldata->common_data.view_vecs[1][1] = view_vecs[2][1] - view_vecs[0][1];
 
 	/* calculate a depth offset as well */
 	if (!is_persp) {
 		float vec_far[] = { -1.0f, -1.0f, 1.0f, 1.0f };
 		mul_m4_v4(invproj, vec_far);
 		mul_v3_fl(vec_far, 1.0f / vec_far[3]);
-		stl->g_data->viewvecs[1][2] = vec_far[2] - viewvecs[0][2];
+		sldata->common_data.view_vecs[1][2] = vec_far[2] - view_vecs[0][2];
 	}
 }
 

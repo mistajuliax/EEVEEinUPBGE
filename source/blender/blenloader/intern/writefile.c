@@ -2594,7 +2594,6 @@ static void write_scene_collection(WriteData *wd, SceneCollection *sc)
 	writestruct(wd, DATA, SceneCollection, 1, sc);
 
 	writelist(wd, DATA, LinkData, &sc->objects);
-	writelist(wd, DATA, LinkData, &sc->filter_objects);
 
 	for (SceneCollection *nsc = sc->scene_collections.first; nsc; nsc = nsc->next) {
 		write_scene_collection(wd, nsc);
@@ -3867,6 +3866,7 @@ static void write_global(WriteData *wd, int fileflags, Main *mainvar)
 	memset(fg.pad, 0, sizeof(fg.pad));
 	memset(fg.filename, 0, sizeof(fg.filename));
 	memset(fg.build_hash, 0, sizeof(fg.build_hash));
+	fg.pad1 = NULL;
 
 	current_screen_compat(mainvar, is_undo, &screen, &scene, &render_layer);
 

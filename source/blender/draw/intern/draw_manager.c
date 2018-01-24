@@ -826,16 +826,10 @@ DRWShadingGroup *DRW_shgroup_material_create(struct GPUMaterial *material, DRWPa
 		else {
 			switch (input->type) {
 				case GPU_FLOAT:
-					DRW_shgroup_uniform_float(grp, input->shadername, (float *)input->dynamicvec, 1);
-					break;
 				case GPU_VEC2:
-					DRW_shgroup_uniform_vec2(grp, input->shadername, (float *)input->dynamicvec, 1);
-					break;
 				case GPU_VEC3:
-					DRW_shgroup_uniform_vec3(grp, input->shadername, (float *)input->dynamicvec, 1);
-					break;
 				case GPU_VEC4:
-					DRW_shgroup_uniform_vec4(grp, input->shadername, (float *)input->dynamicvec, 1);
+					/* Should already be in the material ubo. */
 					break;
 				case GPU_MAT3:
 					DRW_shgroup_uniform_mat3(grp, input->shadername, (float *)input->dynamicvec);
@@ -1308,6 +1302,11 @@ DRWPass *DRW_pass_create(const char *name, DRWState state)
 	pass->shgroups_last = NULL;
 
 	return pass;
+}
+
+void DRW_pass_state_set(DRWPass *pass, DRWState state)
+{
+	pass->state = state;
 }
 
 void DRW_pass_free(DRWPass *pass)
@@ -2325,6 +2324,7 @@ void DRW_framebuffer_init(
         DRWFboTexture textures[MAX_FBO_TEX], int textures_len)
 {
 	BLI_assert(textures_len <= MAX_FBO_TEX);
+	BLI_assert(width > 0 && height > 0);
 
 	bool create_fb = false;
 	int color_attachment = -1;
@@ -4236,6 +4236,7 @@ static void drw_game_eevee_view_layer_data_free(void)
 	DRW_UBO_FREE_SAFE(sldata->probe_ubo);
 	DRW_UBO_FREE_SAFE(sldata->grid_ubo);
 	DRW_UBO_FREE_SAFE(sldata->planar_ubo);
+	DRW_UBO_FREE_SAFE(sldata->common_ubo);
 	DRW_FRAMEBUFFER_FREE_SAFE(sldata->probe_fb);
 	DRW_FRAMEBUFFER_FREE_SAFE(sldata->probe_filter_fb);
 	DRW_TEXTURE_FREE_SAFE(sldata->probe_rt);
@@ -4243,9 +4244,6 @@ static void drw_game_eevee_view_layer_data_free(void)
 	DRW_TEXTURE_FREE_SAFE(sldata->probe_pool);
 	DRW_TEXTURE_FREE_SAFE(sldata->irradiance_pool);
 	DRW_TEXTURE_FREE_SAFE(sldata->irradiance_rt);
-
-	/* Volumetrics */
-	MEM_SAFE_FREE(sldata->volumetrics);
 }
 
 static Camera *default_cam;

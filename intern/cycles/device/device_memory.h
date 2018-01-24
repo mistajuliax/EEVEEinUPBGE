@@ -21,7 +21,6 @@
  *
  * Data types for allocating, copying and freeing device memory. */
 
-#include "util/util_debug.h"
 #include "util/util_half.h"
 #include "util/util_texture.h"
 #include "util/util_types.h"
@@ -435,7 +434,10 @@ public:
 	void alloc_to_device(size_t width, size_t height, size_t depth = 0)
 	{
 		device_vector<T>::alloc(width, height, depth);
-		device_memory::device_alloc();
+
+		if(!device_memory::device_pointer) {
+			device_memory::device_alloc();
+		}
 	}
 
 	T *copy_from_device(int y, int w, int h)

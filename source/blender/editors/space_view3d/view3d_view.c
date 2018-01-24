@@ -402,6 +402,8 @@ static void view3d_smoothview_apply(bContext *C, View3D *v3d, ARegion *ar, bool 
 			ED_view3d_camera_lock_autokey(v3d, rv3d, C, true, true);
 		}
 
+		/* Event handling won't know if a UI item has been moved under the pointer. */
+		WM_event_add_mousemove(C);
 	}
 	
 	if (sync_boxview && (rv3d->viewlock & RV3D_BOXVIEW)) {
@@ -1111,8 +1113,21 @@ bool ED_view3d_lock(RegionView3D *rv3d)
 	return ED_view3d_quat_from_axis_view(rv3d->view, rv3d->viewquat);
 }
 
-/* don't set windows active in here, is used by renderwin too */
-void view3d_viewmatrix_set(const EvaluationContext *eval_ctx, Scene *scene, const View3D *v3d, RegionView3D *rv3d)
+/**
+ * Sets #RegionView3D.viewmat
+ *
+ * \param eval_ctx: Context.
+ * \param scene: Scene for camera and cursor location.
+ * \param v3d: View 3D space data.
+ * \param rv3d: 3D region which stores the final matrices.
+ * \param rect_scale: Optional 2D scale argument,
+ * Use when displaying a sub-region, eg: when #view3d_winmatrix_set takes a 'rect' argument.
+ *
+ * \note don't set windows active in here, is used by renderwin too.
+ */
+void view3d_viewmatrix_set(
+        const EvaluationContext *eval_ctx, Scene *scene,
+        const View3D *v3d, RegionView3D *rv3d, const float rect_scale[2])
 {
 	if (rv3d->persp == RV3D_CAMOB) {      /* obs/camera */
 		if (v3d->camera) {
@@ -1173,6 +1188,17 @@ void view3d_viewmatrix_set(const EvaluationContext *eval_ctx, Scene *scene, cons
 
 			mul_v2_v2fl(vec, rv3d->ofs_lock, rv3d->is_persp ? rv3d->dist : 1.0f);
 			vec[2] = 0.0f;
+
+			if (rect_scale) {
+				/* Since 'RegionView3D.winmat' has been calculated and this function doesn't take the 'ARegion'
+				 * we don't know about the region size.
+				 * Use 'rect_scale' when drawing a sub-region to apply 2D offset,
+				 * scaled by the difference between the sub-region and the region size.
+				 */
+				vec[0] /= rect_scale[0];
+				vec[1] /= rect_scale[1];
+			}
+
 			mul_mat3_m4_v3(persinv, vec);
 			translate_m4(rv3d->viewmat, vec[0], vec[1], vec[2]);
 		}

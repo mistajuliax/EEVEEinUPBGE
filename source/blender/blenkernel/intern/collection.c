@@ -30,6 +30,7 @@
 #include "BLI_ghash.h"
 #include "BLI_iterator.h"
 #include "BLI_listbase.h"
+#include "BLI_math_base.h"
 #include "BLT_translation.h"
 #include "BLI_string_utils.h"
 
@@ -86,7 +87,12 @@ SceneCollection *BKE_collection_add(ID *owner_id, SceneCollection *sc_parent, co
 			name = BLI_sprintfN("Collection %d", BLI_listbase_count(&sc_master->scene_collections) + 1);
 		}
 		else {
-			name = BLI_sprintfN("%s %d", sc_parent->name, BLI_listbase_count(&sc_parent->scene_collections) + 1);
+			const int number = BLI_listbase_count(&sc_parent->scene_collections) + 1;
+			const int digits = integer_digits_i(number);
+			const int max_len = sizeof(sc_parent->name)
+			                    - 1 /* NULL terminator */
+			                    - (1 + digits) /* " %d" */;
+			name = BLI_sprintfN("%.*s %d", max_len, sc_parent->name, number);
 		}
 	}
 
@@ -111,13 +117,9 @@ static void collection_free(SceneCollection *sc, const bool do_id_user)
 		for (LinkData *link = sc->objects.first; link; link = link->next) {
 			id_us_min(link->data);
 		}
-		for (LinkData *link = sc->filter_objects.first; link; link = link->next) {
-			id_us_min(link->data);
-		}
 	}
 
 	BLI_freelistN(&sc->objects);
-	BLI_freelistN(&sc->filter_objects);
 
 	for (SceneCollection *nsc = sc->scene_collections.first; nsc; nsc = nsc->next) {
 		collection_free(nsc, do_id_user);
@@ -259,13 +261,6 @@ void BKE_collection_copy_data(SceneCollection *sc_dst, SceneCollection *sc_src, 
 		}
 	}
 
-	BLI_duplicatelist(&sc_dst->filter_objects, &sc_src->filter_objects);
-	if ((flag & LIB_ID_CREATE_NO_USER_REFCOUNT) == 0) {
-		for (LinkData *link = sc_dst->filter_objects.first; link; link = link->next) {
-			id_us_plus(link->data);
-		}
-	}
-
 	BLI_duplicatelist(&sc_dst->scene_collections, &sc_src->scene_collections);
 	for (SceneCollection *nsc_src = sc_src->scene_collections.first, *nsc_dst = sc_dst->scene_collections.first;
 	     nsc_src;
@@ -306,6 +301,15 @@ static void collection_rename(const ID *owner_id, SceneCollection *sc, const cha
 void BKE_collection_rename(const Scene *scene, SceneCollection *sc, const char *name)
 {
 	collection_rename(&scene->id, sc, name);
+}
+
+/**
+ * Make sure the collection name is still unique within its siblings.
+ */
+static void collection_name_check(const ID *owner_id, SceneCollection *sc)
+{
+	/* It's a bit of a hack, we simply try to make sure the collection name is valid. */
+	collection_rename(owner_id, sc, sc->name);
 }
 
 /**
@@ -389,7 +393,6 @@ bool BKE_collection_object_remove(Main *bmain, ID *owner_id, SceneCollection *sc
 	BLI_remlink(&sc->objects, link);
 	MEM_freeN(link);
 
-	TODO_LAYER_SYNC_FILTER; /* need to remove all instances of ob in scene collections -> filter_objects */
 	BKE_layer_sync_object_unlink(owner_id, sc, ob);
 
 	if (GS(owner_id->name) == ID_SCE) {
@@ -583,6 +586,9 @@ bool BKE_collection_move_above(const ID *owner_id, SceneCollection *sc_dst, Scen
 	BKE_layer_collection_resync(owner_id, sc_src_parent);
 	BKE_layer_collection_resync(owner_id, sc_dst_parent);
 
+	/* Keep names unique. */
+	collection_name_check(owner_id, sc_src);
+
 	return true;
 }
 
@@ -622,6 +628,9 @@ bool BKE_collection_move_below(const ID *owner_id, SceneCollection *sc_dst, Scen
 	BKE_layer_collection_resync(owner_id, sc_src_parent);
 	BKE_layer_collection_resync(owner_id, sc_dst_parent);
 
+	/* Keep names unique. */
+	collection_name_check(owner_id, sc_src);
+
 	return true;
 }
 
@@ -656,6 +665,9 @@ bool BKE_collection_move_into(const ID *owner_id, SceneCollection *sc_dst, Scene
 	/* Update the tree */
 	BKE_layer_collection_resync(owner_id, sc_src_parent);
 	BKE_layer_collection_resync(owner_id, sc_dst);
+
+	/* Keep names unique. */
+	collection_name_check(owner_id, sc_src);
 
 	return true;
 }

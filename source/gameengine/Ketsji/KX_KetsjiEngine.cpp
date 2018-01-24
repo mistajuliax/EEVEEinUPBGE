@@ -833,7 +833,7 @@ void KX_KetsjiEngine::RenderCamera(KX_Scene *scene, const CameraRenderData& came
 							rendercam->NodeGetWorldPosition(), rendercam->NodeGetLocalScaling());
 
 	/* TEMP -> needs to be optimised */
-	rendercam->UpdateViewVecs(EEVEE_engine_data_get()->stl);
+	rendercam->UpdateViewVecs();
 
 	m_logger.StartLog(tc_scenegraph, m_kxsystem->GetTimeInSeconds());
 
