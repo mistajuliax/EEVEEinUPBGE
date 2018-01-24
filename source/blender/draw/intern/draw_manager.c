@@ -4310,6 +4310,8 @@ void DRW_game_render_loop_begin(GPUOffScreen *ofs, Main *bmain,
 	DST.draw_ctx.view_layer = view_layer;
 	DST.draw_ctx.obact = OBACT(view_layer);
 
+	DST.draw_ctx.depsgraph = depsgraph;
+
 	drw_viewport_var_init();
 
 	/* Init engines */
