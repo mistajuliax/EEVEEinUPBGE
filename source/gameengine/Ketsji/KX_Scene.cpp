@@ -902,7 +902,7 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 		}
 	}
 
-	//UpdateObjectLods(GetActiveCamera(), nodes);
+	UpdateObjectLods(GetActiveCamera(), nodes);
 
 	UpdateShadows(rasty);
 
@@ -1553,10 +1553,11 @@ KX_GameObject *KX_Scene::AddReplicaObject(KX_GameObject *originalobject, KX_Game
 		DupliGroupRecurse(gameobj, 0);
 	}
 
-	/* Add new display arrays to draw with eevee code */
+	/* Add new display arrays and shadows to draw with eevee code */
 	if (replica->GetMaterialBatches().size() > 0) {
 		replica->AddNewMaterialBatchesToPasses();
 		replica->AddNewShadowShadingGroupsToPasses();
+		replica->SetIsReplica(true); // Mark the new gameobject (copy of original) as a replica
 	}
 
 	//	don't release replica here because we are returning it, not done with it...
@@ -1725,22 +1726,15 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 		return;
 	}
 
-	/* I want to rethink both LOD and replaceMesh actuator. For now, I disable that */
-	std::cout << "ReplaceMesh/LOD is disabled during EEVEE integration" << std::endl;
-	return;
-
 	if (use_gfx && mesh != nullptr) {
 
-		/* TODO: Fix shadows not updated with replaced geometry
-		 * (use DelayRemoveObject/AddObject instead of ReplaceMesh?)
-		 */
 		/* EEVEE INTEGRATION */
 		std::vector<Gwn_Batch *>meshBatches = mesh->GetMaterialBatches();
 		std::vector<DRWShadingGroup *>meshShgroups = mesh->GetMaterialShadingGroups();
 		std::vector<DRWShadingGroup *>meshShadowShgroups = mesh->GetShadowShadingGroups();
 
 		gameobj->RemoveShadowShadingGroups();
-		gameobj->DiscardMaterialBatches();
+		gameobj->RemoveMaterialBatches();
 		gameobj->ReplaceMaterialBatches(meshBatches);
 		gameobj->ReplaceMaterialShadingGroups(meshShgroups);
 		gameobj->AddNewMaterialBatchesToPasses();

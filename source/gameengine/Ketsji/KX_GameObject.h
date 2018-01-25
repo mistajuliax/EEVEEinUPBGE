@@ -98,6 +98,8 @@ protected:
 	std::vector<Gwn_Batch *>m_materialBatches;
 	std::vector<DRWShadingGroup *>m_materialShGroups;
 
+	bool m_isReplica; // used for ReplaceMesh
+
 	/* SHADOWS EXPERIMENTAL */
 	std::vector<DRWShadingGroup *>m_shadowShGroups;
 	BGEShCaster m_shcaster;
@@ -160,35 +162,37 @@ public:
 	/* EEVEE INTEGRATION */
 
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
-
 	void ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups); // ReplaceMesh
 
 	std::vector<Gwn_Batch *>GetMaterialBatches();
 
-	void SetKXGameObjectCallsPointer();
+	void SetKXGameObjectCallsPointer(); // Used to identify a DRWCall in the cache
 
-	void AddMaterialBatches();
-	void DiscardMaterialBatches();
-	void RestoreMaterialBatches();
+	void AddMaterialBatches(); // fill m_materialBatches list
+	void DiscardMaterialBatches(); // culling
+	void RestoreMaterialBatches(); //culling
 	void AddNewMaterialBatchesToPasses(); // AddObject
 	void RemoveMaterialBatches(); // EndObject
 	void ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches); // ReplaceMesh
 
-	void TagForUpdate(); // It was UpdateBuckets before
+	void TagForUpdate(); // It was UpdateBuckets before.
 
 
 	/* SHADOWS EXPERIMENTAL */
 	std::vector<DRWShadingGroup *>GetShadowShadingGroups();
-	void RemoveShadowShadingGroups();
-	void ReplaceShadowShadingGroups(std::vector<DRWShadingGroup *>shadowShgroups);
-	void AddNewShadowShadingGroupsToPasses();
-	BGEShCaster *GetShadowCaster();
+	void RemoveShadowShadingGroups(); // end object + replace mesh
+	void ReplaceShadowShadingGroups(std::vector<DRWShadingGroup *>shadowShgroups); // replace mesh
+	void AddNewShadowShadingGroupsToPasses(); // add object + replace mesh
+
+	BGEShCaster *GetShadowCaster(); // used to update shadows obmat
 	/* End of SHADOWS EXPERMIENTAL */
 
-	bool NeedShadowUpdate();
+	bool NeedShadowUpdate(); // when an object moves, its shadow must be updated
 
-	bool m_wasculled;
-	bool m_wasVisible;
+	bool m_wasculled; // used for culling (Discard material batches (display arrays)
+	bool m_wasVisible; // also used to discard display arrays, but when we mark the object to be invisible
+
+	void SetIsReplica(bool isReplica); // used for replace mesh. A replica is a copy of the original game object
 
 	// Moved RAS_MeshUser API here
 	float *GetObjectMatrix();

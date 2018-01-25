@@ -136,6 +136,7 @@ KX_GameObject::KX_GameObject(
 	  m_needShadowUpdate(true), // eevee integration
 	  m_wasVisible(true), // eevee integration
 	  m_boundingBox(nullptr), // eevee integration (moved from RAS_MeshUser)
+	  m_isReplica(false), // eevee integration (used for ReplaceMesh)
 
 	  m_rasMeshObject(nullptr),
       m_actionManager(nullptr)
@@ -333,13 +334,26 @@ void KX_GameObject::AddNewMaterialBatchesToPasses()
 	}
 }
 
-/* Use for end object */
+/* Use for end object and replace mesh*/
 void KX_GameObject::RemoveMaterialBatches()
 {
+	/* WARNING: When we want to remove Gwn_Batches (display arrays) from
+	 * the cache, we have to ensure to keep at least a copy of these display
+	 * arrays in the cache. Why? Because when we use replace mesh 2 times, if we want
+	 * to get again the original mesh, we need the original mesh display arrays.
+	 * Note that it could be done in another way, but I think it is more handy like that:
+	 * REALLY REMOVE Gwn_Batches ONLY FOR REPLICA OBJECTS, else ONLY DISCARD Gwn_Batches
+	 * FOR ORIGINAL OBJECT. (This is not definitive, but I do like that for now).
+	 */
 	for (Gwn_Batch *b : m_materialBatches) {
 		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
 			if (DRW_game_batch_belongs_to_shgroup(sh, b)) {
-				DRW_game_call_remove_geometry(sh, (void *)this);
+				if (m_isReplica) {
+					DRW_game_call_remove_geometry(sh, (void *)this);
+				}
+				else {
+					DRW_game_call_discard_geometry(sh, (void *)this);
+				}
 			}
 		}
 	}
@@ -494,6 +508,11 @@ void KX_GameObject::AddNewShadowShadingGroupsToPasses()
 }
 
 /* End of SHADOWS EXPERIMENTAL */
+
+void KX_GameObject::SetIsReplica(bool isReplica)
+{
+	m_isReplica = isReplica;
+}
 
 bool KX_GameObject::NeedShadowUpdate() // used for shadow culling
 {
