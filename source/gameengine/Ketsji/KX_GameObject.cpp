@@ -497,7 +497,6 @@ void KX_GameObject::AddNewShadowShadingGroupsToPasses()
 {
 	Object *source = GetBlenderObject();
 	if (source && ELEM(source->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
-		Object *source = GetBlenderObject();
 		Main *bmain = KX_GetActiveEngine()->GetConverter()->GetMain();
 		EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
 		EEVEE_Data *vedata = EEVEE_engine_data_get();
