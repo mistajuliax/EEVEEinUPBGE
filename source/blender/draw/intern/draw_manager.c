@@ -4044,11 +4044,16 @@ void DRW_shgroup_call_object_add_with_custom_matrix(DRWShadingGroup *shgroup, Gw
 }
 
 /* SHADOWS EXPERIMENTAL */
-void DRW_game_shadow_call_remove_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)
+
+/* Same as DRW_pass_free but needed in DRW_render.h */
+void DRW_game_pass_free(DRWPass *pass)
 {
-	if (shgroup->instance_geom == batch) {
-		shgroup->interface.instance_count = 0; // temp hack
+	for (DRWShadingGroup *shgroup = pass->shgroups; shgroup; shgroup = shgroup->next) {
+		DRW_shgroup_free(shgroup);
 	}
+
+	pass->shgroups = NULL;
+	pass->shgroups_last = NULL;
 }
 
 bool DRW_game_shadow_batch_belongs_to_shgroup(DRWShadingGroup *shgroup, Gwn_Batch *batch)

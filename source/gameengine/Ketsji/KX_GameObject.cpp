@@ -154,11 +154,6 @@ KX_GameObject::KX_GameObject(
 		KX_NormalParentRelation::New();
 	m_pSGNode->SetParentRelation(parent_relation);
 	unit_m4(m_prevObmat);
-
-	/* SHADOWS EXPERIMENTAL */
-	unit_m4(m_hideShCasterObmat);
-	translate_m4(m_hideShCasterObmat, 9999.0f, 9999.0f, 9999.0f);
-	/* End of SHADOWS EXPERIMENTAL */
 };
 
 
@@ -462,12 +457,17 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetShadowShadingGroups()
 
 void KX_GameObject::RemoveShadowShadingGroups()
 {
-	for (DRWShadingGroup *sh : m_shadowShGroups) {
-		for (Gwn_Batch *b : m_materialBatches) {
-			DRW_game_shadow_call_remove_shgroup(sh, b);
+	EEVEE_PassList *psl = EEVEE_engine_data_get()->psl;
+	DRWPass *cube = psl->shadow_cube_pass;
+	DRWPass *cascade = psl->shadow_cascade_pass;
+	DRW_game_pass_free(cube);
+	DRW_game_pass_free(cascade);
+	KX_Scene *scene = GetScene();
+	for (KX_GameObject *gameobj : scene->GetObjectList()) {
+		if (gameobj != this) {
+			gameobj->AddNewShadowShadingGroupsToPasses();
 		}
 	}
-	copy_m4_m4(m_shcaster.obmat, m_hideShCasterObmat);
 }
 
 void KX_GameObject::ReplaceShadowShadingGroups(std::vector<DRWShadingGroup *>shadowShgroups)
