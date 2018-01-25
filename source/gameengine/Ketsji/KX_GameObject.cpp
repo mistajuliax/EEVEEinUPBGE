@@ -230,9 +230,7 @@ KX_GameObject::~KX_GameObject()
 		m_lodManager->Release();
 	}
 
-	/* We need to have material batches available to "remove" shadows
-	 * so we call FreeShadowShadingGroups before RemoveMaterialBatches
-	 */
+	/* EEVEE INTEGRATION */
 	if (m_shadowShGroups.size()) {
 		RemoveShadowShadingGroups();
 	}
@@ -240,6 +238,7 @@ KX_GameObject::~KX_GameObject()
 	if (m_materialBatches.size()) {
 		RemoveMaterialBatches();
 	}
+	/* End of EEVEE INTEGRATION */
 
 	if (m_boundingBox) {
 		m_boundingBox->RemoveUser();
