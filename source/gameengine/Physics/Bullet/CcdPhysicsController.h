@@ -846,7 +846,7 @@ public:
 		return GetConstructionInfo().m_shapeInfo->m_shapeType == PHY_SHAPE_COMPOUND;
 	}
 
-	virtual bool ReinstancePhysicsShape(KX_GameObject *from_gameobj, RAS_MeshObject *from_meshobj, bool dupli = false);
+	//virtual bool ReinstancePhysicsShape(KX_GameObject *from_gameobj, RAS_MeshObject *from_meshobj, bool dupli = false);
 	virtual void ReplacePhysicsShape(PHY_IPhysicsController *phyctrl);
 
 	/* Method to replicate rigid body joint contraints for group instances. */

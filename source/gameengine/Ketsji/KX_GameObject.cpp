@@ -2129,7 +2129,7 @@ PyMethodDef KX_GameObject::Methods[] = {
 	{"getPropertyNames", (PyCFunction)KX_GameObject::sPyGetPropertyNames,METH_NOARGS},
 	{"replaceMesh",(PyCFunction) KX_GameObject::sPyReplaceMesh, METH_VARARGS},
 	{"endObject",(PyCFunction) KX_GameObject::sPyEndObject, METH_NOARGS},
-	{"reinstancePhysicsMesh", (PyCFunction)KX_GameObject::sPyReinstancePhysicsMesh,METH_VARARGS},
+	//{"reinstancePhysicsMesh", (PyCFunction)KX_GameObject::sPyReinstancePhysicsMesh,METH_VARARGS},
 	{"replacePhysicsShape", (PyCFunction)KX_GameObject::sPyReplacePhysicsShape, METH_O},
 
 	KX_PYMETHODTABLE(KX_GameObject, rayCastTo),
@@ -2237,29 +2237,29 @@ PyObject *KX_GameObject::PyEndObject()
 	Py_RETURN_NONE;
 }
 
-PyObject *KX_GameObject::PyReinstancePhysicsMesh(PyObject *args)
-{
-	KX_GameObject *gameobj= nullptr;
-	RAS_MeshObject *mesh= nullptr;
-	SCA_LogicManager *logicmgr = GetScene()->GetLogicManager();
-	int dupli = 0;
-
-	PyObject *gameobj_py= nullptr;
-	PyObject *mesh_py= nullptr;
-
-	if (!PyArg_ParseTuple(args,"|OOi:reinstancePhysicsMesh",&gameobj_py, &mesh_py, &dupli) ||
-		(gameobj_py && !ConvertPythonToGameObject(logicmgr, gameobj_py, &gameobj, true, "gameOb.reinstancePhysicsMesh(obj, mesh, dupli): KX_GameObject")) ||
-		(mesh_py && !ConvertPythonToMesh(logicmgr, mesh_py, &mesh, true, "gameOb.reinstancePhysicsMesh(obj, mesh, dupli): KX_GameObject")))
-	{
-		return nullptr;
-	}
-
-	/* gameobj and mesh can be nullptr */
-	if (GetPhysicsController() && GetPhysicsController()->ReinstancePhysicsShape(gameobj, mesh, dupli))
-		Py_RETURN_TRUE;
-
-	Py_RETURN_FALSE;
-}
+//PyObject *KX_GameObject::PyReinstancePhysicsMesh(PyObject *args)
+//{
+//	KX_GameObject *gameobj= nullptr;
+//	RAS_MeshObject *mesh= nullptr;
+//	SCA_LogicManager *logicmgr = GetScene()->GetLogicManager();
+//	int dupli = 0;
+//
+//	PyObject *gameobj_py= nullptr;
+//	PyObject *mesh_py= nullptr;
+//
+//	if (!PyArg_ParseTuple(args,"|OOi:reinstancePhysicsMesh",&gameobj_py, &mesh_py, &dupli) ||
+//		(gameobj_py && !ConvertPythonToGameObject(logicmgr, gameobj_py, &gameobj, true, "gameOb.reinstancePhysicsMesh(obj, mesh, dupli): KX_GameObject")) ||
+//		(mesh_py && !ConvertPythonToMesh(logicmgr, mesh_py, &mesh, true, "gameOb.reinstancePhysicsMesh(obj, mesh, dupli): KX_GameObject")))
+//	{
+//		return nullptr;
+//	}
+//
+//	/* gameobj and mesh can be nullptr */
+//	if (GetPhysicsController() && GetPhysicsController()->ReinstancePhysicsShape(gameobj, mesh, dupli))
+//		Py_RETURN_TRUE;
+//
+//	Py_RETURN_FALSE;
+//}
 
 PyObject *KX_GameObject::PyReplacePhysicsShape(PyObject *value)
 {

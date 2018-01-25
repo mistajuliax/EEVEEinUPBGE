@@ -1621,28 +1621,28 @@ bool CcdPhysicsController::IsPhysicsSuspended()
  *
  * Most of the logic behind this is in m_shapeInfo->UpdateMesh(...)
  */
-bool CcdPhysicsController::ReinstancePhysicsShape(KX_GameObject *from_gameobj, RAS_MeshObject *from_meshobj, bool dupli)
-{
-	if (m_shapeInfo->m_shapeType != PHY_SHAPE_MESH)
-		return false;
-
-	if (!from_gameobj && !from_meshobj)
-		from_gameobj = KX_GameObject::GetClientObject((KX_ClientObjectInfo *)GetNewClientInfo());
-
-	if (dupli && (m_shapeInfo->GetRefCount() > 1)) {
-		CcdShapeConstructionInfo *newShapeInfo = m_shapeInfo->GetReplica();
-		m_shapeInfo->Release();
-		m_shapeInfo = newShapeInfo;
-	}
-
-	/* updates the arrays used for making the new bullet mesh */
-	m_shapeInfo->UpdateMesh(from_gameobj, from_meshobj);
-
-	/* create the new bullet mesh */
-	GetPhysicsEnvironment()->UpdateCcdPhysicsControllerShape(m_shapeInfo);
-
-	return true;
-}
+//bool CcdPhysicsController::ReinstancePhysicsShape(KX_GameObject *from_gameobj, RAS_MeshObject *from_meshobj, bool dupli)
+//{
+//	if (m_shapeInfo->m_shapeType != PHY_SHAPE_MESH)
+//		return false;
+//
+//	if (!from_gameobj && !from_meshobj)
+//		from_gameobj = KX_GameObject::GetClientObject((KX_ClientObjectInfo *)GetNewClientInfo());
+//
+//	if (dupli && (m_shapeInfo->GetRefCount() > 1)) {
+//		CcdShapeConstructionInfo *newShapeInfo = m_shapeInfo->GetReplica();
+//		m_shapeInfo->Release();
+//		m_shapeInfo = newShapeInfo;
+//	}
+//
+//	/* updates the arrays used for making the new bullet mesh */
+//	m_shapeInfo->UpdateMesh(from_gameobj, from_meshobj);
+//
+//	/* create the new bullet mesh */
+//	GetPhysicsEnvironment()->UpdateCcdPhysicsControllerShape(m_shapeInfo);
+//
+//	return true;
+//}
 
 void CcdPhysicsController::ReplacePhysicsShape(PHY_IPhysicsController *phyctrl)
 {

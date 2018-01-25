@@ -148,7 +148,7 @@ public:
 	virtual bool IsDynamicsSuspended() const = 0;
 	virtual bool IsPhysicsSuspended() = 0;
 
-	virtual bool ReinstancePhysicsShape(KX_GameObject *from_gameobj, RAS_MeshObject *from_meshobj, bool dupli = false) = 0;
+	//virtual bool ReinstancePhysicsShape(KX_GameObject *from_gameobj, RAS_MeshObject *from_meshobj, bool dupli = false) = 0;
 	virtual void ReplacePhysicsShape(PHY_IPhysicsController *phyctrl) = 0;
 
 	/* Method to replicate rigid body joint contraints for group instances. */

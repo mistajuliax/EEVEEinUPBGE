@@ -1876,10 +1876,10 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 		gameobj->AddDisplayArrays();
 	}
 
-	if (use_phys) { /* update the new assigned mesh with the physics mesh */
-		if (gameobj->GetPhysicsController())
-			gameobj->GetPhysicsController()->ReinstancePhysicsShape(nullptr, use_gfx?nullptr:mesh);
-	}
+	//if (use_phys) { /* update the new assigned mesh with the physics mesh */
+	//	if (gameobj->GetPhysicsController())
+	//		gameobj->GetPhysicsController()->ReinstancePhysicsShape(nullptr, use_gfx?nullptr:mesh);
+	//}
 	// Always make sure that the bounding box is updated to the new mesh.
 	gameobj->UpdateBounds(true);
 }
