@@ -475,39 +475,39 @@ bool CcdPhysicsController::CreateSoftbody()
 
 	psb->setCollisionFlags(0);
 
-	///create a mapping between graphics mesh vertices and soft body vertices
-	{
-		RAS_MeshObject *rasMesh = GetShapeInfo()->GetMesh();
+	/////create a mapping between graphics mesh vertices and soft body vertices
+	//{
+	//	RAS_MeshObject *rasMesh = GetShapeInfo()->GetMesh();
 
-		if (rasMesh && !m_softbodyMappingDone) {
-			RAS_MeshMaterial *mmat;
+	//	if (rasMesh && !m_softbodyMappingDone) {
+	//		RAS_MeshMaterial *mmat;
 
-			//for each material
-			for (int m = 0; m < rasMesh->NumMaterials(); m++) {
-				mmat = rasMesh->GetMeshMaterial(m);
+	//		//for each material
+	//		for (int m = 0; m < rasMesh->NumMaterials(); m++) {
+	//			mmat = rasMesh->GetMeshMaterial(m);
 
-				RAS_IDisplayArray *array = mmat->GetDisplayArray();
+	//			RAS_IDisplayArray *array = mmat->GetDisplayArray();
 
-				for (unsigned int i = 0, size = array->GetVertexCount(); i < size; ++i) {
-					RAS_ITexVert *vertex = array->GetVertex(i);
-					RAS_TexVertInfo& vertexInfo = array->GetVertexInfo(i);
-					//search closest index, and store it in vertex
-					vertexInfo.setSoftBodyIndex(0);
-					btScalar maxDistSqr = 1e30;
-					btSoftBody::tNodeArray& nodes(psb->m_nodes);
-					btVector3 xyz = ToBullet(vertex->xyz());
-					for (int n = 0; n < nodes.size(); n++) {
-						btScalar distSqr = (nodes[n].m_x - xyz).length2();
-						if (distSqr < maxDistSqr) {
-							maxDistSqr = distSqr;
+	//			for (unsigned int i = 0, size = array->GetVertexCount(); i < size; ++i) {
+	//				RAS_ITexVert *vertex = array->GetVertex(i);
+	//				RAS_TexVertInfo& vertexInfo = array->GetVertexInfo(i);
+	//				//search closest index, and store it in vertex
+	//				vertexInfo.setSoftBodyIndex(0);
+	//				btScalar maxDistSqr = 1e30;
+	//				btSoftBody::tNodeArray& nodes(psb->m_nodes);
+	//				btVector3 xyz = ToBullet(vertex->xyz());
+	//				for (int n = 0; n < nodes.size(); n++) {
+	//					btScalar distSqr = (nodes[n].m_x - xyz).length2();
+	//					if (distSqr < maxDistSqr) {
+	//						maxDistSqr = distSqr;
 
-							vertexInfo.setSoftBodyIndex(n);
-						}
-					}
-				}
-			}
-		}
-	}
+	//						vertexInfo.setSoftBodyIndex(n);
+	//					}
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
 	m_softbodyMappingDone = true;
 
 	btTransform startTrans;
