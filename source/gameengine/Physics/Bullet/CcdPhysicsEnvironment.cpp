@@ -52,8 +52,13 @@
 #include "DNA_object_force.h"
 
 extern "C" {
-	#include "BLI_utildefines.h"
-	#include "BKE_object.h"
+#  include "BKE_customdata.h"
+#  include "BKE_cdderivedmesh.h"
+#  include "BKE_DerivedMesh.h"
+#  include "BLI_utildefines.h"
+#  include "BKE_object.h"
+#  include "DNA_mesh_types.h"
+#  include "DNA_object_types.h"
 }
 
 #define CCD_CONSTRAINT_DISABLE_LINKED_COLLISION 0x80
@@ -1866,28 +1871,35 @@ struct  DbvtCullingCallback : btDbvt::ICollide {
 				m_ocb->SetModelMatrix(fl);
 				float face = (gameobj->IsNegativeScaling()) ? -1.0f : 1.0f;
 				// walk through the meshes and for each add to buffer
-				if (gameobj->GetRasMeshObject()) {
-					RAS_MeshObject *meshobj = gameobj->GetRasMeshObject();
+
+				Object *ob = gameobj->GetBlenderObject();
+
+				if (ob && ob->type == OB_MESH) {
+					Mesh *me = static_cast<Mesh *>(ob->data);
+					// Get DerivedMesh data
+					DerivedMesh *dm = CDDM_from_mesh(me);
+					DM_ensure_tessface(dm);
+
+					MVert *mvert = dm->getVertArray(dm);
+					MFace *mface = dm->getTessFaceArray(dm);
+					int totface = dm->getNumTessFaces(dm);
 					const float *v1, *v2, *v3, *v4;
 
-					int polycount = meshobj->NumPolygons();
-					for (int j = 0; j < polycount; j++) {
-						RAS_Polygon *poly = meshobj->GetPolygon(j);
-						switch (poly->VertexCount())
-						{
-							case 3:
-								v1 = poly->GetVertex(0)->getXYZ();
-								v2 = poly->GetVertex(1)->getXYZ();
-								v3 = poly->GetVertex(2)->getXYZ();
-								m_ocb->appendOccluderM(v1, v2, v3, ((poly->IsTwoside()) ? 0.f : face));
-								break;
-							case 4:
-								v1 = poly->GetVertex(0)->getXYZ();
-								v2 = poly->GetVertex(1)->getXYZ();
-								v3 = poly->GetVertex(2)->getXYZ();
-								v4 = poly->GetVertex(3)->getXYZ();
-								m_ocb->appendOccluderM(v1, v2, v3, v4, ((poly->IsTwoside()) ? 0.f : face));
-								break;
+					for (int f = 0; f < totface; f++, mface++)
+					{						
+						if (!mface->v4) {
+
+							v1 = mvert[mface->v1].co;
+							v2 = mvert[mface->v2].co;
+							v3 = mvert[mface->v3].co;
+							m_ocb->appendOccluderM(v1, v2, v3, 0.0f);
+						}
+						else {						
+							v1 = mvert[mface->v1].co;
+							v2 = mvert[mface->v2].co;
+							v3 = mvert[mface->v3].co;
+							v4 = mvert[mface->v4].co;
+							m_ocb->appendOccluderM(v1, v2, v3, v4, 0.0f);
 						}
 					}
 				}
