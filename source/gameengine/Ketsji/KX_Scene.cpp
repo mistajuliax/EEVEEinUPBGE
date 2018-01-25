@@ -815,6 +815,10 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 	}
 
 	if (effects->enabled_effects & EFFECT_DOF && !m_dofInitialized) {
+		/* I realized that DOF was not working as expected in "wandered" scene
+		 * so there is something to fix here but this is not a priority
+		 */
+
 		/* Depth Of Field */
 		KX_Camera *cam = GetActiveCamera();
 		float sensorSize = cam->GetCameraData()->m_sensor_x;
