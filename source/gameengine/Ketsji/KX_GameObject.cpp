@@ -431,6 +431,10 @@ void KX_GameObject::TagForUpdate()
 
 /* SHADOWS EXPERIMENTAL */
 
+/* Note: Follow the future developments about const bool cast_shadow = true; in eevee_engine.c
+ * (would be cool to have the UI to say if an object can cast shadows or not)
+ */
+
 /* GET + CREATE IF DOESN'T EXIST */
 std::vector<DRWShadingGroup *>KX_GameObject::GetShadowShadingGroups()
 {
