@@ -902,7 +902,7 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 		}
 	}
 
-	UpdateObjectLods(GetActiveCamera(), nodes);
+	//UpdateObjectLods(GetActiveCamera(), nodes);
 
 	UpdateShadows(rasty);
 
@@ -1725,6 +1725,7 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 		CM_FunctionWarning("invalid object, doing nothing");
 		return;
 	}
+	return;
 
 	if (use_gfx && mesh != nullptr) {
 
