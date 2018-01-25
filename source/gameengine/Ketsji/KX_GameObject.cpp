@@ -999,11 +999,12 @@ void KX_GameObject::AddBoundingBox()
 		m_boundingBox->AddUser();
 	}
 	if (GetBlenderObject()->type == OB_CURVE) {
-		m_boundingBox = GetScene()->GetBoundingBoxManager()->CreateMeshBoundingBox(GetBlenderObject());
+		m_boundingBox = GetScene()->GetBoundingBoxManager()->CreateObjectBoundingBox(GetBlenderObject());
 		m_boundingBox->Update(true);
 		m_boundingBox->AddUser();
 	}
 	if (GetBlenderObject()->type == OB_FONT) {
+		/* Special type of bounding boxes for BLF Fonts here (panzergame work) */
 		m_boundingBox = new RAS_BoundingBox(GetScene()->GetBoundingBoxManager());
 		m_boundingBox->AddUser();
 	}

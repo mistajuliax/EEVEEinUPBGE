@@ -390,7 +390,7 @@ void RAS_MeshObject::EndConversion(RAS_BoundingBoxManager *boundingBoxManager)
 		}
 	}
 	// Construct the bounding box of this mesh without deformers.
-	m_boundingBox = boundingBoxManager->CreateMeshBoundingBox(m_ob);
+	m_boundingBox = boundingBoxManager->CreateObjectBoundingBox(m_ob);
 	m_boundingBox->Update(true);
 }
 
