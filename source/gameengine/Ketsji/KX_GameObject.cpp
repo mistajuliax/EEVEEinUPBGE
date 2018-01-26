@@ -139,6 +139,7 @@ KX_GameObject::KX_GameObject(
 	  m_isReplica(false), // eevee integration (used for ReplaceMesh)
 	  m_castShadows(true), // eevee integration
 	  m_updateShadows(true), // eevee integration
+	  m_forceShadowUpdate(false), // eevee integration
 
 	  m_rasMeshObject(nullptr),
       m_actionManager(nullptr)
@@ -439,8 +440,9 @@ void KX_GameObject::TagForUpdate()
 				DRW_game_call_update_obmat(sh, (void *)this, obmat);
 			}
 		}
-		if (m_updateShadows) {
+		if (m_updateShadows || m_forceShadowUpdate) {
 			m_needShadowUpdate = true;
+			m_forceShadowUpdate = false;
 		}
 	}
 	copy_m4_m4(m_prevObmat, obmat);
@@ -3494,6 +3496,15 @@ int KX_GameObject::pyattr_set_cast_shadows(PyObjectPlus *self_v, const KX_PYATTR
 	}
 	self->m_castShadows = castShadows;
 	self->m_updateShadows = castShadows;
+	/* As logic (python) is executed before render,
+	 * we have to make sure KX_Scene::UpdateShadows
+	 * is executed 1 more time to take the shadow update
+	 * into account (fixes an issue when we remove gameobj
+	 * shadows after first frame). This is a temp solution
+	 * and this could maybe be fixed in another way:
+	 * Always Delay gameobj AddShadows/RemoveShadows.
+	 */
+	self->m_forceShadowUpdate = true;
 
 	return PY_SET_ATTR_SUCCESS;
 }

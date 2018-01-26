@@ -108,6 +108,7 @@ protected:
 	float m_savedObmat[4][4];
 	float m_prevObmat[4][4];
 	bool m_needShadowUpdate; // used for shadow culling
+	bool m_forceShadowUpdate; // needed to ensure shadow is removed when we stop casting shadows
 
 	bool m_castShadows;
 	bool m_updateShadows;
