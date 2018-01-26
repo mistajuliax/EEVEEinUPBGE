@@ -487,7 +487,7 @@ void KX_GameObject::RemoveShadowShadingGroups()
 	DRW_game_pass_free(cascade);
 	KX_Scene *scene = GetScene();
 	for (KX_GameObject *gameobj : scene->GetObjectList()) {
-		if (gameobj != this) {
+		if (gameobj != this && gameobj->m_castShadows) {
 			gameobj->AddNewShadowShadingGroupsToPasses();
 		}
 	}
