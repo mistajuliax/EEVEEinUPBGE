@@ -107,8 +107,8 @@ protected:
 
 	float m_savedObmat[4][4];
 	float m_prevObmat[4][4];
-	bool m_needShadowUpdate; // used for shadow culling
-
+	bool m_needShadowUpdate; // used for shadow culling based on object motion
+	bool m_objectCastShadows; //  Used so the object shadows can be turned off
 	/// Moved RAS_MeshUser API here
 	RAS_BoundingBox *m_boundingBox;
 	// Object transformation matrix.

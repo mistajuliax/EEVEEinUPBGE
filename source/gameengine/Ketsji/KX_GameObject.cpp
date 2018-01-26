@@ -132,13 +132,16 @@ KX_GameObject::KX_GameObject(
       m_cullingNode(this),
       m_pInstanceObjects(nullptr),
       m_pDupliGroupObject(nullptr),
-	  m_wasculled(false), // eevee integration
-	  m_needShadowUpdate(true), // eevee integration
-	  m_wasVisible(true), // eevee integration
-	  m_boundingBox(nullptr), // eevee integration (moved from RAS_MeshUser)
-	  m_isReplica(false), // eevee integration (used for ReplaceMesh)
+	m_wasculled(false), // eevee integration
+	  	
+	m_needShadowUpdate(true), // eevee integration
 
-	  m_rasMeshObject(nullptr),
+	m_objectCastShadows(true),
+	m_wasVisible(true), // eevee integration
+	m_boundingBox(nullptr), // eevee integration (moved from RAS_MeshUser)
+	m_isReplica(false), // eevee integration (used for ReplaceMesh)
+
+	m_rasMeshObject(nullptr),
       m_actionManager(nullptr)
 #ifdef WITH_PYTHON
     , m_attr_dict(nullptr),
@@ -421,6 +424,9 @@ void KX_GameObject::ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>s
 	m_materialShGroups = shgroups;
 }
 
+/* 
+ * Detects if the shadows need updating. Shadows are updated if the object casts shadows and the object is moving
+ */
 void KX_GameObject::TagForUpdate()
 {
 	float obmat[4][4];
@@ -437,7 +443,7 @@ void KX_GameObject::TagForUpdate()
 				DRW_game_call_update_obmat(sh, (void *)this, obmat);
 			}
 		}
-		m_needShadowUpdate = true;
+		m_needShadowUpdate = true && m_objectCastShadows;
 	}
 	copy_m4_m4(m_prevObmat, obmat);
 }
@@ -1205,6 +1211,8 @@ KX_GameObject::SetVisible(
 	if (recursive)
 		setVisible_recursive(GetSGNode(), v);
 }
+
+
 
 static void setOccluder_recursive(SG_Node* node, bool v)
 {
@@ -2171,8 +2179,9 @@ PyAttributeDef KX_GameObject::Attributes[] = {
 	KX_PYATTRIBUTE_RW_FUNCTION("visible",	KX_GameObject, pyattr_get_visible,	pyattr_set_visible),
 	KX_PYATTRIBUTE_RO_FUNCTION("culled", KX_GameObject, pyattr_get_culled),
 	KX_PYATTRIBUTE_RO_FUNCTION("cullingBox",	KX_GameObject, pyattr_get_cullingBox),
-	KX_PYATTRIBUTE_BOOL_RW    ("occlusion", KX_GameObject, m_bOccluder),
 	KX_PYATTRIBUTE_RW_FUNCTION("position",	KX_GameObject, pyattr_get_worldPosition,	pyattr_set_localPosition),
+	KX_PYATTRIBUTE_BOOL_RW    ("occlusion", KX_GameObject, m_bOccluder),
+	KX_PYATTRIBUTE_BOOL_RW    ("castShadows", KX_GameObject, m_objectCastShadows),
 	KX_PYATTRIBUTE_RO_FUNCTION("localInertia",	KX_GameObject, pyattr_get_localInertia),
 	KX_PYATTRIBUTE_RW_FUNCTION("orientation",KX_GameObject,pyattr_get_worldOrientation,pyattr_set_localOrientation),
 	KX_PYATTRIBUTE_RW_FUNCTION("scaling",	KX_GameObject, pyattr_get_worldScaling,	pyattr_set_localScaling),
@@ -2831,6 +2840,7 @@ int KX_GameObject::pyattr_set_visible(PyObjectPlus *self_v, const KX_PYATTRIBUTE
 	self->SetVisible(param, false);
 	return PY_SET_ATTR_SUCCESS;
 }
+
 
 PyObject *KX_GameObject::pyattr_get_culled(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef)
 {
