@@ -109,6 +109,9 @@ protected:
 	float m_prevObmat[4][4];
 	bool m_needShadowUpdate; // used for shadow culling
 
+	bool m_castShadows;
+	bool m_updateShadows;
+
 	/// Moved RAS_MeshUser API here
 	RAS_BoundingBox *m_boundingBox;
 	// Object transformation matrix.
@@ -1087,6 +1090,10 @@ public:
 	static int			pyattr_set_angularDamping(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value);
 	static PyObject*	pyattr_get_lodManager(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
 	static int			pyattr_set_lodManager(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value);
+
+	/* EEVEE INTEGRATION */
+	static PyObject*	pyattr_get_cast_shadows(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
+	static int			pyattr_set_cast_shadows(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value);
 
 	/* Experimental! */
 	static PyObject*	pyattr_get_sensors(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);

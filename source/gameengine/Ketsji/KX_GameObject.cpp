@@ -137,6 +137,8 @@ KX_GameObject::KX_GameObject(
 	  m_wasVisible(true), // eevee integration
 	  m_boundingBox(nullptr), // eevee integration (moved from RAS_MeshUser)
 	  m_isReplica(false), // eevee integration (used for ReplaceMesh)
+	  m_castShadows(true), // eevee integration
+	  m_updateShadows(true), // eevee integration
 
 	  m_rasMeshObject(nullptr),
       m_actionManager(nullptr)
@@ -437,7 +439,9 @@ void KX_GameObject::TagForUpdate()
 				DRW_game_call_update_obmat(sh, (void *)this, obmat);
 			}
 		}
-		m_needShadowUpdate = true;
+		if (m_updateShadows) {
+			m_needShadowUpdate = true;
+		}
 	}
 	copy_m4_m4(m_prevObmat, obmat);
 }
@@ -2209,6 +2213,9 @@ PyAttributeDef KX_GameObject::Attributes[] = {
 	KX_PYATTRIBUTE_RO_FUNCTION("sensors",		KX_GameObject, pyattr_get_sensors),
 	KX_PYATTRIBUTE_RO_FUNCTION("controllers",	KX_GameObject, pyattr_get_controllers),
 	KX_PYATTRIBUTE_RO_FUNCTION("actuators",		KX_GameObject, pyattr_get_actuators),
+
+	KX_PYATTRIBUTE_RW_FUNCTION("castShadows", KX_GameObject, pyattr_get_cast_shadows, pyattr_set_cast_shadows),
+	KX_PYATTRIBUTE_BOOL_RW("updateShadows", KX_GameObject, m_updateShadows),
 	KX_PYATTRIBUTE_NULL //Sentinel
 };
 
@@ -3452,6 +3459,41 @@ int KX_GameObject::pyattr_set_lodManager(PyObjectPlus *self_v, const KX_PYATTRIB
 	}
 
 	self->SetLodManager(lodManager);
+
+	return PY_SET_ATTR_SUCCESS;
+}
+
+PyObject *KX_GameObject::pyattr_get_cast_shadows(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef)
+{
+	KX_GameObject *self = static_cast<KX_GameObject*>(self_v);
+
+	return PyBool_FromLong(self->m_castShadows);
+}
+
+int KX_GameObject::pyattr_set_cast_shadows(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
+{
+	KX_GameObject *self = static_cast<KX_GameObject*>(self_v);
+	int castShadows = PyObject_IsTrue(value);
+
+	if (castShadows == -1) {
+		PyErr_SetString(PyExc_AttributeError, "gameOb.castShadows = bool: KX_GameObject, expected True or False");
+		return PY_SET_ATTR_FAIL;
+	}
+
+	
+	if (castShadows) {
+		/* We don't want to add another shadow whereas the object is already casting a shadow */
+		if (!self->m_castShadows) {
+			self->AddNewShadowShadingGroupsToPasses();
+		}
+	}
+	else {
+		if (self->m_castShadows) {
+			self->RemoveShadowShadingGroups();
+		}
+	}
+	self->m_castShadows = castShadows;
+	self->m_updateShadows = castShadows;
 
 	return PY_SET_ATTR_SUCCESS;
 }
