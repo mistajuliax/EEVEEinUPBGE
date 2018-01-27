@@ -440,10 +440,14 @@ void KX_GameObject::TagForUpdate()
 				DRW_game_call_update_obmat(sh, (void *)this, obmat);
 			}
 		}
-		if (m_updateShadows || m_forceShadowUpdate) {
+		if (m_updateShadows) {
 			m_needShadowUpdate = true;
-			m_forceShadowUpdate = false;
 		}
+	}
+
+	if (m_forceShadowUpdate) {
+		m_needShadowUpdate = true;
+		m_forceShadowUpdate = false;
 	}
 	copy_m4_m4(m_prevObmat, obmat);
 }
