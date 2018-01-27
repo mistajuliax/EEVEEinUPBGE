@@ -513,6 +513,17 @@ void KX_GameObject::AddNewShadowShadingGroupsToPasses()
 		for (Gwn_Batch *b : m_materialBatches) {
 			EEVEE_lights_cache_shcaster_add(sldata, vedata->psl, b, m_shcaster.obmat);
 		}
+		/* As logic (python) is executed before render,
+		 * we have to make sure KX_Scene::UpdateShadows
+		 * is executed 1 more time to take the shadow update
+		 * into account (fixes an issue when we remove gameobj
+		 * shadows after first frame). This is a temp solution
+		 * and this could maybe be fixed in another way:
+		 * Always Delay gameobj AddShadows/RemoveShadows.
+		 */
+		m_forceShadowUpdate = true;
+		/* Remove potential ghosting effect when shadow is removed */
+		GetScene()->ResetTaaSamples();
 	}
 }
 
@@ -3485,8 +3496,6 @@ int KX_GameObject::pyattr_set_cast_shadows(PyObjectPlus *self_v, const KX_PYATTR
 		PyErr_SetString(PyExc_AttributeError, "gameOb.castShadows = bool: KX_GameObject, expected True or False");
 		return PY_SET_ATTR_FAIL;
 	}
-
-	
 	if (castShadows) {
 		/* We don't want to add another shadow whereas the object is already casting a shadow */
 		if (!self->m_castShadows) {
@@ -3500,15 +3509,6 @@ int KX_GameObject::pyattr_set_cast_shadows(PyObjectPlus *self_v, const KX_PYATTR
 	}
 	self->m_castShadows = castShadows;
 	self->m_updateShadows = castShadows;
-	/* As logic (python) is executed before render,
-	 * we have to make sure KX_Scene::UpdateShadows
-	 * is executed 1 more time to take the shadow update
-	 * into account (fixes an issue when we remove gameobj
-	 * shadows after first frame). This is a temp solution
-	 * and this could maybe be fixed in another way:
-	 * Always Delay gameobj AddShadows/RemoveShadows.
-	 */
-	self->m_forceShadowUpdate = true;
 
 	return PY_SET_ATTR_SUCCESS;
 }
