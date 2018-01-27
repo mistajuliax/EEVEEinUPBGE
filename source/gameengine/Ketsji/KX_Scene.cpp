@@ -902,7 +902,7 @@ void KX_Scene::RenderBucketsNew(const KX_CullingNodeList& nodes, RAS_Rasterizer 
 		}
 	}
 
-	//UpdateObjectLods(GetActiveCamera(), nodes);
+	UpdateObjectLods(GetActiveCamera(), nodes);
 
 	UpdateShadows(rasty);
 
@@ -1725,7 +1725,6 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 		CM_FunctionWarning("invalid object, doing nothing");
 		return;
 	}
-	return;
 
 	if (use_gfx && mesh != nullptr) {
 
@@ -1734,11 +1733,14 @@ void KX_Scene::ReplaceMesh(KX_GameObject *gameobj, RAS_MeshObject *mesh, bool us
 		std::vector<DRWShadingGroup *>meshShgroups = mesh->GetMaterialShadingGroups();
 		std::vector<DRWShadingGroup *>meshShadowShgroups = mesh->GetShadowShadingGroups();
 
-		gameobj->RemoveShadowShadingGroups();
+		/* Material batches and shgroups first */
 		gameobj->RemoveMaterialBatches();
 		gameobj->ReplaceMaterialBatches(meshBatches);
 		gameobj->ReplaceMaterialShadingGroups(meshShgroups);
 		gameobj->AddNewMaterialBatchesToPasses();
+
+		/* Shadow shgroups then */
+		gameobj->RemoveShadowShadingGroups();
 		gameobj->ReplaceShadowShadingGroups(meshShadowShgroups);
 		gameobj->AddNewShadowShadingGroupsToPasses();
 		/* End of EEVEE INTEGRATION */
