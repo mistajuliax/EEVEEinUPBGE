@@ -669,7 +669,7 @@ void KX_Scene::UpdateShadows(RAS_Rasterizer *rasty)
 		if (shadowtype == SHADOW_CUBE) {
 			for (KX_GameObject *gameob : GetObjectList()) {
 				Object *blenob = gameob->GetBlenderObject();
-				if (blenob && blenob->type == OB_MESH) {
+				if (blenob && ELEM(blenob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
 					light_tag_shadow_update(light, gameob);
 				}
 			}
