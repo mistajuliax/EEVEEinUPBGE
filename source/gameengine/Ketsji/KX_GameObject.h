@@ -163,47 +163,45 @@ protected:
 
 public:
 
-	/* EEVEE INTEGRATION */
+	/******************************** EEVEE INTEGRATION *************************************/
+	void SetKXGameObjectCallsPointer(); // Used to identify a DRWCall in the cache
 
+	/* MATERIALS */
 	std::vector<DRWShadingGroup *>GetMaterialShadingGroups();
 	void ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups); // ReplaceMesh
 
 	std::vector<Gwn_Batch *>GetMaterialBatches();
-
-	void SetKXGameObjectCallsPointer(); // Used to identify a DRWCall in the cache
-
 	void AddMaterialBatches(); // fill m_materialBatches list
-	void DiscardMaterialBatches(); // culling
-	void RestoreMaterialBatches(); //culling
 	void AddNewMaterialBatchesToPasses(); // AddObject
 	void RemoveMaterialBatches(); // EndObject
 	void ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches); // ReplaceMesh
+	void DiscardMaterialBatches(); // culling
+	void RestoreMaterialBatches(); //culling
+	/* End of Materials */
 
-	void TagForUpdate(); // It was UpdateBuckets before.
-
-
-	/* SHADOWS EXPERIMENTAL */
+	/* SHADOWS */
 	std::vector<DRWShadingGroup *>GetShadowShadingGroups();
+	void AddNewShadowShadingGroupsToPasses(); // add object + replace mesh
 	void RemoveShadowShadingGroups(); // end object + replace mesh
 	void ReplaceShadowShadingGroups(std::vector<DRWShadingGroup *>shadowShgroups); // replace mesh
-	void AddNewShadowShadingGroupsToPasses(); // add object + replace mesh
 
 	BGEShCaster *GetShadowCaster(); // used to update shadows obmat
-	/* End of SHADOWS EXPERMIENTAL */
-
 	bool NeedShadowUpdate(); // when an object moves, its shadow must be updated
+	/* End of SHADOWS */
+
+	void TagForUpdate(); // It was UpdateBuckets before.
 
 	bool m_wasculled; // used for culling (Discard material batches (display arrays)
 	bool m_wasVisible; // also used to discard display arrays, but when we mark the object to be invisible
 
 	void SetIsReplica(bool isReplica); // used for replace mesh. A replica is a copy of the original game object
 
-	// Moved RAS_MeshUser API here
+	/****************************End of EEVEE INTEGRATION *************************************/
+
+	/* Moved RAS_MeshUser API here */
 	float *GetObjectMatrix();
 	RAS_BoundingBox *GetBoundingBox() const;
-	// End of Moved RAS_MeshUser API here
-
-	/* End of EEVEE INTEGRATION */
+	/* End of Moved RAS_MeshUser API here */
 
 	/**
 	 * KX_GameObject custom infos for ray cast, it contains property name,

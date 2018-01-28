@@ -249,19 +249,62 @@ KX_GameObject::~KX_GameObject()
 	}
 }
 
+/****************************************************************************************/
 /*********************************EEVEE INTEGRATION**************************************/
+/****************************************************************************************/
 
-/* Move RAS_MeshUser API in KX_GameObject */
-float *KX_GameObject::GetObjectMatrix()
+/************************************MATERIALS*******************************************/
+/* Used to identify a DRWCall in the cache */
+void KX_GameObject::SetKXGameObjectCallsPointer()
 {
-	return m_objectMatrix;
+	for (Gwn_Batch *b : m_materialBatches) {
+		for (DRWShadingGroup *sh : m_materialShGroups) {
+			DRW_game_call_set_kxob_pointer(sh, b, GetBlenderObject(), (void *)this);
+		}
+	}
 }
 
-RAS_BoundingBox *KX_GameObject::GetBoundingBox() const
+/* GET + CREATE IF DOESN'T EXIST */
+std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
 {
-	return m_boundingBox;
+	if (m_materialShGroups.size() > 0) {
+		return m_materialShGroups;
+	}
+	KX_Scene *scene = GetScene();
+	std::vector<DRWPass *>allPasses = scene->GetMaterialPasses();
+	for (DRWPass *pass : allPasses) {
+		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
+			std::vector<DRWShadingGroup *>::iterator it = std::find(m_materialShGroups.begin(), m_materialShGroups.end(), shgroup);
+			if (it != m_materialShGroups.end()) {
+				continue; // I think it's not needed but it costs nothing
+			}
+			for (Gwn_Batch *batch : GetMaterialBatches()) {
+				if (DRW_game_batch_belongs_to_shgroup(shgroup, batch)) {
+					m_materialShGroups.push_back(shgroup);
+					break;
+				}
+			}
+		}
+	}
+	return m_materialShGroups;
 }
-/* Enf of Move RAS_MeshUser API in KX_GameObject */
+
+/* Used for ReplaceMesh */
+void KX_GameObject::ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups)
+{
+	m_materialShGroups.clear();
+	m_materialShGroups = shgroups;
+}
+
+/* GET + CREATE IF DOESN'T EXIST */
+std::vector<Gwn_Batch *>KX_GameObject::GetMaterialBatches()
+{
+	if (m_materialBatches.size() > 0) {
+		return m_materialBatches;
+	}
+	AddMaterialBatches();
+	return m_materialBatches;
+}
 
 /* This function adds all display arrays used for this gameobject */
 void KX_GameObject::AddMaterialBatches()
@@ -284,9 +327,9 @@ void KX_GameObject::AddMaterialBatches()
 			}
 		}
 		/* Here I thought to do an UI to say if we want to use KX_GameObject matrix to move particles with logic
-		 * or keep the particles matrix of the viewport (to keep things simple) (We'd add hair_geom to materialBatches
-		 * only if we want to move particles with logic).
-		 */
+		* or keep the particles matrix of the viewport (to keep things simple) (We'd add hair_geom to materialBatches
+		* only if we want to move particles with logic).
+		*/
 		for (ModifierData *md = (ModifierData *)ob->modifiers.first; md; md = (ModifierData *)md->next) {
 			if (md->type == eModifierType_ParticleSystem) {
 				ParticleSystem *psys = ((ParticleSystemModifierData *)md)->psys;
@@ -299,26 +342,6 @@ void KX_GameObject::AddMaterialBatches()
 					}
 				}
 			}
-		}
-	}
-}
-
-/* GET + CREATE IF DOESN'T EXIST */
-std::vector<Gwn_Batch *>KX_GameObject::GetMaterialBatches()
-{
-	if (m_materialBatches.size() > 0) {
-		return m_materialBatches;
-	}
-	AddMaterialBatches();
-	return m_materialBatches;
-}
-
-/* Used to identify a DRWCall in the cache */
-void KX_GameObject::SetKXGameObjectCallsPointer()
-{
-	for (Gwn_Batch *b : m_materialBatches) {
-		for (DRWShadingGroup *sh : m_materialShGroups) {
-			DRW_game_call_set_kxob_pointer(sh, b, GetBlenderObject(), (void *)this);
 		}
 	}
 }
@@ -372,6 +395,13 @@ void KX_GameObject::RemoveMaterialBatches()
 	GetScene()->ResetTaaSamples();
 }
 
+/* Used for replace mesh */
+void KX_GameObject::ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches)
+{
+	m_materialBatches.clear();
+	m_materialBatches = batches;
+}
+
 /* Use for culling */
 void KX_GameObject::DiscardMaterialBatches()
 {
@@ -388,46 +418,9 @@ void KX_GameObject::RestoreMaterialBatches()
 	}
 }
 
-/* Used for replace mesh */
-void KX_GameObject::ReplaceMaterialBatches(std::vector<Gwn_Batch *>batches)
-{
-	m_materialBatches.clear();
-	m_materialBatches = batches;
-}
+/********************************End of MATERIALS****************************************/
 
-/* GET + CREATE IF DOESN'T EXIST */
-std::vector<DRWShadingGroup *>KX_GameObject::GetMaterialShadingGroups()
-{
-	if (m_materialShGroups.size() > 0) {
-		return m_materialShGroups;
-	}
-	KX_Scene *scene = GetScene();
-	std::vector<DRWPass *>allPasses = scene->GetMaterialPasses();
-	for (DRWPass *pass : allPasses) {
-		for (DRWShadingGroup *shgroup = DRW_game_shgroups_from_pass_get(pass); shgroup; shgroup = DRW_game_shgroup_next(shgroup)) {
-			std::vector<DRWShadingGroup *>::iterator it = std::find(m_materialShGroups.begin(), m_materialShGroups.end(), shgroup);
-			if (it != m_materialShGroups.end()) {
-				continue; // I think it's not needed but it costs nothing
-			}
-			for (Gwn_Batch *batch : GetMaterialBatches()) {
-				if (DRW_game_batch_belongs_to_shgroup(shgroup, batch)) {
-					m_materialShGroups.push_back(shgroup);
-					break;
-				}
-			}
-		}
-	}
-	return m_materialShGroups;
-}
-
-/* Used for ReplaceMesh */
-void KX_GameObject::ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>shgroups)
-{
-	m_materialShGroups.clear();
-	m_materialShGroups = shgroups;
-}
-
-/* SHADOWS EXPERIMENTAL */
+/*************************************SHADOWS********************************************/
 
 /* Note: Follow the future developments about const bool cast_shadow = true; in eevee_engine.c
  * (would be cool to have the UI to say if an object can cast shadows or not)
@@ -457,6 +450,22 @@ std::vector<DRWShadingGroup *>KX_GameObject::GetShadowShadingGroups()
 	return m_shadowShGroups;
 }
 
+void KX_GameObject::AddNewShadowShadingGroupsToPasses()
+{
+	Object *source = GetBlenderObject();
+	if (source && ELEM(source->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
+		Main *bmain = KX_GetActiveEngine()->GetConverter()->GetMain();
+		EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
+		EEVEE_Data *vedata = EEVEE_engine_data_get();
+		for (Gwn_Batch *b : m_materialBatches) {
+			EEVEE_lights_cache_shcaster_add(sldata, vedata->psl, b, m_shcaster.obmat);
+		}
+		m_forceShadowUpdate = true;
+		/* Remove potential ghosting effect when shadow is removed */
+		GetScene()->ResetTaaSamples();
+	}
+}
+
 void KX_GameObject::RemoveShadowShadingGroups()
 {
 	EEVEE_PassList *psl = EEVEE_engine_data_get()->psl;
@@ -470,6 +479,18 @@ void KX_GameObject::RemoveShadowShadingGroups()
 			gameobj->AddNewShadowShadingGroupsToPasses();
 		}
 	}
+	/* As logic (python) is executed before render,
+	* we have to make sure KX_Scene::UpdateShadows
+	* is executed 1 more time to take the shadow update
+	* into account (fixes an issue when we remove gameobj
+	* shadows after first frame (python API castShadows
+	* waiting for UI). This is a temp solution
+	* and this could maybe be fixed in another way:
+	* Always Delay gameobj AddShadows/RemoveShadows.
+	*/
+	m_forceShadowUpdate = true;
+	/* Remove potential ghosting effect when shadow is removed */
+	GetScene()->ResetTaaSamples();
 }
 
 void KX_GameObject::ReplaceShadowShadingGroups(std::vector<DRWShadingGroup *>shadowShgroups)
@@ -478,31 +499,17 @@ void KX_GameObject::ReplaceShadowShadingGroups(std::vector<DRWShadingGroup *>sha
 	m_shadowShGroups = shadowShgroups;
 }
 
-void KX_GameObject::AddNewShadowShadingGroupsToPasses()
+BGEShCaster *KX_GameObject::GetShadowCaster()
 {
-	Object *source = GetBlenderObject();
-	if (source && ELEM(source->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
-		Main *bmain = KX_GetActiveEngine()->GetConverter()->GetMain();
-		EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_get();
-		EEVEE_Data *vedata = EEVEE_engine_data_get();
-		for (Gwn_Batch *b : m_materialBatches) {
-			EEVEE_lights_cache_shcaster_add(sldata, vedata->psl, b, m_shcaster.obmat);
-		}
-		/* As logic (python) is executed before render,
-		 * we have to make sure KX_Scene::UpdateShadows
-		 * is executed 1 more time to take the shadow update
-		 * into account (fixes an issue when we remove gameobj
-		 * shadows after first frame). This is a temp solution
-		 * and this could maybe be fixed in another way:
-		 * Always Delay gameobj AddShadows/RemoveShadows.
-		 */
-		m_forceShadowUpdate = true;
-		/* Remove potential ghosting effect when shadow is removed */
-		GetScene()->ResetTaaSamples();
-	}
+	return &m_shcaster;
 }
 
-/* End of SHADOWS EXPERIMENTAL */
+bool KX_GameObject::NeedShadowUpdate() // used for shadow culling
+{
+	return m_needShadowUpdate;
+}
+
+/**********************************End of SHADOWS****************************************/
 
 /* Experimental: used to only discard gameobj when it is
  * not a replica (copy of original object), but to "really remove"
@@ -541,17 +548,21 @@ void KX_GameObject::TagForUpdate()
 	copy_m4_m4(m_prevObmat, obmat);
 }
 
-bool KX_GameObject::NeedShadowUpdate() // used for shadow culling
+/****************************************************************************************/
+/*****************************END OF EEVEE INTEGRATION***********************************/
+/****************************************************************************************/
+
+/*********Move RAS_MeshUser API in KX_GameObject********/
+float *KX_GameObject::GetObjectMatrix()
 {
-	return m_needShadowUpdate;
+	return m_objectMatrix;
 }
 
-BGEShCaster *KX_GameObject::GetShadowCaster()
+RAS_BoundingBox *KX_GameObject::GetBoundingBox() const
 {
-	return &m_shcaster;
+	return m_boundingBox;
 }
-
-/************************END OF EEVEE INTEGRATION******************************/
+/*****End of Move RAS_MeshUser API in KX_GameObject*****/
 
 KX_GameObject* KX_GameObject::GetClientObject(KX_ClientObjectInfo *info)
 {
