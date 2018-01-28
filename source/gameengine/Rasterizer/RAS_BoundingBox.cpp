@@ -163,7 +163,7 @@ void RAS_BoundingBoxFromObject::Update(bool force)
 	if (force) {
 		BoundBox *bbox = BKE_object_boundbox_get(m_ob);
 
-		float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX, maxX = FLT_MIN, maxY = FLT_MIN, maxZ = FLT_MIN;
+		float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX, maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
 
 		for (int i = 0; i < 8; i++) {
 			float x = bbox->vec[i][0];
