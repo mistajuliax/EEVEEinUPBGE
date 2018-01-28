@@ -367,6 +367,9 @@ void KX_GameObject::RemoveMaterialBatches()
 	for (KX_GameObject *gameobj : GetScene()->GetInactiveList()) {
 		gameobj->DiscardMaterialBatches();
 	}
+
+	/* Avoid ghosting effect when we remove a gameobj */
+	GetScene()->ResetTaaSamples();
 }
 
 /* Use for culling */
@@ -422,34 +425,6 @@ void KX_GameObject::ReplaceMaterialShadingGroups(std::vector<DRWShadingGroup *>s
 {
 	m_materialShGroups.clear();
 	m_materialShGroups = shgroups;
-}
-
-void KX_GameObject::TagForUpdate()
-{
-	float obmat[4][4];
-	NodeGetWorldTransform().getValue(&obmat[0][0]);
-	bool staticObject = compare_m4m4(m_prevObmat, obmat, FLT_MIN);
-
-	m_needShadowUpdate = false;
-	if (staticObject) {
-		GetScene()->AppendToStaticObjects(this);
-	}
-	else {
-        for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
-			if (m_materialBatches.size()) {
-				DRW_game_call_update_obmat(sh, (void *)this, obmat);
-			}
-		}
-		if (m_updateShadows) {
-			m_needShadowUpdate = true;
-		}
-	}
-
-	if (m_forceShadowUpdate) {
-		m_needShadowUpdate = true;
-		m_forceShadowUpdate = false;
-	}
-	copy_m4_m4(m_prevObmat, obmat);
 }
 
 /* SHADOWS EXPERIMENTAL */
@@ -529,9 +504,41 @@ void KX_GameObject::AddNewShadowShadingGroupsToPasses()
 
 /* End of SHADOWS EXPERIMENTAL */
 
+/* Experimental: used to only discard gameobj when it is
+ * not a replica (copy of original object), but to "really remove"
+ * gameobj when it is a copy
+ */
 void KX_GameObject::SetIsReplica(bool isReplica)
 {
 	m_isReplica = isReplica;
+}
+
+void KX_GameObject::TagForUpdate()
+{
+	float obmat[4][4];
+	NodeGetWorldTransform().getValue(&obmat[0][0]);
+	bool staticObject = compare_m4m4(m_prevObmat, obmat, FLT_MIN);
+
+	m_needShadowUpdate = false;
+	if (staticObject) {
+		GetScene()->AppendToStaticObjects(this);
+	}
+	else {
+		for (DRWShadingGroup *sh : GetMaterialShadingGroups()) {
+			if (m_materialBatches.size()) {
+				DRW_game_call_update_obmat(sh, (void *)this, obmat);
+			}
+		}
+		if (m_updateShadows) {
+			m_needShadowUpdate = true;
+		}
+	}
+
+	if (m_forceShadowUpdate) {
+		m_needShadowUpdate = true;
+		m_forceShadowUpdate = false;
+	}
+	copy_m4_m4(m_prevObmat, obmat);
 }
 
 bool KX_GameObject::NeedShadowUpdate() // used for shadow culling

@@ -2223,11 +2223,6 @@ void KX_Scene::LogicEndFrame()
 {
 	m_logicmgr->EndFrame();
 
-	if (m_euthanasyobjects.size() > 0) {
-		/* Limit ghosting effect when we remove a gameobject */
-		ResetTaaSamples();
-	}
-
 	for (KX_GameObject *gameobj : m_euthanasyobjects) {
 		RemoveObject(gameobj);
 	}
