@@ -95,8 +95,6 @@ public:
 
 	virtual ~RAS_IPolyMaterial();
 
-	virtual BL_Shader *GetShader() const = 0;
-
 	bool IsAlpha() const;
 	bool IsAlphaDepth() const;
 	bool IsZSort() const;

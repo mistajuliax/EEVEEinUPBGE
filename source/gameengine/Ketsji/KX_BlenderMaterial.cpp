@@ -136,7 +136,7 @@ KX_BlenderMaterial::~KX_BlenderMaterial()
 	}
 }
 
-BL_Shader *KX_BlenderMaterial::GetShader() const
+BL_Shader *KX_BlenderMaterial::GetCustomShader() const
 {
 	if (m_customShader && m_customShader->Ok()) {
 		return m_customShader;

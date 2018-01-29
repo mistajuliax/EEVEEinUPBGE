@@ -68,7 +68,7 @@ public:
 	// cleanup stuff
 	void OnExit();
 
-	BL_Shader *GetShader() const ;
+	BL_Shader *GetCustomShader() const ;
 	virtual const std::string GetTextureName() const;
 	virtual Material *GetBlenderMaterial() const;
 	virtual void GetRGBAColor(unsigned char *rgba) const;
