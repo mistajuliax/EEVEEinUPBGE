@@ -93,33 +93,33 @@ class KX_GameObject : public SCA_IObject
 	Py_Header
 protected:
 
-	/* EEVEE INTEGRATION */
+	/*********************************EEVEE INTEGRATION**************************************/
 
 	std::vector<Gwn_Batch *>m_materialBatches;
 	std::vector<DRWShadingGroup *>m_materialShGroups;
 
 	bool m_isReplica; // used for ReplaceMesh
 
-	/* SHADOWS EXPERIMENTAL */
+	/* SHADOWS */
 	std::vector<DRWShadingGroup *>m_shadowShGroups;
 	BGEShCaster m_shcaster;
-	/* End of SHADOWS EXPERIMENTAL */
+	/* End of SHADOWS */
 
-	float m_savedObmat[4][4];
-	float m_prevObmat[4][4];
+	float m_savedObmat[4][4]; // Restore Object matrix at game exit
+	float m_prevObmat[4][4]; // Used to see if the object moves
+
 	bool m_needShadowUpdate; // used for shadow culling
 	bool m_forceShadowUpdate; // needed to ensure shadow is removed when we stop casting shadows
-
 	bool m_castShadows;
 	bool m_updateShadows;
 
-	/// Moved RAS_MeshUser API here
+	/*****************************END OF EEVEE INTEGRATION***********************************/
+
+	/* Moved RAS_MeshUser API here */
 	RAS_BoundingBox *m_boundingBox;
 	// Object transformation matrix.
-	float m_objectMatrix[16];
-
-	/* End of EEVEE INTEGRATION */
-
+	float m_gameobjMatrix[16];
+	/*******************************/
 
 	KX_ClientObjectInfo*				m_pClient_info;
 	std::string							m_name;
@@ -199,7 +199,7 @@ public:
 	/****************************End of EEVEE INTEGRATION *************************************/
 
 	/* Moved RAS_MeshUser API here */
-	float *GetObjectMatrix();
+	float *GetGameObjectMatrix();
 	RAS_BoundingBox *GetBoundingBox() const;
 	/* End of Moved RAS_MeshUser API here */
 

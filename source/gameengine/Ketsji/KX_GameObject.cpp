@@ -553,9 +553,9 @@ void KX_GameObject::TagForUpdate()
 /****************************************************************************************/
 
 /*********Move RAS_MeshUser API in KX_GameObject********/
-float *KX_GameObject::GetObjectMatrix()
+float *KX_GameObject::GetGameObjectMatrix()
 {
-	return m_objectMatrix;
+	return m_gameobjMatrix;
 }
 
 RAS_BoundingBox *KX_GameObject::GetBoundingBox() const
@@ -1078,7 +1078,7 @@ void KX_GameObject::UpdateBuckets()
 {
 	// Update datas and add mesh slot to be rendered only if the object is not culled.
 	if (m_pSGNode->IsDirty(SG_Node::DIRTY_RENDER)) {
-		NodeGetWorldTransform().getValue(m_objectMatrix);
+		NodeGetWorldTransform().getValue(m_gameobjMatrix);
 		m_pSGNode->ClearDirty(SG_Node::DIRTY_RENDER);
 	}
 
