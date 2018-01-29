@@ -74,7 +74,7 @@ set(SRC
 	RAS_IDisplayArray.cpp
 	RAS_IPolygonMaterial.cpp
 	RAS_Rasterizer.cpp
-	RAS_ITexVert.cpp
+	RAS_IVertex.cpp
 	RAS_MaterialBucket.cpp
 	RAS_MeshMaterial.cpp
 	RAS_MeshObject.cpp
@@ -101,7 +101,7 @@ set(SRC
 	RAS_IPolygonMaterial.h
 	RAS_Rasterizer.h
 	RAS_ILightObject.h
-	RAS_ITexVert.h
+	RAS_IVertex.h
 	RAS_MaterialBucket.h
 	RAS_MeshMaterial.h
 	RAS_MeshObject.h
@@ -109,7 +109,7 @@ set(SRC
 	RAS_Rect.h
 	RAS_Shader.h
 	RAS_Texture.h
-	RAS_TexVert.h
+	RAS_Vertex.h
 )
 
 data_to_c_simple(RAS_OpenGLFilters/RAS_Blur2DFilter.glsl SRC)

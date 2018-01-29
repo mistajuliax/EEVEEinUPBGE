@@ -85,7 +85,7 @@
 
 #include "RAS_ICanvas.h"
 #include "RAS_Polygon.h"
-#include "RAS_TexVert.h"
+#include "RAS_Vertex.h"
 #include "RAS_BucketManager.h"
 #include "RAS_BoundingBoxManager.h"
 #include "RAS_IPolygonMaterial.h"
@@ -370,7 +370,7 @@ static unsigned int KX_Mcol2uint_new(MCol col)
 static void GetRGB(
         MFace* mface,
 		const RAS_MeshObject::LayerList& layers,
-        unsigned int c[4][RAS_ITexVert::MAX_UNIT])
+        unsigned int c[4][RAS_IVertex::MAX_UNIT])
 {
 	for (RAS_MeshObject::LayerList::const_iterator it = layers.begin(), end = layers.end(); it != end; ++it) {
 		const RAS_MeshObject::Layer& layer = *it;
@@ -439,7 +439,7 @@ static KX_BlenderMaterial *ConvertMaterial(
 
 /// Convert uv and color layers for a given vertex and material.
 static void uvsRgbFromMesh(Material *ma, MFace *mface, MTFace *tface, const RAS_MeshObject::LayerList& layers,
-	unsigned int rgb[4][RAS_ITexVert::MAX_UNIT], MT_Vector2 uvs[4][RAS_Texture::MaxUnits])
+	unsigned int rgb[4][RAS_IVertex::MAX_UNIT], MT_Vector2 uvs[4][RAS_Texture::MaxUnits])
 {
 	if (mface) {
 		GetRGB(mface, layers, rgb);
@@ -552,13 +552,13 @@ RAS_MeshObject* BL_ConvertMesh(Mesh* mesh, Object* blenderobj, KX_Scene* scene, 
 
 	meshobj->m_sharedvertex_map.resize(totvert);
 
-	RAS_TexVertFormat vertformat;
+	RAS_VertexFormat vertformat;
 	vertformat.uvSize = max_ii(1, uvLayers);
 	vertformat.colorSize = max_ii(1, colorLayers);
 
 	Material* ma = 0;
 	MT_Vector2 uvs[4][RAS_Texture::MaxUnits];
-	unsigned int rgb[4][RAS_ITexVert::MAX_UNIT];
+	unsigned int rgb[4][RAS_IVertex::MAX_UNIT];
 
 	MT_Vector3 pt[4];
 	MT_Vector3 no[4];
@@ -575,7 +575,7 @@ RAS_MeshObject* BL_ConvertMesh(Mesh* mesh, Object* blenderobj, KX_Scene* scene, 
 	}
 
 	/* we need to manually initialize the uvs (MoTo doesn't do that) [#34550] */
-	for (unsigned int i = 0; i < RAS_ITexVert::MAX_UNIT; i++) {
+	for (unsigned int i = 0; i < RAS_IVertex::MAX_UNIT; i++) {
 		uvs[0][i] = uvs[1][i] = uvs[2][i] = uvs[3][i] = MT_Vector2(0.f, 0.f);
 		rgb[0][i] = rgb[1][i] = rgb[2][i] = rgb[3][i] = 0xffffffffL;
 	}
