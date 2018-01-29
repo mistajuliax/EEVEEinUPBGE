@@ -35,29 +35,11 @@ class BL_Texture : public CValue, public RAS_Texture
 	Py_Header
 private:
 	bool m_isCubeMap;
-	MTex *m_mtex; //Keep it waiting we finish refactor
 	GPUTexture *m_gpuTex;
 	GPUInput *m_input;
 
 	struct {
 		unsigned int bindcode;
-		float colintensfac;
-		float colfac;
-		float alphafac;
-		float specintensfac;
-		float speccolorfac;
-		float hardnessfac;
-		float emitfac;
-		float mirrorfac;
-		float normalfac;
-		float parallaxbumpfac;
-		float parallaxstepfac;
-		float lodbias;
-		float ior;
-		float ratio;
-		float uvrot;
-		float uvoffset[3];
-		float uvsize[3];
 	} m_savedData;
 
 public:
@@ -75,10 +57,9 @@ public:
 
 	virtual unsigned int GetTextureType();
 
-	enum {MaxUnits = 8};
+	enum {MaxUnits = 32};
 
 	virtual void CheckValidTexture();
-	virtual void ActivateTexture(int unit);
 	virtual void DisableTexture();
 
 #ifdef WITH_PYTHON

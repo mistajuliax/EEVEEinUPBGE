@@ -120,16 +120,6 @@ unsigned int BL_Texture::GetTextureType()
 	return m_input->textarget;
 }
 
-void BL_Texture::ActivateTexture(int unit)
-{
-	/* Since GPUTexture can be shared between material textures (MTex),
-	 * we should reapply the bindcode in case of VideoTexture owned texture.
-	 * Without that every material that use this GPUTexture will then use
-	 * the VideoTexture texture, it's not wanted. */
-	GPU_texture_set_opengl_bindcode(m_gpuTex, m_bindCode);
-	GPU_texture_bind(m_gpuTex, unit);
-}
-
 void BL_Texture::DisableTexture()
 {
 	GPU_texture_unbind(m_gpuTex);

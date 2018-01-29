@@ -51,20 +51,6 @@ int RAS_Texture::GetTexture2DType()
 	return GL_TEXTURE_2D;
 }
 
-const std::array<int, 6>& RAS_Texture::GetCubeMapTargets()
-{
-	static std::array<int, 6> targets = {
-		GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
-		GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-		GL_TEXTURE_CUBE_MAP_POSITIVE_X,
-		GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-		GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
-		GL_TEXTURE_CUBE_MAP_NEGATIVE_Y
-	};
-
-	return targets;
-}
-
 void RAS_Texture::DesactiveTextures()
 {
 	glActiveTexture(GL_TEXTURE0);
