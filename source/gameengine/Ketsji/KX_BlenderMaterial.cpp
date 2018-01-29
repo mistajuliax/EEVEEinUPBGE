@@ -61,21 +61,6 @@ KX_BlenderMaterial::KX_BlenderMaterial(
 	m_constructed(false),
 	m_lightLayer(lightlayer)
 {
-	// Save material data to restore on exit
-	m_savedData.r = m_material->r;
-	m_savedData.g = m_material->g;
-	m_savedData.b = m_material->b;
-	m_savedData.a = m_material->alpha;
-	m_savedData.specr = m_material->specr;
-	m_savedData.specg = m_material->specg;
-	m_savedData.specb = m_material->specb;
-	m_savedData.spec = m_material->spec;
-	m_savedData.ref = m_material->ref;
-	m_savedData.hardness = m_material->har;
-	m_savedData.emit = m_material->emit;
-	m_savedData.ambient = m_material->amb;
-	m_savedData.specularalpha = m_material->spectra;
-
 	m_alphablend = mat->blend_method;
 
 	if (m_material->use_nodes && m_material->nodetree) {
@@ -114,21 +99,6 @@ KX_BlenderMaterial::KX_BlenderMaterial(
 
 KX_BlenderMaterial::~KX_BlenderMaterial()
 {
-	// Restore Blender material data
-	m_material->r = m_savedData.r;
-	m_material->g = m_savedData.g;
-	m_material->b = m_savedData.b;
-	m_material->alpha = m_savedData.a;
-	m_material->specr = m_savedData.specr;
-	m_material->specg = m_savedData.specg;
-	m_material->specb = m_savedData.specb;
-	m_material->spec = m_savedData.spec;
-	m_material->ref = m_savedData.ref;
-	m_material->har = m_savedData.hardness;
-	m_material->emit = m_savedData.emit;
-	m_material->amb = m_savedData.ambient;
-	m_material->spectra = m_savedData.specularalpha;
-
 	// cleanup work
 	if (m_constructed) {
 		// clean only if material was actually used
@@ -143,18 +113,6 @@ BL_Shader *KX_BlenderMaterial::GetCustomShader() const
 	}
 
 	return nullptr;
-}
-
-void KX_BlenderMaterial::GetRGBAColor(unsigned char *rgba) const
-{
-	if (m_material) {
-		*rgba++ = (unsigned char)(m_material->r * 255.0f);
-		*rgba++ = (unsigned char)(m_material->g * 255.0f);
-		*rgba++ = (unsigned char)(m_material->b * 255.0f);
-		*rgba++ = (unsigned char)(m_material->alpha * 255.0f);
-	}
-	else
-		RAS_IPolyMaterial::GetRGBAColor(rgba);
 }
 
 const std::string KX_BlenderMaterial::GetTextureName() const
@@ -392,7 +350,6 @@ PyMethodDef KX_BlenderMaterial::Methods[] =
 PyAttributeDef KX_BlenderMaterial::Attributes[] = {
 	KX_PYATTRIBUTE_RO_FUNCTION("shader", KX_BlenderMaterial, pyattr_get_shader),
 	KX_PYATTRIBUTE_RO_FUNCTION("textures", KX_BlenderMaterial, pyattr_get_textures),
-	KX_PYATTRIBUTE_RW_FUNCTION("blending", KX_BlenderMaterial, pyattr_get_blending, pyattr_set_blending),
 	KX_PYATTRIBUTE_RW_FUNCTION("alpha", KX_BlenderMaterial, pyattr_get_alpha, pyattr_set_alpha),
 	KX_PYATTRIBUTE_RW_FUNCTION("hardness", KX_BlenderMaterial, pyattr_get_hardness, pyattr_set_hardness),
 	KX_PYATTRIBUTE_RW_FUNCTION("specularIntensity", KX_BlenderMaterial, pyattr_get_specular_intensity, pyattr_set_specular_intensity),
@@ -468,13 +425,6 @@ PyObject *KX_BlenderMaterial::pyattr_get_textures(PyObjectPlus *self_v, const KX
 							 kx_blender_material_get_textures_item_cb,
 							 kx_blender_material_get_textures_item_name_cb,
 							 nullptr))->NewProxy(true);
-}
-
-PyObject *KX_BlenderMaterial::pyattr_get_blending(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef)
-{
-	KX_BlenderMaterial *self = static_cast<KX_BlenderMaterial *>(self_v);
-	unsigned int *bfunc = self->GetBlendFunc();
-	return Py_BuildValue("(ll)", (long int)bfunc[0], (long int)bfunc[1]);
 }
 
 PyObject *KX_BlenderMaterial::pyattr_get_alpha(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef)
@@ -679,18 +629,6 @@ int KX_BlenderMaterial::pyattr_set_ambient(PyObjectPlus *self_v, const KX_PYATTR
 
 	self->GetBlenderMaterial()->amb = val;
 	return PY_SET_ATTR_SUCCESS;
-}
-
-int KX_BlenderMaterial::pyattr_set_blending(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
-{
-	KX_BlenderMaterial *self = static_cast<KX_BlenderMaterial *>(self_v);
-	PyObject *obj = self->PysetBlending(value, nullptr);
-	if (obj)
-	{
-		Py_DECREF(obj);
-		return 0;
-	}
-	return -1;
 }
 
 KX_PYMETHODDEF_DOC(KX_BlenderMaterial, getShader, "getShader()")

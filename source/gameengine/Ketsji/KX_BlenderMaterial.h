@@ -42,17 +42,6 @@ private:
 	bool m_constructed; // if false, don't clean on exit
 	int m_lightLayer;
 
-	struct {
-		float r, g, b, a;
-		float specr, specg, specb;
-		float spec;
-		float ref;
-		float hardness;
-		float emit;
-		float ambient;
-		float specularalpha;
-	} m_savedData;
-
 public:
 	KX_BlenderMaterial(
 			RAS_Rasterizer *rasty,
@@ -71,14 +60,9 @@ public:
 	BL_Shader *GetCustomShader() const ;
 	virtual const std::string GetTextureName() const;
 	virtual Material *GetBlenderMaterial() const;
-	virtual void GetRGBAColor(unsigned char *rgba) const;
 	virtual Scene *GetBlenderScene() const;
 	virtual SCA_IScene *GetScene() const;
 
-	unsigned int *GetBlendFunc()
-	{
-		return m_blendFunc;
-	}
 	// for ipos
 	virtual void UpdateIPO(MT_Vector4 rgba, MT_Vector3 specrgb, MT_Scalar hard, MT_Scalar spec, MT_Scalar ref,
 						   MT_Scalar emit, MT_Scalar ambient, MT_Scalar alpha, MT_Scalar specalpha);
@@ -95,10 +79,7 @@ public:
 #ifdef WITH_PYTHON
 
 	static PyObject *pyattr_get_shader(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
-	static PyObject *pyattr_get_materialIndex(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
-	static PyObject *pyattr_get_blending(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
 	static PyObject *pyattr_get_textures(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
-	static int pyattr_set_blending(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value);
 	static PyObject *pyattr_get_alpha(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
 	static int pyattr_set_alpha(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value);
 	static PyObject *pyattr_get_hardness(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
