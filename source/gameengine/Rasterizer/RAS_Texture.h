@@ -59,7 +59,7 @@ public:
 	/// Return all the OpenGL cube map face target, e.g GL_TEXTURE_CUBE_MAP_POSITIVE_Z.
 	static const std::array<int, 6>& GetCubeMapTargets();
 
-	enum {MaxUnits = 8};
+	enum {MaxUnits = 32}; // EEVEE INTEGRATION: Warning: can be increased again if we have crashes
 
 	virtual void CheckValidTexture() = 0;
 	virtual void ActivateTexture(int unit) = 0;
