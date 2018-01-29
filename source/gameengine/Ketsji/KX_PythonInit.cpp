@@ -947,73 +947,6 @@ static int getGLSLSettingFlag(const std::string& setting)
 	}
 }
 
-static PyObject *gPySetGLSLMaterialSetting(PyObject *,
-                                           PyObject *args,
-                                           PyObject *)
-{
-	GlobalSettings *gs= KX_GetActiveEngine()->GetGlobalSettings();
-	char *setting;
-	int enable, flag, sceneflag;
-
-	if (!PyArg_ParseTuple(args,"si:setGLSLMaterialSetting",&setting,&enable))
-		return nullptr;
-	
-	flag = getGLSLSettingFlag(setting);
-	
-	if (flag == -1) {
-		PyErr_SetString(PyExc_ValueError, "Rasterizer.setGLSLMaterialSetting(string): glsl setting is not known");
-		return nullptr;
-	}
-
-	sceneflag= gs->glslflag;
-	
-	if (enable)
-		gs->glslflag &= ~flag;
-	else
-		gs->glslflag |= flag;
-
-	/* display lists and GLSL materials need to be remade */
-	if (sceneflag != gs->glslflag) {
-		GPU_materials_free();
-		if (KX_GetActiveEngine()) {
-			CListValue<KX_Scene> *scenes = KX_GetActiveEngine()->CurrentScenes();
-
-			for (KX_Scene *scene : scenes) {
-				// temporarily store the glsl settings in the scene for the GLSL materials
-				scene->GetBlenderScene()->gm.flag = gs->glslflag;
-				if (scene->GetBucketManager()) {
-					scene->GetBucketManager()->UpdateShaders();
-					scene->GetBucketManager()->ReleaseMaterials();
-				}
-			}
-		}
-	}
-
-	Py_RETURN_NONE;
-}
-
-static PyObject *gPyGetGLSLMaterialSetting(PyObject *,
-                                           PyObject *args,
-                                           PyObject *)
-{
-	GlobalSettings *gs= KX_GetActiveEngine()->GetGlobalSettings();
-	char *setting;
-	int enabled = 0, flag;
-
-	if (!PyArg_ParseTuple(args,"s:getGLSLMaterialSetting",&setting))
-		return nullptr;
-	
-	flag = getGLSLSettingFlag(setting);
-	
-	if (flag == -1) {
-		PyErr_SetString(PyExc_ValueError, "Rasterizer.getGLSLMaterialSetting(string): glsl setting is not known");
-		return nullptr;
-	}
-
-	enabled = ((gs->glslflag & flag) != 0);
-	return PyLong_FromLong(enabled);
-}
-
 #define KX_BLENDER_MULTITEX_MATERIAL	1
 #define KX_BLENDER_GLSL_MATERIAL		2
 
@@ -1258,10 +1191,6 @@ static struct PyMethodDef rasterizer_methods[] = {
 	 METH_VARARGS, "set the material mode to use for OpenGL rendering"},
 	{"getMaterialMode",(PyCFunction) gPyGetMaterialType,
 	 METH_NOARGS, "get the material mode being used for OpenGL rendering"},
-	{"setGLSLMaterialSetting",(PyCFunction) gPySetGLSLMaterialSetting,
-	 METH_VARARGS, "set the state of a GLSL material setting"},
-	{"getGLSLMaterialSetting",(PyCFunction) gPyGetGLSLMaterialSetting,
-	 METH_VARARGS, "get the state of a GLSL material setting"},
 	{"setAnisotropicFiltering", (PyCFunction) gPySetAnisotropicFiltering,
 	 METH_VARARGS, "set the anisotropic filtering level (must be one of 1, 2, 4, 8, 16)"},
 	{"getAnisotropicFiltering", (PyCFunction) gPyGetAnisotropicFiltering,

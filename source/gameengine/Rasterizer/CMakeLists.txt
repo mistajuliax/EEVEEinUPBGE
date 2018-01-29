@@ -103,7 +103,6 @@ set(SRC
 	RAS_ILightObject.h
 	RAS_ITexVert.h
 	RAS_MaterialBucket.h
-	RAS_MaterialShader.h
 	RAS_MeshMaterial.h
 	RAS_MeshObject.h
 	RAS_Polygon.h

@@ -41,7 +41,7 @@
 #include <map>
 
 class RAS_Rasterizer;
-class RAS_MaterialShader;
+class BL_Shader;
 struct Material;
 struct Scene;
 struct GameSettings;
@@ -95,7 +95,7 @@ public:
 
 	virtual ~RAS_IPolyMaterial();
 
-	virtual RAS_MaterialShader *GetShader() const = 0;
+	virtual BL_Shader *GetShader() const = 0;
 
 	bool IsAlpha() const;
 	bool IsAlphaDepth() const;
@@ -117,7 +117,6 @@ public:
 	virtual Material *GetBlenderMaterial() const = 0;
 	virtual Scene *GetBlenderScene() const = 0;
 	virtual SCA_IScene *GetScene() const = 0;
-	virtual void ReleaseMaterial() = 0;
 	virtual void GetRGBAColor(unsigned char *rgba) const;
 	virtual bool UsesLighting() const;
 

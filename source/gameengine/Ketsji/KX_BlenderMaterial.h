@@ -17,7 +17,7 @@
 class SCA_IScene;
 class KX_Scene;
 class RAS_Rasterizer;
-class KX_MaterialShader;
+class BL_Shader;
 struct Material;
 struct GPUMaterial;
 
@@ -28,6 +28,30 @@ void KX_BlenderMaterial_Mathutils_Callback_Init(void);
 class KX_BlenderMaterial : public CValue, public RAS_IPolyMaterial
 {
 	Py_Header
+
+private:
+
+	GPUMaterial * m_gpuMat;
+
+	Material *m_material;
+	BL_Shader *m_customShader;
+	RAS_Rasterizer *m_rasterizer;
+	KX_Scene *m_scene;
+	bool m_userDefBlend;
+	unsigned int m_blendFunc[2];
+	bool m_constructed; // if false, don't clean on exit
+	int m_lightLayer;
+
+	struct {
+		float r, g, b, a;
+		float specr, specg, specb;
+		float spec;
+		float ref;
+		float hardness;
+		float emit;
+		float ambient;
+		float specularalpha;
+	} m_savedData;
 
 public:
 	KX_BlenderMaterial(
@@ -40,14 +64,16 @@ public:
 
 	virtual ~KX_BlenderMaterial();
 
-	virtual RAS_MaterialShader *GetShader() const ;
+	void InitTextures();
+	// cleanup stuff
+	void OnExit();
+
+	BL_Shader *GetShader() const ;
 	virtual const std::string GetTextureName() const;
 	virtual Material *GetBlenderMaterial() const;
-	virtual bool UsesLighting() const;
 	virtual void GetRGBAColor(unsigned char *rgba) const;
 	virtual Scene *GetBlenderScene() const;
 	virtual SCA_IScene *GetScene() const;
-	virtual void ReleaseMaterial();
 
 	unsigned int *GetBlendFunc()
 	{
@@ -58,6 +84,10 @@ public:
 						   MT_Scalar emit, MT_Scalar ambient, MT_Scalar alpha, MT_Scalar specalpha);
 
 	void ReplaceScene(KX_Scene *scene);
+
+	virtual void OnConstruction();
+
+	static void EndFrame(RAS_Rasterizer *rasty);
 
 	// Stuff for cvalue related things.
 	virtual std::string GetName();
@@ -94,44 +124,6 @@ public:
 	KX_PYMETHOD_DOC(KX_BlenderMaterial, setBlending);
 
 #endif  // WITH_PYTHON
-
-	virtual void OnConstruction();
-
-	static void EndFrame(RAS_Rasterizer *rasty);
-
-private:
-
-	GPUMaterial *m_gpuMat;
-
-
-	Material *m_material;
-	std::unique_ptr<KX_MaterialShader> m_shader;
-	RAS_Rasterizer *m_rasterizer;
-	KX_Scene *m_scene;
-	bool m_userDefBlend;
-	unsigned int m_blendFunc[2];
-	bool m_constructed; // if false, don't clean on exit
-	int m_lightLayer;
-
-	struct {
-		float r, g, b, a;
-		float specr, specg, specb;
-		float spec;
-		float ref;
-		float hardness;
-		float emit;
-		float ambient;
-		float specularalpha;
-	} m_savedData;
-
-	void InitTextures();
-
-	void ActivateGLMaterials(RAS_Rasterizer *rasty) const;
-
-	void SetShaderData(RAS_Rasterizer *ras);
-
-	// cleanup stuff
-	void OnExit();
 };
 
 #ifdef WITH_PYTHON

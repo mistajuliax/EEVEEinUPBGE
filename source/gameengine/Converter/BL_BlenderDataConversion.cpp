@@ -460,8 +460,7 @@ static RAS_MaterialBucket *material_from_mesh(Material *ma, int lightlayer, KX_S
 
 	// see if a bucket was reused or a new one was created
 	// this way only one KX_BlenderMaterial object has to exist per bucket
-	bool bucketCreated;
-	RAS_MaterialBucket* bucket = scene->FindBucket(mat, bucketCreated);
+	RAS_MaterialBucket* bucket = scene->FindBucket(mat);
 
 	return bucket;
 }

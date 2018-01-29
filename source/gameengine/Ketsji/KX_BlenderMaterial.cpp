@@ -26,7 +26,6 @@
 #include "KX_Scene.h"
 #include "KX_PyMath.h"
 
-#include "KX_MaterialShader.h"
 #include "BL_Shader.h"
 
 #include "EXP_ListWrapper.h"
@@ -55,7 +54,7 @@ KX_BlenderMaterial::KX_BlenderMaterial(
 		int lightlayer)
 	:RAS_IPolyMaterial(name, game),
 	m_material(mat),
-	m_shader(nullptr),
+	m_customShader(nullptr),
 	m_rasterizer(rasty),
 	m_scene(scene),
 	m_userDefBlend(false),
@@ -137,14 +136,11 @@ KX_BlenderMaterial::~KX_BlenderMaterial()
 	}
 }
 
-RAS_MaterialShader *KX_BlenderMaterial::GetShader() const
+BL_Shader *KX_BlenderMaterial::GetShader() const
 {
-	if (m_shader && m_shader->IsValid()) {
-		return m_shader.get();
+	if (m_customShader && m_customShader->Ok()) {
+		return m_customShader;
 	}
-
-	// Should never happen.
-	BLI_assert(false);
 
 	return nullptr;
 }
@@ -179,10 +175,6 @@ Scene *KX_BlenderMaterial::GetBlenderScene() const
 SCA_IScene *KX_BlenderMaterial::GetScene() const
 {
 	return m_scene;
-}
-
-void KX_BlenderMaterial::ReleaseMaterial()
-{
 }
 
 void KX_BlenderMaterial::InitTextures()
@@ -234,86 +226,9 @@ void KX_BlenderMaterial::EndFrame(RAS_Rasterizer *rasty)
 
 void KX_BlenderMaterial::OnExit()
 {
-	if (m_shader) {
-		m_shader.reset(nullptr);
+	if (m_customShader) {
+		delete m_customShader;
 	}
-}
-
-
-void KX_BlenderMaterial::SetShaderData(RAS_Rasterizer *ras)
-{
-#if 0
-	BLI_assert(m_shader);
-
-	int i;
-
-	m_shader->SetProg(true);
-
-	m_shader->ApplyShader();
-
-	/** We make sure that all gpu textures are the same in material textures here
-	 * than in gpu material. This is dones in a separated loop because the texture
-	 * regeneration can overide bind settings of the previous texture.
-	 */
-	for (i = 0; i < RAS_Texture::MaxUnits; i++) {
-		if (m_textures[i] && m_textures[i]->Ok()) {
-			m_textures[i]->CheckValidTexture();
-		}
-	}
-
-	// for each enabled unit
-	for (i = 0; i < RAS_Texture::MaxUnits; i++) {
-		if (m_textures[i] && m_textures[i]->Ok()) {
-			m_textures[i]->ActivateTexture(i);
-		}
-	}
-
-	if (!m_userDefBlend) {
-		ras->SetAlphaBlend(m_alphablend);
-	}
-	else {
-		ras->SetAlphaBlend(GPU_BLEND_SOLID);
-		ras->SetAlphaBlend(-1); // indicates custom mode
-
-		// tested to be valid enums
-		ras->Enable(RAS_Rasterizer::RAS_BLEND);
-		ras->SetBlendFunc((RAS_Rasterizer::BlendFunc)m_blendFunc[0], (RAS_Rasterizer::BlendFunc)m_blendFunc[1]);
-	}
-
-	// Disable :
-	for (unsigned short i = 0; i < RAS_Texture::MaxUnits; i++) {
-		if (m_textures[i] && m_textures[i]->Ok()) {
-			m_textures[i]->DisableTexture();
-		}
-	}
-#endif
-}
-
-bool KX_BlenderMaterial::UsesLighting() const
-{
-	if (!RAS_IPolyMaterial::UsesLighting())
-		return false;
-
-	if (m_shader && m_shader->IsValid()) {
-		return true;
-	}
-	else {
-		return true;
-	}
-}
-
-void KX_BlenderMaterial::ActivateGLMaterials(RAS_Rasterizer *rasty) const
-{
-	/*if (m_shader || !m_blenderShader) {
-		rasty->SetSpecularity(m_material->specr * m_material->spec, m_material->specg * m_material->spec,
-							  m_material->specb * m_material->spec, m_material->spec);
-		rasty->SetShinyness(((float)m_material->har) / 4.0f);
-		rasty->SetDiffuse(m_material->r * m_material->ref + m_material->emit, m_material->g * m_material->ref + m_material->emit,
-						  m_material->b * m_material->ref + m_material->emit, 1.0f);
-		rasty->SetEmissive(m_material->r * m_material->emit, m_material->g * m_material->emit,
-						   m_material->b * m_material->emit, 1.0f);
-		rasty->SetAmbient(m_material->amb);
-	}*/
 }
 
 void KX_BlenderMaterial::UpdateIPO(
@@ -780,14 +695,13 @@ int KX_BlenderMaterial::pyattr_set_blending(PyObjectPlus *self_v, const KX_PYATT
 
 KX_PYMETHODDEF_DOC(KX_BlenderMaterial, getShader, "getShader()")
 {
-	if (!m_shader) {
-		m_shader.reset(new KX_MaterialShader());
+	if (!m_customShader) {
+		m_customShader = new BL_Shader();
 		// Set the material to use custom shader.
 		m_flag &= ~RAS_BLENDERGLSL;
-		m_scene->GetBucketManager()->UpdateShaders(this);
 	}
 
-	return m_shader->GetShader()->GetProxy();
+	return m_customShader->GetProxy();
 }
 
 static const unsigned int GL_array[11] = {
