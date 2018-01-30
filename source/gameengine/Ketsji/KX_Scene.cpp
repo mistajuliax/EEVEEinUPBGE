@@ -674,6 +674,10 @@ void KX_Scene::UpdateShadows(RAS_Rasterizer *rasty)
 				}
 			}
 		}
+
+		if (light->NeedShadowUpdate()) {
+			led->need_update = true;
+		}
 	}
 	EEVEE_lights_cache_finish(sldata);
 }
