@@ -103,6 +103,7 @@ set(SRC
 	KX_LodLevel.cpp
 	KX_LodManager.cpp
 	KX_MaterialIpoController.cpp
+	KX_MaterialShader.cpp
 	KX_MeshProxy.cpp
 	KX_MotionState.cpp
 	KX_MouseActuator.cpp
@@ -137,6 +138,7 @@ set(SRC
 	KX_SoundActuator.cpp
 	KX_StateActuator.cpp
 	KX_SteeringActuator.cpp
+	KX_TextMaterial.cpp
 	KX_TimeCategoryLogger.cpp
 	KX_TimeLogger.cpp
 	KX_TrackToActuator.cpp
@@ -182,6 +184,7 @@ set(SRC
 	KX_LodLevel.h
 	KX_LodManager.h
 	KX_MaterialIpoController.h
+	KX_MaterialShader.h
 	KX_MeshProxy.h
 	KX_MotionState.h
 	KX_MouseActuator.h
@@ -217,6 +220,7 @@ set(SRC
 	KX_SoundActuator.h
 	KX_StateActuator.h
 	KX_SteeringActuator.h
+	KX_TextMaterial.h
 	KX_TimeCategoryLogger.h
 	KX_TimeLogger.h
 	KX_CollisionEventManager.h

@@ -42,6 +42,7 @@ class RAS_FrameBuffer;
 class RAS_BucketManager
 {
 public:
+	typedef std::vector<RAS_MaterialBucket *> BucketList;
 
 private:
 	enum BucketType {
@@ -67,23 +68,30 @@ private:
 		OVERRIDE_SHADER_MAX
 	};
 
-	std::vector<RAS_MaterialBucket *> m_buckets[NUM_BUCKET_TYPE];
+	BucketList m_buckets[NUM_BUCKET_TYPE];
+
+	struct TextMaterial
+	{
+		RAS_IPolyMaterial *m_material;
+		RAS_DisplayArrayBucket *m_arrayBucket;
+	} m_text;
 
 public:
 	/** Initialize bucket manager and create material bucket for the text material.
 	 * \param textMaterial The material used to render texts.
 	 */
-	RAS_BucketManager();
+	RAS_BucketManager(RAS_IPolyMaterial *textMaterial);
 	virtual ~RAS_BucketManager();
 
-	RAS_MaterialBucket *FindBucket(RAS_IPolyMaterial *material);
+	RAS_MaterialBucket *FindBucket(RAS_IPolyMaterial *material, bool &bucketCreated);
+	RAS_DisplayArrayBucket *GetTextDisplayArrayBucket() const;
 
 	// freeing scenes only
 	void RemoveMaterial(RAS_IPolyMaterial *mat);
 
 	// for merging
 	void MergeBucketManager(RAS_BucketManager *other);
-	std::vector<RAS_MaterialBucket *> GetBuckets()
+	BucketList& GetBuckets()
 	{
 		return m_buckets[ALL_BUCKET];
 	}

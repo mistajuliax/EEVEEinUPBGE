@@ -44,63 +44,57 @@
 
 #include <algorithm>
 
-RAS_BucketManager::RAS_BucketManager()
+RAS_BucketManager::RAS_BucketManager(RAS_IPolyMaterial *textMaterial)
 {
+	m_text.m_material = textMaterial;
+	bool created;
+	RAS_MaterialBucket *bucket = FindBucket(m_text.m_material, created);
+	m_text.m_arrayBucket = new RAS_DisplayArrayBucket(bucket, nullptr, nullptr, nullptr, nullptr);
 }
 
 RAS_BucketManager::~RAS_BucketManager()
 {
-	std::vector<RAS_MaterialBucket *> buckets = m_buckets[ALL_BUCKET];
-	for (RAS_MaterialBucket *b : buckets) {
-		delete b;
+	delete m_text.m_arrayBucket;
+	delete m_text.m_material;
+
+	BucketList& buckets = m_buckets[ALL_BUCKET];
+	for (BucketList::iterator it = buckets.begin(), end = buckets.end(); it != end; ++it) {
+		delete *it;
 	}
 	buckets.clear();
 }
 
-RAS_MaterialBucket *RAS_BucketManager::FindBucket(RAS_IPolyMaterial *material)
+RAS_MaterialBucket *RAS_BucketManager::FindBucket(RAS_IPolyMaterial *material, bool &bucketCreated)
 {
-	std::vector<RAS_MaterialBucket *> buckets = m_buckets[ALL_BUCKET];
-	for (RAS_MaterialBucket *b : buckets) {
-		std::vector<RAS_MaterialBucket *>::iterator it = std::find(buckets.begin(), buckets.end(), b);
-		if (it != buckets.end()) {
-			return b;
+	bucketCreated = false;
+
+	BucketList& buckets = m_buckets[ALL_BUCKET];
+	for (BucketList::iterator it = buckets.begin(), end = buckets.end(); it != end; ++it) {
+		RAS_MaterialBucket *bucket = *it;
+		if (bucket->GetPolyMaterial() == material) {
+			return bucket;
 		}
 	}
 
 	RAS_MaterialBucket *bucket = new RAS_MaterialBucket(material);
-
-	const bool useinstancing = false; //material->UseInstancing();
-	if (!material->OnlyShadow()) {
-		if (material->IsAlpha()) {
-			m_buckets[useinstancing ? ALPHA_INSTANCING_BUCKET : ALPHA_BUCKET].push_back(bucket);
-			if (material->IsAlphaDepth()) {
-				m_buckets[useinstancing ? ALPHA_DEPTH_INSTANCING_BUCKET : ALPHA_DEPTH_BUCKET].push_back(bucket);
-			}
-		}
-		else {
-			m_buckets[useinstancing ? SOLID_INSTANCING_BUCKET : SOLID_BUCKET].push_back(bucket);
-		}
-	}
-	if (material->CastsShadows()) {
-		if (material->IsAlphaShadow()) {
-			m_buckets[useinstancing ? ALPHA_SHADOW_INSTANCING_BUCKET : ALPHA_SHADOW_BUCKET].push_back(bucket);
-		}
-		else {
-			m_buckets[useinstancing ? SOLID_SHADOW_INSTANCING_BUCKET : SOLID_SHADOW_BUCKET].push_back(bucket);
-		}
-	}
+	bucketCreated = true;
 
 	// Used to free the bucket.
 	m_buckets[ALL_BUCKET].push_back(bucket);
 	return bucket;
 }
 
+RAS_DisplayArrayBucket *RAS_BucketManager::GetTextDisplayArrayBucket() const
+{
+	return m_text.m_arrayBucket;
+}
+
 /* frees the bucket, only used when freeing scenes */
 void RAS_BucketManager::RemoveMaterial(RAS_IPolyMaterial *mat)
 {
 	for (unsigned short i = 0; i < NUM_BUCKET_TYPE; ++i) {
-		std::vector<RAS_MaterialBucket *>buckets = m_buckets[i];
-		for (std::vector<RAS_MaterialBucket *>::iterator it = buckets.begin(); it != buckets.end();) {
+		BucketList& buckets = m_buckets[i];
+		for (BucketList::iterator it = buckets.begin(); it != buckets.end();) {
 			RAS_MaterialBucket *bucket = *it;
 			if (mat == bucket->GetPolyMaterial()) {
 				it = buckets.erase(it);
@@ -118,8 +112,8 @@ void RAS_BucketManager::RemoveMaterial(RAS_IPolyMaterial *mat)
 void RAS_BucketManager::MergeBucketManager(RAS_BucketManager *other)
 {
 	for (unsigned short i = 0; i < NUM_BUCKET_TYPE; ++i) {
-		std::vector<RAS_MaterialBucket *>buckets = m_buckets[i];
-		std::vector<RAS_MaterialBucket *>otherbuckets = other->m_buckets[i];
+		BucketList& buckets = m_buckets[i];
+		BucketList& otherbuckets = other->m_buckets[i];
 		buckets.insert(buckets.begin(), otherbuckets.begin(), otherbuckets.end());
 		otherbuckets.clear();
 	}

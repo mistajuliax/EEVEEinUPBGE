@@ -42,6 +42,7 @@
 
 class RAS_MaterialBucket;
 class RAS_IDisplayArray;
+class RAS_MaterialShader;
 class RAS_MeshObject;
 class RAS_MeshMaterial;
 class RAS_Deformer;

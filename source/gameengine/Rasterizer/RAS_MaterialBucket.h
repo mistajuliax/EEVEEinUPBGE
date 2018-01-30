@@ -36,6 +36,7 @@
 #include "MT_Transform.h"
 
 class RAS_IPolyMaterial;
+class RAS_MaterialShader;
 class RAS_Rasterizer;
 
 /* Contains a list of display arrays with the same material,
@@ -50,10 +51,14 @@ public:
 
 	// Material Properties
 	RAS_IPolyMaterial *GetPolyMaterial() const;
+	RAS_MaterialShader *GetShader() const;
 	bool IsAlpha() const;
 	bool IsZSort() const;
 	bool IsWire() const;
 	bool UseInstancing() const;
+
+	/// Set the shader after its conversion or when changing to custom shader.
+	void UpdateShader();
 
 	void AddDisplayArrayBucket(RAS_DisplayArrayBucket *bucket);
 	void RemoveDisplayArrayBucket(RAS_DisplayArrayBucket *bucket);
@@ -63,6 +68,7 @@ public:
 private:
 
 	RAS_IPolyMaterial *m_material;
+	RAS_MaterialShader *m_shader;
 	RAS_DisplayArrayBucketList m_displayArrayBucketList;
 };
 

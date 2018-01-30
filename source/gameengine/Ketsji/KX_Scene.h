@@ -376,7 +376,7 @@ public:
 
 	RAS_BucketManager* GetBucketManager() const;
 	RAS_BoundingBoxManager *GetBoundingBoxManager() const;
-	RAS_MaterialBucket*	FindBucket(RAS_IPolyMaterial* polymat);
+	RAS_MaterialBucket*	FindBucket(RAS_IPolyMaterial* polymat, bool &bucketCreated);
 
 	/**
 	 * Update all transforms according to the scenegraph.

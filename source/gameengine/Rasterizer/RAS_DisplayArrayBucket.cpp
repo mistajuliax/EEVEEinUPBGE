@@ -31,6 +31,7 @@
 
 #include "RAS_DisplayArrayBucket.h"
 #include "RAS_MaterialBucket.h"
+#include "RAS_MaterialShader.h"
 #include "RAS_MeshObject.h"
 #include "RAS_Deformer.h"
 #include "RAS_Rasterizer.h"

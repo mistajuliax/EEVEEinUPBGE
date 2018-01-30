@@ -82,6 +82,7 @@ PyMethodDef KX_MeshProxy::Methods[] = {
 	{"getPolygon", (PyCFunction) KX_MeshProxy::sPyGetPolygon, METH_VARARGS},
 	{"transform", (PyCFunction) KX_MeshProxy::sPyTransform, METH_VARARGS},
 	{"transformUV", (PyCFunction) KX_MeshProxy::sPyTransformUV, METH_VARARGS},
+	{"replaceMaterial", (PyCFunction) KX_MeshProxy::sPyReplaceMaterial, METH_VARARGS},
 	{nullptr, nullptr} //Sentinel
 };
 
@@ -344,6 +345,47 @@ PyObject *KX_MeshProxy::PyTransformUV(PyObject *args, PyObject *kwds)
 		             "mesh.transformUV(...): invalid material index %d", matindex);
 		return nullptr;
 	}
+
+	Py_RETURN_NONE;
+}
+
+PyObject *KX_MeshProxy::PyReplaceMaterial(PyObject *args, PyObject *kwds)
+{
+	/* EEVEE INTEGRATION */
+	std::cout << "KX_MeshProxy::replaceMaterial is disabled during EEVEE integration" << std::endl;
+	Py_RETURN_NONE;
+	/* End of EEVEE INTEGRATION */
+
+	unsigned short matindex;
+	PyObject *pymat;
+	KX_BlenderMaterial *mat;
+
+	if (!PyArg_ParseTuple(args, "hO:replaceMaterial", &matindex, &pymat) ||
+		!ConvertPythonToMaterial(pymat, &mat, false, "mesh.replaceMaterial(...): invalid material")) {
+		return nullptr;
+	}
+
+
+	RAS_MeshMaterial *meshmat = m_meshobj->GetMeshMaterial(matindex);
+	if (!meshmat) {
+		PyErr_Format(PyExc_ValueError, "Invalid material index %d", matindex);
+		return nullptr;
+	}
+
+	KX_Scene *scene = (KX_Scene *)meshmat->GetBucket()->GetPolyMaterial()->GetScene();
+	if (scene != mat->GetScene()) {
+		PyErr_Format(PyExc_ValueError, "Mesh successor scene doesn't match current mesh scene");
+		return nullptr;
+	}
+
+	RAS_BucketManager *bucketmgr = scene->GetBucketManager();
+	bool created = false;
+	RAS_MaterialBucket *bucket = bucketmgr->FindBucket(mat, created);
+
+	// Must never create the material bucket.
+	BLI_assert(created == false);
+
+	meshmat->ReplaceMaterial(bucket);
 
 	Py_RETURN_NONE;
 }
