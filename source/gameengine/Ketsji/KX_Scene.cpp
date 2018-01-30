@@ -596,8 +596,8 @@ enum LightShadowType {
 
 /* Used for checking if object is inside the shadow volume. */
 
-// TODO: FIX Light shadow frustum vs AABB intersection check
-static bool cube_bbox_intersect(const float cube_center[3], float cube_half_dim, const BoundBox *bb, float(*obmat)[4])
+// Approximative check
+static bool cube_bbox_intersect(const float cube_center[3], float cube_dim, const BoundBox *bb, float(*obmat)[4])
 {
 	float min[3], max[4], tmp[4][4];
 	unit_m4(tmp);
@@ -613,11 +613,10 @@ static bool cube_bbox_intersect(const float cube_center[3], float cube_half_dim,
 		minmax_v3v3_v3(min, max, vec);
 	}
 
-	float threshold = cube_half_dim;
-	if (MAX3(min[0], min[1], min[2]) > cube_half_dim + threshold) {
+	if (MAX3(min[0], min[1], min[2]) > cube_dim) {
 		return false;
 	}
-	if (MIN3(max[0], max[1], max[2]) < -cube_half_dim - threshold) {
+	if (MIN3(max[0], max[1], max[2]) < -cube_dim) {
 		return false;
 	}
 
@@ -631,7 +630,7 @@ static void light_tag_shadow_update(KX_LightObject *light, KX_GameObject *gameob
 	Object *ob = gameobj->GetBlenderObject();
 	EEVEE_LampEngineData *led = EEVEE_lamp_data_get(oblamp);
 
-	bool is_inside_range = cube_bbox_intersect(oblamp->obmat[3], la->clipend, BKE_object_boundbox_get(ob), gameobj->GetShadowCaster()->obmat);
+	bool is_inside_range = cube_bbox_intersect(oblamp->obmat[3], la->clipend * 2, BKE_object_boundbox_get(ob), gameobj->GetShadowCaster()->obmat);
 
 	if (is_inside_range) {
 		if (gameobj->NeedShadowUpdate()) {
@@ -697,14 +696,14 @@ static void eevee_light_setup(Object *ob, EEVEE_Light *evli)
 			80.0f; /* XXX : Empirical, Fit cycles power */
 	}
 	else if (la->type == LA_SPOT || la->type == LA_LOCAL) {
-		power = 1.0f / (4.0f * evli->radius * evli->radius * M_PI * M_PI) * /* 1/(4*r²*Pi²) */
+		power = 1.0f / (4.0f * evli->radius * evli->radius * M_PI * M_PI) * /* 1/(4*r**2*Pi**2) */
 			M_PI * M_PI * 10.0; /* XXX : Empirical, Fit cycles power */
 
 								/* for point lights (a.k.a radius == 0.0) */
 								// power = M_PI * M_PI * 0.78; /* XXX : Empirical, Fit cycles power */
 	}
 	else {
-		power = 1.0f / (4.0f * evli->radius * evli->radius * M_PI * M_PI) * /* 1/(r²*Pi) */
+		power = 1.0f / (4.0f * evli->radius * evli->radius * M_PI * M_PI) * /* 1/(r**2*Pi) */
 			12.5f; /* XXX : Empirical, Fit cycles power */
 	}
 	mul_v3_fl(evli->color, power * la->energy);
