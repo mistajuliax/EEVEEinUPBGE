@@ -40,11 +40,6 @@ KX_TextMaterial::~KX_TextMaterial()
 {
 }
 
-RAS_MaterialShader *KX_TextMaterial::GetShader() const
-{
-	return nullptr;
-}
-
 const std::string KX_TextMaterial::GetTextureName() const
 {
 	return "";

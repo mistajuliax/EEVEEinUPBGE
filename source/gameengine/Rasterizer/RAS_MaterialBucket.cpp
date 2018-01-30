@@ -31,7 +31,6 @@
 
 #include "RAS_MaterialBucket.h"
 #include "RAS_IPolygonMaterial.h"
-#include "RAS_MaterialShader.h"
 #include "RAS_Rasterizer.h"
 #include "RAS_MeshObject.h"
 #include "RAS_Deformer.h"
@@ -47,8 +46,7 @@
 #endif // WIN32
 
 RAS_MaterialBucket::RAS_MaterialBucket(RAS_IPolyMaterial *mat)
-	:m_material(mat),
-	m_shader(nullptr)
+	:m_material(mat)
 {
 }
 
@@ -59,11 +57,6 @@ RAS_MaterialBucket::~RAS_MaterialBucket()
 RAS_IPolyMaterial *RAS_MaterialBucket::GetPolyMaterial() const
 {
 	return m_material;
-}
-
-RAS_MaterialShader *RAS_MaterialBucket::GetShader() const
-{
-	return m_shader;
 }
 
 bool RAS_MaterialBucket::IsAlpha() const

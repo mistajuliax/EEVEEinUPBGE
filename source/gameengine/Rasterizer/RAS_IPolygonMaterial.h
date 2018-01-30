@@ -41,7 +41,6 @@
 #include <map>
 
 class RAS_Rasterizer;
-class RAS_MaterialShader;
 struct Material;
 struct Scene;
 struct GameSettings;

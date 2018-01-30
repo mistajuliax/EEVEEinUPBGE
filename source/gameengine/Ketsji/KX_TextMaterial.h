@@ -36,7 +36,6 @@ public:
 	KX_TextMaterial();
 	virtual ~KX_TextMaterial();
 
-	virtual RAS_MaterialShader *GetShader() const;
 	virtual const std::string GetTextureName() const;
 	virtual Material *GetBlenderMaterial() const;
 	virtual Scene *GetBlenderScene() const;
