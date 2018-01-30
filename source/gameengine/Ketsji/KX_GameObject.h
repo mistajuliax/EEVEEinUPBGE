@@ -236,10 +236,8 @@ public:
 	PyObject*							m_collisionCallbacks;
 #endif
 
-	virtual void	/* This function should be virtual - derived classed override it */
-	Relink(
-		std::map<SCA_IObject *, SCA_IObject *>& map
-	);
+	/* This function should be virtual - derived classed override it */
+	virtual void Relink(std::map<SCA_IObject *, SCA_IObject *>& map);
 
 	/**
 	 * Update the blender object obmat field from the object world position
@@ -247,8 +245,7 @@ public:
 	 * The user must take action to restore the matrix before leaving the GE.
 	 * Used in Armature evaluation
 	 */
-		void
-	UpdateBlenderObjectMatrix(Object* blendobj=nullptr);
+	void UpdateBlenderObjectMatrix(Object* blendobj = nullptr);
 
 	/**
 	 * Used for constraint replication for group instances.
@@ -266,14 +263,12 @@ public:
 	 * object. It is the responsibility of the caller to decrement
 	 * the reference count when you have finished with it.
 	 */
-		KX_GameObject*
-	GetParent(
-	);
+	KX_GameObject *GetParent();
 
 	/** 
 	 * Sets the parent of this object to a game object
 	 */
-	void SetParent(KX_GameObject *obj, bool addToCompound=true, bool ghost=true);
+	void SetParent(KX_GameObject *obj, bool addToCompound = true, bool ghost = true);
 
 	/** 
 	 * Removes the parent of this object to a game object
@@ -284,29 +279,12 @@ public:
 	 * group reference API
 	 *********************************/
 
-		KX_GameObject*
-	GetDupliGroupObject(
-	);
-
-		CListValue<KX_GameObject>*
-	GetInstanceObjects(
-	);
-
-		void
-	SetDupliGroupObject(KX_GameObject*
-	);
-
-		void
-	AddInstanceObjects(KX_GameObject*
-	);
-		
-		void 
-	RemoveDupliGroupObject(
-	);
-
-		void
-	RemoveInstanceObject(KX_GameObject*
-	);
+	KX_GameObject *GetDupliGroupObject();
+	CListValue<KX_GameObject>*GetInstanceObjects();
+	void SetDupliGroupObject(KX_GameObject *gameobj);
+	void AddInstanceObjects(KX_GameObject *gameobj);
+	void RemoveDupliGroupObject();
+	void RemoveInstanceObject(KX_GameObject *gameobj);
 	/*********************************
 	 * Animation API
 	 *********************************/
@@ -382,14 +360,8 @@ public:
 	 * default constructors - use those with care!
 	 */
 
-	KX_GameObject(
-		void* sgReplicationInfo,
-		SG_Callbacks callbacks
-	);
-
-	virtual 
-	~KX_GameObject(
-	);
+	KX_GameObject(void *sgReplicationInfo, SG_Callbacks callbacks);
+	virtual ~KX_GameObject();
 
 	/** 
 	 * \section Stuff which is here due to poor design.
@@ -433,66 +405,43 @@ public:
 	/** 
 	 * Return the linear velocity of the game object.
 	 */
-		MT_Vector3 
-	GetLinearVelocity(
-		bool local=false
-	);
+	MT_Vector3 GetLinearVelocity(bool local = false);
 
 	/** 
 	 * Return the linear velocity of a given point in world coordinate
 	 * but relative to center of object ([0,0,0]=center of object)
 	 */
-		MT_Vector3 
-	GetVelocity(
-		const MT_Vector3& position
-	);
+	MT_Vector3 GetVelocity(const MT_Vector3& position);
 
 	/**
 	 * Return the mass of the object
 	 */
-		MT_Scalar
-	GetMass();
+	MT_Scalar GetMass();
 
 	/**
 	 * Return the local inertia vector of the object
 	 */
-		MT_Vector3
-	GetLocalInertia();
+	MT_Vector3 GetLocalInertia();
 
 	/** 
 	 * Return the angular velocity of the game object.
 	 */
-		MT_Vector3 
-	GetAngularVelocity(
-		bool local=false
-	);
+	MT_Vector3 GetAngularVelocity(bool local = false);
 
 	/** 
 	 * Align the object to a given normal.
 	 */
-		void 
-	AlignAxisToVect(
-		const MT_Vector3& vect,
-		int axis = 2,
-		float fac = 1.0
-	);
+	void AlignAxisToVect(const MT_Vector3& vect, int axis = 2, float fac = 1.0f);
 
 	/** 
 	 * Quick'n'dirty obcolor ipo stuff
 	 */
+	void SetObjectColor(const MT_Vector4& rgbavec);
+	const MT_Vector4& GetObjectColor();
 
-		void
-	SetObjectColor(
-		const MT_Vector4& rgbavec
-	);
-
-		const MT_Vector4&
-	GetObjectColor();
-
-		void 
-	ResolveCombinedVelocities(
-		const MT_Vector3 & lin_vel,
-		const MT_Vector3 & ang_vel,
+	void ResolveCombinedVelocities(
+		const MT_Vector3& lin_vel,
+		const MT_Vector3& ang_vel,
 		bool lin_vel_local,
 		bool ang_vel_local
 	);
@@ -501,7 +450,7 @@ public:
 	 * \return a pointer to the physics controller owned by this class.
 	 */
 
-	PHY_IPhysicsController* GetPhysicsController();
+	PHY_IPhysicsController *GetPhysicsController();
 
 	void SetPhysicsController(PHY_IPhysicsController *physicscontroller)
 	{ 
@@ -558,7 +507,6 @@ public:
 	/**
 	 * \section Coordinate system manipulation functions
 	 */
-
 	void	NodeSetLocalPosition(const MT_Vector3& trans	);
 
 	void	NodeSetLocalOrientation(const MT_Matrix3x3& rot	);
@@ -572,31 +520,28 @@ public:
 	// adapt local position so that world position is set to desired position
 	void	NodeSetWorldPosition(const MT_Vector3& trans);
 
-		void
-	NodeUpdateGS(
-		double time
-	);
+	void NodeUpdateGS(double time);
 
-	const MT_Matrix3x3& NodeGetWorldOrientation(  ) const;
-	const MT_Vector3& NodeGetWorldScaling(  ) const;
-	const MT_Vector3& NodeGetWorldPosition(  ) const;
+	const MT_Matrix3x3& NodeGetWorldOrientation() const;
+	const MT_Vector3& NodeGetWorldScaling() const;
+	const MT_Vector3& NodeGetWorldPosition() const;
 	MT_Transform NodeGetWorldTransform() const;
 
-	const MT_Matrix3x3& NodeGetLocalOrientation(  ) const;
-	const MT_Vector3& NodeGetLocalScaling(  ) const;
-	const MT_Vector3& NodeGetLocalPosition(  ) const;
+	const MT_Matrix3x3& NodeGetLocalOrientation() const;
+	const MT_Vector3& NodeGetLocalScaling() const;
+	const MT_Vector3& NodeGetLocalPosition() const;
 	MT_Transform NodeGetLocalTransform() const;
 
 	/**
 	 * \section scene graph node accessor functions.
 	 */
 
-	SG_Node*	GetSGNode(	) 
+	SG_Node *GetSGNode() 
 	{ 
 		return m_pSGNode;
 	}
 
-	const 	SG_Node* GetSGNode(	) const
+	const SG_Node *GetSGNode() const
 	{ 
 		return m_pSGNode;
 	}
@@ -605,7 +550,7 @@ public:
 	 * \section blender object accessor functions.
 	 */
 
-	struct Object* GetBlenderObject( )
+	struct Object* GetBlenderObject()
 	{
 		return m_pBlenderObject;
 	}
@@ -616,7 +561,7 @@ public:
 		copy_m4_m4(m_savedObmat, obj->obmat);
 	}
 
-	struct Object* GetBlenderGroupObject( )
+	struct Object* GetBlenderGroupObject()
 	{
 		return m_pBlenderGroupObject;
 	}
@@ -641,20 +586,19 @@ public:
 	 * old node. This class takes ownership of the new
 	 * node.
 	 */
-		void	SetSGNode(SG_Node* node	)
-		{ 
-			m_pSGNode = node; 
-		}
+	void SetSGNode(SG_Node *node)
+	{ 
+		m_pSGNode = node; 
+	}
 	
 	/// Is it a dynamic/physics object ?
 	bool IsDynamic() const;
-
 	bool IsDynamicsSuspended() const;
 
 	/**
 	 * Check if this object has a vertex parent relationship
 	 */
-	bool IsVertexParent( )
+	bool IsVertexParent()
 	{
 		return (m_pSGNode && m_pSGNode->GetSGParent() && m_pSGNode->GetSGParent()->IsVertexParent());
 	}
@@ -675,46 +619,13 @@ public:
 	 * place.
 	 */
 
-		void
-	ApplyForce(
-		const MT_Vector3& force,	bool local
-	);
-
-		void
-	ApplyTorque(
-		const MT_Vector3& torque,
-		bool local
-	);
-
-		void
-	ApplyRotation(
-		const MT_Vector3& drot,
-		bool local
-	);
-
-		void
-	ApplyMovement(
-		const MT_Vector3& dloc,
-		bool local
-	);
-
-		void
-	addLinearVelocity(
-		const MT_Vector3& lin_vel,
-		bool local
-	);
-
-		void
-	setLinearVelocity(
-		const MT_Vector3& lin_vel,
-		bool local
-	);
-
-		void
-	setAngularVelocity(
-		const MT_Vector3& ang_vel,
-		bool local
-	);
+	void ApplyForce(const MT_Vector3& force, bool local);
+	void ApplyTorque(const MT_Vector3& torque, bool local);
+	void ApplyRotation(const MT_Vector3& drot, bool local);
+	void ApplyMovement(const MT_Vector3& dloc, bool local);
+	void addLinearVelocity(const MT_Vector3& lin_vel, bool local);
+	void setLinearVelocity(const MT_Vector3& lin_vel, bool local);
+	void setAngularVelocity(const MT_Vector3& ang_vel, bool local);
 
 	virtual float	getLinearDamping() const;
 	virtual float	getAngularDamping() const;
@@ -726,42 +637,30 @@ public:
 	 * Update the physics object transform based upon the current SG_Node
 	 * position.
 	 */
-		void
-	UpdateTransform(
-	);
+	void UpdateTransform();
 
-	static void UpdateTransformFunc(SG_Node* node, void* gameobj, void* scene);
+	static void UpdateTransformFunc(SG_Node *node, void *gameobj, void *scene);
 
 	/**
 	 * only used for sensor objects
 	 */
 	void SynchronizeTransform();
 
-	static void SynchronizeTransformFunc(SG_Node* node, void* gameobj, void* scene);
+	static void SynchronizeTransformFunc(SG_Node *node, void *gameobj, void *scene);
 
 	/**
 	 * Function to set IPO option at start of IPO
 	 */ 
-		void
-	InitIPO(
-		bool ipo_as_force,
-		bool ipo_add,
-		bool ipo_local
-	);
+	void InitIPO(bool ipo_as_force, bool ipo_add, bool ipo_local);
 
 	/**
 	 * Odd function to update an ipo. ???
 	 */ 
-		void
-	UpdateIPO(
-		float curframetime,
-		bool recurse
-	);
+	void UpdateIPO(float curframetime, bool recurse);
 
 	/**
 	 * \section Mesh accessor functions.
 	 */
-
 	void AddBoundingBox();
 
 	/**
@@ -790,7 +689,7 @@ public:
 	 * Make sure you call RemoveMeshes() before deleting the
 	 * mesh though,
 	 */
-	void SetRasMeshObject(RAS_MeshObject* meshobj);
+	void SetRasMeshObject(RAS_MeshObject *meshobj);
 
 	/**
 	* Pick out a mesh associated with the integer 'num'.
@@ -817,69 +716,52 @@ public:
 	 * Was this object marked visible? (only for the explicit
 	 * visibility system).
 	 */
-		bool
-	GetVisible(
-		void
-	);
+	bool GetVisible();
 
 	/**
 	 * Set visibility flag of this object
 	 */
-		void
-	SetVisible(
-		bool b,
-		bool recursive
-	);
+	void SetVisible(bool b, bool recursive);
 
 	/**
 	 * Was this object culled?
 	 */
-	inline bool
-	GetCulled(
-		void
-	) { return m_cullingNode.GetCulled(); }
+	inline bool	GetCulled()
+	{
+		return m_cullingNode.GetCulled();
+	}
 
 	/**
 	 * Set culled flag of this object
 	 */
-	inline void
-	SetCulled(
-		bool c
-	) { m_cullingNode.SetCulled(c); }
+	inline void	SetCulled(bool c)
+	{
+		m_cullingNode.SetCulled(c);
+	}
 	
 	/**
 	 * Is this object an occluder?
 	 */
-	inline bool
-	GetOccluder(
-		void
-	) { return m_bOccluder; }
+	inline bool	GetOccluder()
+	{
+		return m_bOccluder;
+	}
 
 	/**
 	 * Set occluder flag of this object
 	 */
-	void
-	SetOccluder(
-		bool v,
-		bool recursive
-	);
+	void SetOccluder(bool v, bool recursive);
 	
 	/**
 	 * Change the layer of the object (when it is added in another layer
 	 * than the original layer)
 	 */
-	virtual void
-	SetLayer(
-		int l
-	);
+	virtual void SetLayer(int l);
 
 	/**
 	 * Get the object layer
 	 */
-		int
-	GetLayer(
-		void
-	);
+	int	GetLayer();
 
 	/// Allow auto updating bounding volume box.
 	inline void SetAutoUpdateBounds(bool autoUpdate)
@@ -908,10 +790,10 @@ public:
 	/**
 	 * Get the negative scaling state
 	 */
-		bool
-	IsNegativeScaling(
-		void
-	) { return m_bIsNegativeScaling; }
+	bool IsNegativeScaling()
+	{
+		return m_bIsNegativeScaling;
+	}
 
 	/**
 	 * \section Logic bubbling methods.
@@ -923,24 +805,27 @@ public:
 	/**
 	 * Stop making progress
 	 */
-	void Suspend(void);
+	void Suspend();
 
 	/**
 	 * Resume making progress
 	 */
-	void Resume(void);
+	void Resume();
 
 	/**
 	 * add debug object to the debuglist.
 	 */
 	void SetUseDebugProperties(bool debug, bool recursive);
 
-	KX_ClientObjectInfo* getClientInfo() { return m_pClient_info; }
+	KX_ClientObjectInfo *getClientInfo()
+	{
+		return m_pClient_info;
+	}
 	
 	CListValue<KX_GameObject> *GetChildren();
 	CListValue<KX_GameObject> *GetChildrenRecursive();
 
-	KX_Scene*	GetScene();
+	KX_Scene *GetScene();
 
 #ifdef WITH_PYTHON
 	/**
@@ -951,50 +836,50 @@ public:
 		return PyUnicode_FromStdString(GetName());
 	}
 
-	KX_PYMETHOD_O(KX_GameObject,SetWorldPosition);
+	KX_PYMETHOD_O(KX_GameObject, SetWorldPosition);
 	KX_PYMETHOD_VARARGS(KX_GameObject, ApplyForce);
 	KX_PYMETHOD_VARARGS(KX_GameObject, ApplyTorque);
 	KX_PYMETHOD_VARARGS(KX_GameObject, ApplyRotation);
 	KX_PYMETHOD_VARARGS(KX_GameObject, ApplyMovement);
-	KX_PYMETHOD_VARARGS(KX_GameObject,GetLinearVelocity);
-	KX_PYMETHOD_VARARGS(KX_GameObject,SetLinearVelocity);
-	KX_PYMETHOD_VARARGS(KX_GameObject,GetAngularVelocity);
-	KX_PYMETHOD_VARARGS(KX_GameObject,SetAngularVelocity);
-	KX_PYMETHOD_VARARGS(KX_GameObject,GetVelocity);
-	KX_PYMETHOD_VARARGS(KX_GameObject,SetDamping);
+	KX_PYMETHOD_VARARGS(KX_GameObject, GetLinearVelocity);
+	KX_PYMETHOD_VARARGS(KX_GameObject, SetLinearVelocity);
+	KX_PYMETHOD_VARARGS(KX_GameObject, GetAngularVelocity);
+	KX_PYMETHOD_VARARGS(KX_GameObject, SetAngularVelocity);
+	KX_PYMETHOD_VARARGS(KX_GameObject, GetVelocity);
+	KX_PYMETHOD_VARARGS(KX_GameObject, SetDamping);
 
-	KX_PYMETHOD_NOARGS(KX_GameObject,GetReactionForce);
+	KX_PYMETHOD_NOARGS(KX_GameObject, GetReactionForce);
 
 
-	KX_PYMETHOD_NOARGS(KX_GameObject,GetVisible);
-	KX_PYMETHOD_VARARGS(KX_GameObject,SetVisible);
-	KX_PYMETHOD_VARARGS(KX_GameObject,SetOcclusion);
-	KX_PYMETHOD_NOARGS(KX_GameObject,GetState);
-	KX_PYMETHOD_O(KX_GameObject,SetState);
-	KX_PYMETHOD_VARARGS(KX_GameObject,AlignAxisToVect);
-	KX_PYMETHOD_O(KX_GameObject,GetAxisVect);
-	KX_PYMETHOD_VARARGS(KX_GameObject,SuspendPhysics);
-	KX_PYMETHOD_NOARGS(KX_GameObject,RestorePhysics);
-	KX_PYMETHOD_VARARGS(KX_GameObject,SuspendDynamics);
-	KX_PYMETHOD_NOARGS(KX_GameObject,RestoreDynamics);
-	KX_PYMETHOD_NOARGS(KX_GameObject,EnableRigidBody);
-	KX_PYMETHOD_NOARGS(KX_GameObject,DisableRigidBody);
-	KX_PYMETHOD_VARARGS(KX_GameObject,ApplyImpulse);
-	KX_PYMETHOD_O(KX_GameObject,SetCollisionMargin);
-	KX_PYMETHOD_NOARGS(KX_GameObject,GetParent);
-	KX_PYMETHOD_VARARGS(KX_GameObject,SetParent);
-	KX_PYMETHOD_NOARGS(KX_GameObject,RemoveParent);
-	KX_PYMETHOD_NOARGS(KX_GameObject,GetChildren);
-	KX_PYMETHOD_NOARGS(KX_GameObject,GetChildrenRecursive);
-	KX_PYMETHOD_VARARGS(KX_GameObject,GetMesh);
-	KX_PYMETHOD_NOARGS(KX_GameObject,GetPhysicsId);
-	KX_PYMETHOD_NOARGS(KX_GameObject,GetPropertyNames);
-	KX_PYMETHOD_VARARGS(KX_GameObject,ReplaceMesh);
-	KX_PYMETHOD_NOARGS(KX_GameObject,EndObject);
-	KX_PYMETHOD_DOC(KX_GameObject,rayCastTo);
-	KX_PYMETHOD_DOC(KX_GameObject,rayCast);
-	KX_PYMETHOD_DOC_O(KX_GameObject,getDistanceTo);
-	KX_PYMETHOD_DOC_O(KX_GameObject,getVectTo);
+	KX_PYMETHOD_NOARGS(KX_GameObject, GetVisible);
+	KX_PYMETHOD_VARARGS(KX_GameObject, SetVisible);
+	KX_PYMETHOD_VARARGS(KX_GameObject, SetOcclusion);
+	KX_PYMETHOD_NOARGS(KX_GameObject, GetState);
+	KX_PYMETHOD_O(KX_GameObject, SetState);
+	KX_PYMETHOD_VARARGS(KX_GameObject, AlignAxisToVect);
+	KX_PYMETHOD_O(KX_GameObject, GetAxisVect);
+	KX_PYMETHOD_VARARGS(KX_GameObject, SuspendPhysics);
+	KX_PYMETHOD_NOARGS(KX_GameObject, RestorePhysics);
+	KX_PYMETHOD_VARARGS(KX_GameObject, SuspendDynamics);
+	KX_PYMETHOD_NOARGS(KX_GameObject, RestoreDynamics);
+	KX_PYMETHOD_NOARGS(KX_GameObject, EnableRigidBody);
+	KX_PYMETHOD_NOARGS(KX_GameObject, DisableRigidBody);
+	KX_PYMETHOD_VARARGS(KX_GameObject, ApplyImpulse);
+	KX_PYMETHOD_O(KX_GameObject, SetCollisionMargin);
+	KX_PYMETHOD_NOARGS(KX_GameObject, GetParent);
+	KX_PYMETHOD_VARARGS(KX_GameObject, SetParent);
+	KX_PYMETHOD_NOARGS(KX_GameObject, RemoveParent);
+	KX_PYMETHOD_NOARGS(KX_GameObject, GetChildren);
+	KX_PYMETHOD_NOARGS(KX_GameObject, GetChildrenRecursive);
+	KX_PYMETHOD_VARARGS(KX_GameObject, GetMesh);
+	KX_PYMETHOD_NOARGS(KX_GameObject, GetPhysicsId);
+	KX_PYMETHOD_NOARGS(KX_GameObject, GetPropertyNames);
+	KX_PYMETHOD_VARARGS(KX_GameObject, ReplaceMesh);
+	KX_PYMETHOD_NOARGS(KX_GameObject, EndObject);
+	KX_PYMETHOD_DOC(KX_GameObject, rayCastTo);
+	KX_PYMETHOD_DOC(KX_GameObject, rayCast);
+	KX_PYMETHOD_DOC_O(KX_GameObject, getDistanceTo);
+	KX_PYMETHOD_DOC_O(KX_GameObject, getVectTo);
 	KX_PYMETHOD_DOC_VARARGS(KX_GameObject, sendMessage);
 	KX_PYMETHOD_VARARGS(KX_GameObject, ReinstancePhysicsMesh);
 	KX_PYMETHOD_O(KX_GameObject, ReplacePhysicsShape);
@@ -1008,7 +893,7 @@ public:
 	KX_PYMETHOD_DOC(KX_GameObject, isPlayingAction);
 	
 	/* Dict access */
-	KX_PYMETHOD_VARARGS(KX_GameObject,get);
+	KX_PYMETHOD_VARARGS(KX_GameObject, get);
 	
 	/* attributes */
 	static PyObject*	pyattr_get_name(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
@@ -1101,10 +986,8 @@ public:
 	
 	/* getitem/setitem */
 	static PyMappingMethods	Mapping;
-	static PySequenceMethods	Sequence;
-#endif
+	static PySequenceMethods Sequence;
+#endif // WITH_PYTHON
 };
-
-
 
 #endif  /* __KX_GAMEOBJECT_H__ */
