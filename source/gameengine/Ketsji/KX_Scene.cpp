@@ -643,6 +643,79 @@ static void light_tag_shadow_update(KX_LightObject *light, KX_GameObject *gameob
 	}
 }
 
+/* Update buffer with lamp data */
+static void eevee_light_setup(Object *ob, EEVEE_Light *evli)
+{
+	Lamp *la = (Lamp *)ob->data;
+	float mat[4][4], scale[3], power;
+
+	/* Position */
+	copy_v3_v3(evli->position, ob->obmat[3]);
+
+	/* Color */
+	copy_v3_v3(evli->color, &la->r);
+
+	/* Influence Radius */
+	evli->dist = la->dist;
+
+	/* Vectors */
+	normalize_m4_m4_ex(mat, ob->obmat, scale);
+	copy_v3_v3(evli->forwardvec, mat[2]);
+	normalize_v3(evli->forwardvec);
+	negate_v3(evli->forwardvec);
+
+	copy_v3_v3(evli->rightvec, mat[0]);
+	normalize_v3(evli->rightvec);
+
+	copy_v3_v3(evli->upvec, mat[1]);
+	normalize_v3(evli->upvec);
+
+	/* Spot size & blend */
+	if (la->type == LA_SPOT) {
+		evli->sizex = scale[0] / scale[2];
+		evli->sizey = scale[1] / scale[2];
+		evli->spotsize = cosf(la->spotsize * 0.5f);
+		evli->spotblend = (1.0f - evli->spotsize) * la->spotblend;
+		evli->radius = max_ff(0.001f, la->area_size);
+	}
+	else if (la->type == LA_AREA) {
+		evli->sizex = max_ff(0.0001f, la->area_size * scale[0] * 0.5f);
+		if (la->area_shape == LA_AREA_RECT) {
+			evli->sizey = max_ff(0.0001f, la->area_sizey * scale[1] * 0.5f);
+		}
+		else {
+			evli->sizey = max_ff(0.0001f, la->area_size * scale[1] * 0.5f);
+		}
+	}
+	else {
+		evli->radius = max_ff(0.001f, la->area_size);
+	}
+
+	/* Make illumination power constant */
+	if (la->type == LA_AREA) {
+		power = 1.0f / (evli->sizex * evli->sizey * 4.0f * M_PI) * /* 1/(w*h*Pi) */
+			80.0f; /* XXX : Empirical, Fit cycles power */
+	}
+	else if (la->type == LA_SPOT || la->type == LA_LOCAL) {
+		power = 1.0f / (4.0f * evli->radius * evli->radius * M_PI * M_PI) * /* 1/(4*r²*Pi²) */
+			M_PI * M_PI * 10.0; /* XXX : Empirical, Fit cycles power */
+
+								/* for point lights (a.k.a radius == 0.0) */
+								// power = M_PI * M_PI * 0.78; /* XXX : Empirical, Fit cycles power */
+	}
+	else {
+		power = 1.0f / (4.0f * evli->radius * evli->radius * M_PI * M_PI) * /* 1/(r²*Pi) */
+			12.5f; /* XXX : Empirical, Fit cycles power */
+	}
+	mul_v3_fl(evli->color, power * la->energy);
+
+	/* Lamp Type */
+	evli->lamptype = (float)la->type;
+
+	/* No shadow by default */
+	evli->shadowid = -1.0f;
+}
+
 /* End of Shadows utils */
 
 /* Update shadows (update light position and tag shadow cubes for update (led->needs_update)) */
@@ -667,6 +740,9 @@ void KX_Scene::UpdateShadows(RAS_Rasterizer *rasty)
 		LightShadowType shadowtype = la->type != LA_SUN ? SHADOW_CUBE : SHADOW_CASCADE;
 
 		if (shadowtype == SHADOW_CUBE) {
+			EEVEE_ShadowCubeData *sh_data = &led->data.scd;
+			EEVEE_Light *evli = linfo->light_data + sh_data->light_id;
+			eevee_light_setup(ob, evli);
 			for (KX_GameObject *gameob : GetObjectList()) {
 				Object *blenob = gameob->GetBlenderObject();
 				if (blenob && ELEM(blenob->type, OB_MESH, OB_CURVE, OB_SURF, OB_FONT)) {
