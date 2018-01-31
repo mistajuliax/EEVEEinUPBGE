@@ -62,8 +62,6 @@ public:
 	RAS_MaterialBucket *GetBucket() const;
 	RAS_IDisplayArray *GetDisplayArray() const;
 	RAS_DisplayArrayBucket *GetDisplayArrayBucket() const;
-
-	void ReplaceMaterial(RAS_MaterialBucket *bucket);
 };
 
 using RAS_MeshMaterialList = std::vector<RAS_MeshMaterial *>;

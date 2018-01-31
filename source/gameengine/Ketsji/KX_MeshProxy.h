@@ -73,7 +73,6 @@ public:
 	KX_PYMETHOD(KX_MeshProxy, GetPolygon);
 	KX_PYMETHOD(KX_MeshProxy, Transform);
 	KX_PYMETHOD(KX_MeshProxy, TransformUV);
-	KX_PYMETHOD(KX_MeshProxy, ReplaceMaterial);
 
 	static PyObject *pyattr_get_materials(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
 	static PyObject *pyattr_get_numMaterials(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);

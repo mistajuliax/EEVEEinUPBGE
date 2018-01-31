@@ -154,8 +154,3 @@ const RAS_VertexFormat& RAS_IDisplayArray::GetFormat() const
 {
 	return m_format;
 }
-
-RAS_IDisplayArray::Type RAS_IDisplayArray::GetType() const
-{
-	return NORMAL;
-}

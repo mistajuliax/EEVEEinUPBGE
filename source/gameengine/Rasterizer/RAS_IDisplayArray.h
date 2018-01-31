@@ -40,11 +40,6 @@ public:
 		LINES,
 	};
 
-	enum Type {
-		NORMAL,
-		BATCHING
-	};
-
 protected:
 	/// The display array primitive type.
 	PrimitiveType m_type;
@@ -184,9 +179,6 @@ public:
 
 	/// Return the vertex format used.
 	const RAS_VertexFormat& GetFormat() const;
-
-	/// Return the type of the display array.
-	virtual Type GetType() const;
 };
 
 typedef std::vector<RAS_IDisplayArray *> RAS_IDisplayArrayList;

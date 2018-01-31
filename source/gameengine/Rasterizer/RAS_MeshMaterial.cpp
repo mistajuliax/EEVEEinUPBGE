@@ -60,12 +60,3 @@ RAS_DisplayArrayBucket *RAS_MeshMaterial::GetDisplayArrayBucket() const
 {
 	return m_displayArrayBucket;
 }
-
-void RAS_MeshMaterial::ReplaceMaterial(RAS_MaterialBucket *bucket)
-{
-	// Avoid replacing the by the same material bucket.
-	if (m_bucket != bucket) {
-		m_bucket->MoveDisplayArrayBucket(this, bucket);
-		m_bucket = bucket;
-	}
-}

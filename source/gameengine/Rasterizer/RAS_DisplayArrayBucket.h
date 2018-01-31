@@ -49,19 +49,6 @@ class RAS_Deformer;
 class RAS_DisplayArrayBucket
 {
 private:
-	enum NodeType {
-		NODE_DOWNWARD_NORMAL = 0,
-// 		NODE_DOWNWARD_DERIVED_MESH,
-		NODE_DOWNWARD_CUBE_MAP,
-		NODE_DOWNWARD_INSTANCING,
-		NODE_DOWNWARD_BATCHING,
-		NODE_DOWNWARD_TYPE_MAX,
-
-		NODE_UPWARD_NORMAL = 0,
-		NODE_UPWARD_NO_ARRAY,
-		NODE_UPWARD_TYPE_MAX
-	};
-
 	/// The parent bucket.
 	RAS_MaterialBucket *m_bucket;
 	/// The display array = list of vertexes and indexes.
@@ -83,9 +70,6 @@ public:
 	RAS_IDisplayArray *GetDisplayArray() const;
 	RAS_MeshObject *GetMesh() const;
 	RAS_MeshMaterial *GetMeshMaterial() const;
-
-	/// \section Render Infos
-	bool UseBatching() const;
 
 	/// Replace the material bucket of this display array bucket by the one given.
 	void ChangeMaterialBucket(RAS_MaterialBucket *bucket);

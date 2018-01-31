@@ -54,12 +54,10 @@ RAS_DisplayArrayBucket::RAS_DisplayArrayBucket(RAS_MaterialBucket *bucket, RAS_I
 	m_meshMaterial(meshmat),
 	m_deformer(deformer)
 {
-	//m_bucket->AddDisplayArrayBucket(this);
 }
 
 RAS_DisplayArrayBucket::~RAS_DisplayArrayBucket()
 {
-	//m_bucket->RemoveDisplayArrayBucket(this);
 }
 
 RAS_MaterialBucket *RAS_DisplayArrayBucket::GetBucket() const
@@ -80,11 +78,6 @@ RAS_MeshObject *RAS_DisplayArrayBucket::GetMesh() const
 RAS_MeshMaterial *RAS_DisplayArrayBucket::GetMeshMaterial() const
 {
 	return m_meshMaterial;
-}
-
-bool RAS_DisplayArrayBucket::UseBatching() const
-{
-	return (m_displayArray && m_displayArray->GetType() == RAS_IDisplayArray::BATCHING);
 }
 
 void RAS_DisplayArrayBucket::ChangeMaterialBucket(RAS_MaterialBucket *bucket)
