@@ -115,9 +115,6 @@ protected:
 	bool m_updateShadows;
 
 	/*****************************END OF EEVEE INTEGRATION***********************************/
-	RAS_BoundingBox *m_boundingBox;
-	float m_gameobjMatrix[16];
-	/*******************************/
 
 	KX_ClientObjectInfo*				m_pClient_info;
 	std::string							m_name;
@@ -158,6 +155,10 @@ protected:
 	BL_ActionManager*					m_actionManager;
 	BL_ActionManager* GetActionManager();
 
+	RAS_BoundingBox *m_boundingBox;
+
+	float m_gameobjMatrix[16];
+
 public:
 
 	KX_GameObject(void *sgReplicationInfo, SG_Callbacks callbacks);
@@ -165,7 +166,7 @@ public:
 
 	KX_Scene *GetScene();
 
-	/* Inherited from CValue */
+	/*************************CVALUE***************************/
 	virtual const std::string GetText();
 	/* Inherited from CValue -- returns the name of this object */
 	virtual std::string GetName();
@@ -178,7 +179,9 @@ public:
 	/* Makes sure any internal
 	 * data owned by this class is deep copied. Called internally */
 	virtual void ProcessReplica();
+	/********************End of CVALUE************************/
 
+	/*********************CLIENT OBJECT***********************/
 	/* Helper function for modules that can't include KX_ClientObjectInfo.h */
 	static KX_GameObject* GetClientObject(KX_ClientObjectInfo* info);
 	/* This function should be virtual - derived classed override it */
@@ -195,6 +198,7 @@ public:
 	{
 		return m_pClient_info;
 	}
+	/******************End of CLIENT OBJECT********************/
 
 	/******************************** EEVEE INTEGRATION *************************************/
 	void SetKXGameObjectCallsPointer(); // Used to identify a DRWCall in the cache
@@ -231,9 +235,192 @@ public:
 
 	void SetObjectColor(const MT_Vector4& color);
 	const MT_Vector4& GetObjectColor();
-	/****************************End of EEVEE INTEGRATION *************************************/
+	/****************************End of EEVEE INTEGRATION *****************/
 
-	/*******************************PARENT RELATION********************************************/
+	/***********************DEFORMER****************************/
+	virtual class RAS_Deformer* GetDeformer()
+	{
+		return 0;
+	}
+	virtual void SetDeformer(class RAS_Deformer* deformer)
+	{
+
+	}
+	/* Return true when the game object is a BL_DeformableGameObject */
+	virtual bool IsDeformable() const
+	{
+		return false;
+	}
+	/*******************End of DEFORMER*************************/
+
+	/********************GAMEOBJECT MESH***************************/
+	RAS_MeshObject *GetRasMeshObject() const;
+	void SetRasMeshObject(RAS_MeshObject *meshobj);
+	void RemoveRasMeshObject();
+	virtual void AddDisplayArrays(); // Read only Display arrays
+	/***************End of GAMEOBJECT MESH*************************/
+
+	/*******************LEVEL OF DETAIL****************************/
+	/* Set current lod manager, can be nullptr.
+	 * If nullptr the object's mesh backs to the mesh of the previous first lod level */
+	void SetLodManager(KX_LodManager *lodManager);
+	/// Get current lod manager.
+	KX_LodManager *GetLodManager() const;
+
+	/* Updates the current lod level based on distance from camera */
+	void UpdateLod(const MT_Vector3& cam_pos, float lodfactor);
+	/****************End of LEVEL OF DETAIL************************/
+
+	/*****************VISIBILITY/CULLING***************************/
+	/* Was this object marked visible? (only for the explicit visibility system) */
+	bool GetVisible();
+	/* Set visibility flag of this object */
+	void SetVisible(bool b, bool recursive);
+
+	/* Return true when the object can be culled */
+	bool UseCulling() const;
+	KX_CullingNode *GetCullingNode();
+
+	/* Set occluder flag of this object */
+	void SetOccluder(bool v, bool recursive);
+
+	/* Change the layer of the object */
+	virtual void SetLayer(int l);
+	/* Get the object layer */
+	int	GetLayer();
+
+	/* Was this object culled? */
+	inline bool	GetCulled()
+	{
+		return m_cullingNode.GetCulled();
+	}
+	/* Set culled flag of this object */
+	inline void	SetCulled(bool c)
+	{
+		m_cullingNode.SetCulled(c);
+	}
+	/* Is this object an occluder? */
+	inline bool	GetOccluder()
+	{
+		return m_bOccluder;
+	}
+	/*************************End of VISIBILITY/CULLING**************/
+
+	/***********************BOUNDING BOX*****************************/
+	/** Update the game object bounding box (AABB) by using the one existing in the
+	* mesh or the mesh deformer.
+	* \param force Force the AABB update even if the object doesn't allow auto update or if the mesh is
+	* not modified like in the case of mesh replacement or object duplication.
+	* \warning Should be called when the game object contains a valid scene graph node
+	* and a valid graphic controller (if it exists).
+	*/
+	void UpdateBounds(bool force);
+	void SetBoundsAabb(MT_Vector3 aabbMin, MT_Vector3 aabbMax);
+	void GetBoundsAabb(MT_Vector3 &aabbMin, MT_Vector3 &aabbMax) const;
+	void AddBoundingBox();
+	RAS_BoundingBox *GetBoundingBox() const;
+
+	/* Allow auto updating bounding volume box */
+	inline void SetAutoUpdateBounds(bool autoUpdate)
+	{
+		m_autoUpdateBounds = autoUpdate;
+	}
+
+	inline bool GetAutoUpdateBounds() const
+	{
+		return m_autoUpdateBounds;
+	}
+	/**************************End of BOUNDING BOX************************/
+
+	/****************************OBJECT/MATRIX****************************/
+	void UpdateBlenderObjectMatrix(Object* blendobj = nullptr);
+	float *GetGameObjectMatrix();
+
+	KX_GameObject *GetDupliGroupObject();
+	void SetDupliGroupObject(KX_GameObject *gameobj);
+	void RemoveDupliGroupObject();
+
+	CListValue<KX_GameObject>*GetInstanceObjects();
+	void AddInstanceObjects(KX_GameObject *gameobj);
+	void RemoveInstanceObject(KX_GameObject *gameobj);
+
+	virtual void UpdateBuckets();
+
+	struct Object *GetBlenderObject()
+	{
+		return m_pBlenderObject;
+	}
+	void SetBlenderObject(struct Object* obj)
+	{
+		m_pBlenderObject = obj;
+		copy_m4_m4(m_savedObmat, obj->obmat); // Save blender object matrix here to restore it at ge exit
+	}
+	struct Object *GetBlenderGroupObject()
+	{
+		return m_pBlenderGroupObject;
+	}
+	void SetBlenderGroupObject(struct Object* obj)
+	{
+		m_pBlenderGroupObject = obj;
+	}
+	bool IsDupliGroup()
+	{
+		return (m_pBlenderObject &&
+			(m_pBlenderObject->transflag & OB_DUPLIGROUP) &&
+			m_pBlenderObject->dup_group != nullptr) ? true : false;
+	}
+	/*****************End of OBJECT/MATRIX********************/
+
+	/*********************SCENE GRAPH*************************/
+	void NodeSetLocalPosition(const MT_Vector3& trans);
+	void NodeSetLocalOrientation(const MT_Matrix3x3& rot);
+	void NodeSetGlobalOrientation(const MT_Matrix3x3& rot);
+	void NodeSetLocalScale(const MT_Vector3& scale);
+	void NodeSetWorldScale(const MT_Vector3& scale);
+	void NodeSetRelativeScale(const MT_Vector3& scale);
+	/* adapt local position so that world position is set to desired position */
+	void NodeSetWorldPosition(const MT_Vector3& trans);
+
+	const MT_Matrix3x3& NodeGetWorldOrientation() const;
+	const MT_Matrix3x3& NodeGetLocalOrientation() const;
+	const MT_Vector3& NodeGetWorldScaling() const;
+	const MT_Vector3& NodeGetLocalScaling() const;
+	const MT_Vector3& NodeGetWorldPosition() const;
+	const MT_Vector3& NodeGetLocalPosition() const;
+	MT_Transform NodeGetWorldTransform() const;
+	MT_Transform NodeGetLocalTransform() const;
+
+	void NodeUpdateGS(double time); // Important function to update SceneGraph
+
+	void AlignAxisToVect(const MT_Vector3& vect, int axis = 2, float fac = 1.0f);
+
+	const SG_Node *GetSGNode() const
+	{
+		return m_pSGNode;
+	}
+	SG_Node *GetSGNode()
+	{
+		return m_pSGNode;
+	}
+	/* Set the Scene graph node for this game object.
+	* warning - it is your responsibility to make sure
+	* all controllers look at this new node. You must
+	* also take care of the memory associated with the
+	* old node. This class takes ownership of the new
+	* node
+	*/
+	void SetSGNode(SG_Node *node)
+	{
+		m_pSGNode = node;
+	}
+	/* Get the negative scaling state */
+	bool IsNegativeScaling()
+	{
+		return m_bIsNegativeScaling;
+	}
+	/******************************End of SCENE GRAPH********************************/
+
+	/*******************************PARENT RELATION**********************************/
 	KX_GameObject *GetParent();
 	/* Sets the parent of this object to a game object */
 	void SetParent(KX_GameObject *obj, bool addToCompound = true, bool ghost = true);
@@ -246,17 +433,7 @@ public:
 	{
 		return (m_pSGNode && m_pSGNode->GetSGParent() && m_pSGNode->GetSGParent()->IsVertexParent());
 	}
-	/***********************End of PARENT RELATION*************************/
-
-	/***************************GROUPS*************************************/
-	KX_GameObject *GetDupliGroupObject();
-	void SetDupliGroupObject(KX_GameObject *gameobj);
-	void RemoveDupliGroupObject();
-
-	CListValue<KX_GameObject>*GetInstanceObjects();
-	void AddInstanceObjects(KX_GameObject *gameobj);
-	void RemoveInstanceObject(KX_GameObject *gameobj);
-	/***********************End of GROUPS**********************************/
+	/***********************End of PARENT RELATION***********************************/
 
 	/***************************ANIMATION**********************************/
 	/* Adds an action to the object's action manager */
@@ -298,15 +475,6 @@ public:
 	/* Odd function to update an ipo. ??? */
 	void UpdateIPO(float curframetime, bool recurse);
 	/***********************End of ANIMATION*********************************/
-
-	/*****************************CONSTRAINTS********************************/
-	/* Used for constraint replication for group instances.
-	 * The list of constraints is filled during data conversion.
-	 */
-	void AddConstraint(bRigidBodyJointConstraint *cons);
-	std::vector<bRigidBodyJointConstraint*> GetConstraints();
-	void ClearConstraints();
-	/*************************End of CONSTRAINTS*****************************/
 
 	/*********************************PHYSICS********************************/
 	void ApplyForce(const MT_Vector3& force, bool local);
@@ -378,188 +546,21 @@ public:
 	void UnregisterCollisionCallbacks();
 	void RunCollisionCallbacks(KX_GameObject *collider, KX_CollisionContactPointList& contactPointList);
 
-	/********************End of PHYSICS*************************/
-
-
-	/***********************DEFORMER****************************/
-	virtual class RAS_Deformer* GetDeformer()
-	{
-		return 0;
-	}
-	virtual void SetDeformer(class RAS_Deformer* deformer)
-	{
-
-	}
-	/* Return true when the game object is a BL_DeformableGameObject */
-	virtual bool IsDeformable() const
-	{
-		return false;
-	}
-	/*******************End of DEFORMER*************************/
-
-
-
-	/********************* SCENE GRAPH*************************/
-	void NodeSetLocalPosition(const MT_Vector3& trans);
-	void NodeSetLocalOrientation(const MT_Matrix3x3& rot);
-	void NodeSetGlobalOrientation(const MT_Matrix3x3& rot);
-	void NodeSetLocalScale(const MT_Vector3& scale);
-	void NodeSetWorldScale(const MT_Vector3& scale);
-	void NodeSetRelativeScale(const MT_Vector3& scale);
-	/* adapt local position so that world position is set to desired position */
-	void NodeSetWorldPosition(const MT_Vector3& trans);
-
-	void NodeUpdateGS(double time); // Important function to update SceneGraph
-
-	const MT_Matrix3x3& NodeGetWorldOrientation() const;
-	const MT_Vector3& NodeGetWorldScaling() const;
-	const MT_Vector3& NodeGetWorldPosition() const;
-	MT_Transform NodeGetWorldTransform() const;
-	const MT_Matrix3x3& NodeGetLocalOrientation() const;
-	const MT_Vector3& NodeGetLocalScaling() const;
-	const MT_Vector3& NodeGetLocalPosition() const;
-	MT_Transform NodeGetLocalTransform() const;
-	const SG_Node *GetSGNode() const
-	{
-		return m_pSGNode;
-	}
-	SG_Node *GetSGNode()
-	{
-		return m_pSGNode;
-	}
-	/* Set the Scene graph node for this game object.
-	* warning - it is your responsibility to make sure
-	* all controllers look at this new node. You must
-	* also take care of the memory associated with the
-	* old node. This class takes ownership of the new
-	* node
-	*/
-	void SetSGNode(SG_Node *node)
-	{
-		m_pSGNode = node;
-	}
-	/* Get the negative scaling state */
-	bool IsNegativeScaling()
-	{
-		return m_bIsNegativeScaling;
-	}
 	static void UpdateTransformFunc(SG_Node *node, void *gameobj, void *scene);
 	/* Only used for sensor objects	*/
 	void SynchronizeTransform();
 	static void SynchronizeTransformFunc(SG_Node *node, void *gameobj, void *scene);
 
-	void AlignAxisToVect(const MT_Vector3& vect, int axis = 2, float fac = 1.0f);
-	/******************************End of SCENE GRAPH********************************/
+	/********************End of PHYSICS*************************/
 
-
-
-	/*********************************BLENDER OBJECT*********************************/
-	void UpdateBlenderObjectMatrix(Object* blendobj = nullptr);
-	float *GetGameObjectMatrix();
-	struct Object *GetBlenderObject()
-	{
-		return m_pBlenderObject;
-	}
-	void SetBlenderObject(struct Object* obj)
-	{
-		m_pBlenderObject = obj;
-		copy_m4_m4(m_savedObmat, obj->obmat); // Save blender object matrix here to restore it at ge exit
-	}
-	struct Object *GetBlenderGroupObject()
-	{
-		return m_pBlenderGroupObject;
-	}
-	void SetBlenderGroupObject(struct Object* obj)
-	{
-		m_pBlenderGroupObject = obj;
-	}
-	bool IsDupliGroup()
-	{ 
-		return (m_pBlenderObject &&
-				(m_pBlenderObject->transflag & OB_DUPLIGROUP) &&
-				m_pBlenderObject->dup_group != nullptr) ? true : false;
-	}
-	/*******************End of BLENDER OBJECT**********************/
-
-
-	/********************GAMEOBJECT MESH***************************/
-	RAS_MeshObject *GetRasMeshObject() const;
-	void SetRasMeshObject(RAS_MeshObject *meshobj);
-	void RemoveRasMeshObject();
-	virtual void AddDisplayArrays(); // Read only Display arrays
-	virtual void UpdateBuckets();
-	/***************End of GAMEOBJECT MESH*************************/
-
-	/*******************LEVEL OF DETAIL****************************/
-	/* Set current lod manager, can be nullptr.
-	 * If nullptr the object's mesh backs to the mesh of the previous first lod level */
-	void SetLodManager(KX_LodManager *lodManager);
-	/// Get current lod manager.
-	KX_LodManager *GetLodManager() const;
-
-	/* Updates the current lod level based on distance from camera */
-	void UpdateLod(const MT_Vector3& cam_pos, float lodfactor);
-	/****************End of LEVEL OF DETAIL************************/
-
-	/*****************VISIBILITY/CULLING***************************/
-	/* Was this object marked visible? (only for the explicit visibility system) */
-	bool GetVisible();
-	/* Set visibility flag of this object */
-	void SetVisible(bool b, bool recursive);
-
-	/* Return true when the object can be culled */
-	bool UseCulling() const;
-	KX_CullingNode *GetCullingNode();
-	/* Was this object culled? */
-	inline bool	GetCulled()
-	{
-		return m_cullingNode.GetCulled();
-	}
-	/* Set culled flag of this object */
-	inline void	SetCulled(bool c)
-	{
-		m_cullingNode.SetCulled(c);
-	}
-	/* Is this object an occluder? */
-	inline bool	GetOccluder()
-	{
-		return m_bOccluder;
-	}
-	/* Set occluder flag of this object */
-	void SetOccluder(bool v, bool recursive);
-	
-	/* Change the layer of the object */
-	virtual void SetLayer(int l);
-	/* Get the object layer */
-	int	GetLayer();
-	/*************************End of VISIBILITY/CULLING**************/
-
-	/***********************BOUNDING BOX*****************************/
-	/* Allow auto updating bounding volume box */
-	inline void SetAutoUpdateBounds(bool autoUpdate)
-	{
-		m_autoUpdateBounds = autoUpdate;
-	}
-
-	inline bool GetAutoUpdateBounds() const
-	{
-		return m_autoUpdateBounds;
-	}
-
-	/** Update the game object bounding box (AABB) by using the one existing in the
-	 * mesh or the mesh deformer.
-	 * \param force Force the AABB update even if the object doesn't allow auto update or if the mesh is
-	 * not modified like in the case of mesh replacement or object duplication.
-	 * \warning Should be called when the game object contains a valid scene graph node
-	 * and a valid graphic controller (if it exists).
-	 */
-	void UpdateBounds(bool force);
-	void SetBoundsAabb(MT_Vector3 aabbMin, MT_Vector3 aabbMax);
-	void GetBoundsAabb(MT_Vector3 &aabbMin, MT_Vector3 &aabbMax) const;
-	void AddBoundingBox();
-	RAS_BoundingBox *GetBoundingBox() const;
-
-	/**************************End of BOUNDING BOX************************/
+	/*****************************CONSTRAINTS********************************/
+	/* Used for constraint replication for group instances.
+	* The list of constraints is filled during data conversion.
+	*/
+	void AddConstraint(bRigidBodyJointConstraint *cons);
+	std::vector<bRigidBodyJointConstraint*> GetConstraints();
+	void ClearConstraints();
+	/*************************End of CONSTRAINTS*****************************/
 
 	/********************************DEBUG********************************/
 	void SetUseDebugProperties(bool debug, bool recursive);
