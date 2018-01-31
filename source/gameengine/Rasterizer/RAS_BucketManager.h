@@ -60,14 +60,6 @@ private:
 		NUM_BUCKET_TYPE,
 	};
 
-	/// Override shaders.
-	enum OverrideShaderType {
-		OVERRIDE_SHADER_NONE = 0,
-		OVERRIDE_SHADER_BLACK,
-		OVERRIDE_SHADER_SHADOW,
-		OVERRIDE_SHADER_MAX
-	};
-
 	BucketList m_buckets[NUM_BUCKET_TYPE];
 
 public:
