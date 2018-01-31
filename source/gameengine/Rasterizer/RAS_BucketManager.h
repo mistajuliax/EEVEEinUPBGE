@@ -70,21 +70,12 @@ private:
 
 	BucketList m_buckets[NUM_BUCKET_TYPE];
 
-	struct TextMaterial
-	{
-		RAS_IPolyMaterial *m_material;
-		RAS_DisplayArrayBucket *m_arrayBucket;
-	} m_text;
-
 public:
-	/** Initialize bucket manager and create material bucket for the text material.
-	 * \param textMaterial The material used to render texts.
-	 */
-	RAS_BucketManager(RAS_IPolyMaterial *textMaterial);
+
+	RAS_BucketManager();
 	virtual ~RAS_BucketManager();
 
 	RAS_MaterialBucket *FindBucket(RAS_IPolyMaterial *material, bool &bucketCreated);
-	RAS_DisplayArrayBucket *GetTextDisplayArrayBucket() const;
 
 	// freeing scenes only
 	void RemoveMaterial(RAS_IPolyMaterial *mat);
