@@ -184,8 +184,6 @@ public:
 	/* This function should be virtual - derived classed override it */
 	virtual void Relink(std::map<SCA_IObject *, SCA_IObject *>& map);
 
-	struct RayCastData;
-
 	/* Get a pointer to the game object that is the parent of
 	* this object. Or nullptr if there is no parent. The returned
 	* object is part of a reference counting scheme. Calling
@@ -252,10 +250,11 @@ public:
 
 	/***************************GROUPS*************************************/
 	KX_GameObject *GetDupliGroupObject();
-	CListValue<KX_GameObject>*GetInstanceObjects();
 	void SetDupliGroupObject(KX_GameObject *gameobj);
-	void AddInstanceObjects(KX_GameObject *gameobj);
 	void RemoveDupliGroupObject();
+
+	CListValue<KX_GameObject>*GetInstanceObjects();
+	void AddInstanceObjects(KX_GameObject *gameobj);
 	void RemoveInstanceObject(KX_GameObject *gameobj);
 	/***********************End of GROUPS**********************************/
 
@@ -275,10 +274,10 @@ public:
 
 	/* Gets the current frame of an action */
 	float GetActionFrame(short layer);
-	/* Gets the name of the current action */
-	const std::string GetActionName(short layer);
 	/* Sets the current frame of an action */
 	void SetActionFrame(short layer, float frame);
+	/* Gets the name of the current action */
+	const std::string GetActionName(short layer);
 	/* Gets the currently running action on the given layer */
 	bAction *GetCurrentAction(short layer);
 	/* Sets play mode of the action on the given layer */
@@ -300,34 +299,35 @@ public:
 	void UpdateIPO(float curframetime, bool recurse);
 	/***********************End of ANIMATION*********************************/
 
-	/*********************************PHYSICS********************************/
+	/*****************************CONSTRAINTS********************************/
 	/* Used for constraint replication for group instances.
 	 * The list of constraints is filled during data conversion.
 	 */
 	void AddConstraint(bRigidBodyJointConstraint *cons);
 	std::vector<bRigidBodyJointConstraint*> GetConstraints();
 	void ClearConstraints();
+	/*************************End of CONSTRAINTS*****************************/
 
-	
+	/*********************************PHYSICS********************************/
 	void ApplyForce(const MT_Vector3& force, bool local);
 	void ApplyTorque(const MT_Vector3& torque, bool local);
-	void ApplyRotation(const MT_Vector3& drot, bool local);
 	void ApplyMovement(const MT_Vector3& dloc, bool local);
+	void ApplyRotation(const MT_Vector3& drot, bool local);
 	void addLinearVelocity(const MT_Vector3& lin_vel, bool local);
 	void setLinearVelocity(const MT_Vector3& lin_vel, bool local);
 	void setAngularVelocity(const MT_Vector3& ang_vel, bool local);
+	MT_Vector3 GetLinearVelocity(bool local = false);
+	MT_Vector3 GetVelocity(const MT_Vector3& position);
+	MT_Vector3 GetAngularVelocity(bool local = false);
+	MT_Scalar GetMass();
+	MT_Vector3 GetLocalInertia();
 
 	virtual float	getLinearDamping() const;
 	virtual float	getAngularDamping() const;
 	virtual void	setLinearDamping(float damping);
 	virtual void	setAngularDamping(float damping);
 	virtual void	setDamping(float linear, float angular);
-	MT_Vector3 GetLinearVelocity(bool local = false);
-	MT_Vector3 GetVelocity(const MT_Vector3& position);
-	MT_Scalar GetMass();
-	MT_Vector3 GetLocalInertia();
-	MT_Vector3 GetAngularVelocity(bool local = false);
-	void AlignAxisToVect(const MT_Vector3& vect, int axis = 2, float fac = 1.0f);
+
 	void ResolveCombinedVelocities(
 		const MT_Vector3& lin_vel,
 		const MT_Vector3& ang_vel,
@@ -354,6 +354,8 @@ public:
 	bool CheckCollision(KX_GameObject *other);
 	bool IsDynamic() const;
 	bool IsDynamicsSuspended() const;
+
+	struct RayCastData;
 	/* See KX_RayCast */
 	bool RayHit(KX_ClientObjectInfo *client, KX_RayCast *result, RayCastData *rayData);
 	/* See KX_RayCast */
@@ -445,6 +447,8 @@ public:
 	/* Only used for sensor objects	*/
 	void SynchronizeTransform();
 	static void SynchronizeTransformFunc(SG_Node *node, void *gameobj, void *scene);
+
+	void AlignAxisToVect(const MT_Vector3& vect, int axis = 2, float fac = 1.0f);
 	/******************************End of SCENE GRAPH********************************/
 
 
@@ -556,14 +560,6 @@ public:
 	RAS_BoundingBox *GetBoundingBox() const;
 
 	/**************************End of BOUNDING BOX************************/
-
-	/*******************************SUSPEND*******************************/
-	/* Stop making progress */
-	void Suspend();
-
-	/* Resume making progress */
-	void Resume();
-	/**************************End of SUSPEND/RESUME**********************/
 
 	/********************************DEBUG********************************/
 	void SetUseDebugProperties(bool debug, bool recursive);

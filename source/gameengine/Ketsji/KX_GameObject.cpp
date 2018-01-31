@@ -154,9 +154,9 @@ KX_GameObject::KX_GameObject(
 
 	// define the relationship between this node and it's parent.
 	
-	KX_NormalParentRelation * parent_relation = 
-		KX_NormalParentRelation::New();
+	KX_NormalParentRelation * parent_relation = KX_NormalParentRelation::New();
 	m_pSGNode->SetParentRelation(parent_relation);
+
 	unit_m4(m_prevObmat);
 };
 
@@ -511,15 +511,6 @@ bool KX_GameObject::NeedShadowUpdate() // used for shadow culling
 
 /**********************************End of SHADOWS****************************************/
 
-/* Experimental: used to only discard gameobj when it is
- * not a replica (copy of original object), but to "really remove"
- * gameobj when it is a copy
- */
-void KX_GameObject::SetIsReplica(bool isReplica)
-{
-	m_isReplica = isReplica;
-}
-
 void KX_GameObject::TagForUpdate()
 {
 	float obmat[4][4];
@@ -548,11 +539,579 @@ void KX_GameObject::TagForUpdate()
 	copy_m4_m4(m_prevObmat, obmat);
 }
 
+/* Experimental: used to only discard gameobj when it is
+* not a replica (copy of original object), but to "really remove"
+* gameobj when it is a copy
+*/
+void KX_GameObject::SetIsReplica(bool isReplica)
+{
+	m_isReplica = isReplica;
+}
+
+void KX_GameObject::SetObjectColor(const MT_Vector4& rgbavec)
+{
+	m_objectColor = rgbavec;
+}
+
+const MT_Vector4& KX_GameObject::GetObjectColor()
+{
+	return m_objectColor;
+}
+
 /****************************************************************************************/
 /*****************************END OF EEVEE INTEGRATION***********************************/
 /****************************************************************************************/
 
-/*********Move RAS_MeshUser API in KX_GameObject********/
+/**********************************GROUPS************************************************/
+KX_GameObject* KX_GameObject::GetDupliGroupObject()
+{
+	return m_pDupliGroupObject;
+}
+
+void KX_GameObject::SetDupliGroupObject(KX_GameObject* obj)
+{
+	obj->AddRef();
+	m_pDupliGroupObject = obj;
+}
+
+void KX_GameObject::RemoveDupliGroupObject()
+{
+	if (m_pDupliGroupObject) {
+		m_pDupliGroupObject->Release();
+		m_pDupliGroupObject = nullptr;
+	}
+}
+
+CListValue<KX_GameObject> *KX_GameObject::GetInstanceObjects()
+{
+	return m_pInstanceObjects;
+}
+
+void KX_GameObject::AddInstanceObjects(KX_GameObject* obj)
+{
+	if (!m_pInstanceObjects)
+		m_pInstanceObjects = new CListValue<KX_GameObject>();
+
+	obj->AddRef();
+	m_pInstanceObjects->Add(obj);
+}
+
+void KX_GameObject::RemoveInstanceObject(KX_GameObject* obj)
+{
+	BLI_assert(m_pInstanceObjects);
+	m_pInstanceObjects->RemoveValue(obj);
+	obj->Release();
+}
+/***********************************End of GROUPS**********************************/
+
+/*************************************ANIMATION************************************/
+
+bool KX_GameObject::PlayAction(const std::string& name,
+	float start,
+	float end,
+	short layer,
+	short priority,
+	float blendin,
+	short play_mode,
+	float layer_weight,
+	short ipo_flags,
+	float playback_speed,
+	short blend_mode)
+{
+	return GetActionManager()->PlayAction(name, start, end, layer, priority, blendin, play_mode, layer_weight, ipo_flags, playback_speed, blend_mode);
+}
+
+BL_ActionManager* KX_GameObject::GetActionManager()
+{
+	// We only want to create an action manager if we need it
+	if (!m_actionManager) {
+		GetScene()->AddAnimatedObject(this);
+		m_actionManager = new BL_ActionManager(this);
+	}
+	return m_actionManager;
+}
+
+float KX_GameObject::GetActionFrame(short layer)
+{
+	return GetActionManager()->GetActionFrame(layer);
+}
+
+void KX_GameObject::SetActionFrame(short layer, float frame)
+{
+	GetActionManager()->SetActionFrame(layer, frame);
+}
+
+const std::string KX_GameObject::GetActionName(short layer)
+{
+	return GetActionManager()->GetActionName(layer);
+}
+
+bAction *KX_GameObject::GetCurrentAction(short layer)
+{
+	return GetActionManager()->GetCurrentAction(layer);
+}
+
+void KX_GameObject::SetPlayMode(short layer, short mode)
+{
+	GetActionManager()->SetPlayMode(layer, mode);
+}
+
+void KX_GameObject::StopAction(short layer)
+{
+	GetActionManager()->StopAction(layer);
+}
+
+void KX_GameObject::RemoveTaggedActions()
+{
+	GetActionManager()->RemoveTaggedActions();
+}
+
+bool KX_GameObject::IsActionDone(short layer)
+{
+	return GetActionManager()->IsActionDone(layer);
+}
+
+void KX_GameObject::UpdateActionManager(float curtime, bool applyToObject)
+{
+	GetActionManager()->Update(curtime, applyToObject);
+}
+
+void KX_GameObject::InitIPO(bool ipo_as_force,
+	bool ipo_add,
+	bool ipo_local)
+{
+	SGControllerList::iterator it = GetSGNode()->GetSGControllerList().begin();
+
+	while (it != GetSGNode()->GetSGControllerList().end()) {
+		(*it)->SetOption(SG_Controller::SG_CONTR_IPO_RESET, true);
+		(*it)->SetOption(SG_Controller::SG_CONTR_IPO_IPO_AS_FORCE, ipo_as_force);
+		(*it)->SetOption(SG_Controller::SG_CONTR_IPO_IPO_ADD, ipo_add);
+		(*it)->SetOption(SG_Controller::SG_CONTR_IPO_LOCAL, ipo_local);
+		it++;
+	}
+}
+
+void KX_GameObject::UpdateIPO(float curframetime,
+	bool recurse)
+{
+	// just the 'normal' update procedure.
+	GetSGNode()->SetSimulatedTimeThread(curframetime, recurse);
+	GetSGNode()->UpdateWorldDataThread(curframetime);
+}
+
+/*******************************End of ANIMATION**********************************/
+
+/*********************************CONSTRAINTS*************************************/
+void KX_GameObject::AddConstraint(bRigidBodyJointConstraint *cons)
+{
+	m_constraints.push_back(cons);
+}
+
+std::vector<bRigidBodyJointConstraint*> KX_GameObject::GetConstraints()
+{
+	return m_constraints;
+}
+
+void KX_GameObject::ClearConstraints()
+{
+	m_constraints.clear();
+}
+
+/******************************End of CONSTRAINTS**********************************/
+
+/**********************************PHYSICS****************************************/
+
+void KX_GameObject::ApplyForce(const MT_Vector3& force, bool local)
+{
+	if (m_pPhysicsController)
+		m_pPhysicsController->ApplyForce(force, local);
+}
+
+
+
+void KX_GameObject::ApplyTorque(const MT_Vector3& torque, bool local)
+{
+	if (m_pPhysicsController)
+		m_pPhysicsController->ApplyTorque(torque, local);
+}
+
+
+
+void KX_GameObject::ApplyMovement(const MT_Vector3& dloc, bool local)
+{
+	if (m_pPhysicsController) // (IsDynamic())
+	{
+		m_pPhysicsController->RelativeTranslate(dloc, local);
+	}
+	GetSGNode()->RelativeTranslate(dloc, GetSGNode()->GetSGParent(), local);
+	NodeUpdateGS(0.0f);
+}
+
+void KX_GameObject::ApplyRotation(const MT_Vector3& drot, bool local)
+{
+	MT_Matrix3x3 rotmat(drot);
+
+	GetSGNode()->RelativeRotate(rotmat, local);
+
+	if (m_pPhysicsController) { // (IsDynamic())
+		m_pPhysicsController->RelativeRotate(rotmat, local);
+	}
+	NodeUpdateGS(0.0f);
+}
+
+void KX_GameObject::addLinearVelocity(const MT_Vector3& lin_vel, bool local)
+{
+	if (m_pPhysicsController)
+	{
+		MT_Vector3 lv = local ? NodeGetWorldOrientation() * lin_vel : lin_vel;
+		m_pPhysicsController->SetLinearVelocity(lv + m_pPhysicsController->GetLinearVelocity(), 0);
+	}
+}
+
+
+
+void KX_GameObject::setLinearVelocity(const MT_Vector3& lin_vel, bool local)
+{
+	if (m_pPhysicsController)
+		m_pPhysicsController->SetLinearVelocity(lin_vel, local);
+}
+
+
+
+void KX_GameObject::setAngularVelocity(const MT_Vector3& ang_vel, bool local)
+{
+	if (m_pPhysicsController)
+		m_pPhysicsController->SetAngularVelocity(ang_vel, local);
+}
+
+MT_Vector3 KX_GameObject::GetLinearVelocity(bool local)
+{
+	MT_Vector3 velocity(0.0f, 0.0f, 0.0f), locvel;
+	MT_Matrix3x3 ori;
+	if (m_pPhysicsController)
+	{
+		velocity = m_pPhysicsController->GetLinearVelocity();
+
+		if (local)
+		{
+			ori = GetSGNode()->GetWorldOrientation();
+
+			locvel = velocity * ori;
+			return locvel;
+		}
+	}
+	return velocity;
+}
+
+MT_Vector3 KX_GameObject::GetVelocity(const MT_Vector3& point)
+{
+	if (m_pPhysicsController)
+	{
+		return m_pPhysicsController->GetVelocity(point);
+	}
+	return MT_Vector3(0.0f, 0.0f, 0.0f);
+}
+
+MT_Vector3 KX_GameObject::GetAngularVelocity(bool local)
+{
+	MT_Vector3 velocity(0.0f, 0.0f, 0.0f), locvel;
+	MT_Matrix3x3 ori;
+	if (m_pPhysicsController)
+	{
+		velocity = m_pPhysicsController->GetAngularVelocity();
+
+		if (local)
+		{
+			ori = GetSGNode()->GetWorldOrientation();
+
+			locvel = velocity * ori;
+			return locvel;
+		}
+	}
+	return velocity;
+}
+
+MT_Scalar KX_GameObject::GetMass()
+{
+	if (m_pPhysicsController)
+	{
+		return m_pPhysicsController->GetMass();
+	}
+	return 0.0f;
+}
+
+MT_Vector3 KX_GameObject::GetLocalInertia()
+{
+	MT_Vector3 local_inertia(0.0f, 0.0f, 0.0f);
+	if (m_pPhysicsController)
+	{
+		local_inertia = m_pPhysicsController->GetLocalInertia();
+	}
+	return local_inertia;
+}
+
+float KX_GameObject::getLinearDamping() const
+{
+	if (m_pPhysicsController)
+		return m_pPhysicsController->GetLinearDamping();
+	return 0;
+}
+
+float KX_GameObject::getAngularDamping() const
+{
+	if (m_pPhysicsController)
+		return m_pPhysicsController->GetAngularDamping();
+	return 0;
+}
+
+void KX_GameObject::setLinearDamping(float damping)
+{
+	if (m_pPhysicsController)
+		m_pPhysicsController->SetLinearDamping(damping);
+}
+
+
+void KX_GameObject::setAngularDamping(float damping)
+{
+	if (m_pPhysicsController)
+		m_pPhysicsController->SetAngularDamping(damping);
+}
+
+
+void KX_GameObject::setDamping(float linear, float angular)
+{
+	if (m_pPhysicsController)
+		m_pPhysicsController->SetDamping(linear, angular);
+}
+
+void KX_GameObject::ResolveCombinedVelocities(
+	const MT_Vector3 & lin_vel,
+	const MT_Vector3 & ang_vel,
+	bool lin_vel_local,
+	bool ang_vel_local
+) {
+	if (m_pPhysicsController)
+	{
+
+		MT_Vector3 lv = lin_vel_local ? NodeGetWorldOrientation() * lin_vel : lin_vel;
+		MT_Vector3 av = ang_vel_local ? NodeGetWorldOrientation() * ang_vel : ang_vel;
+		m_pPhysicsController->ResolveCombinedVelocities(
+			lv.x(), lv.y(), lv.z(), av.x(), av.y(), av.z());
+	}
+}
+
+PHY_IPhysicsController* KX_GameObject::GetPhysicsController()
+{
+	return m_pPhysicsController;
+}
+
+void KX_GameObject::SetUserCollisionGroup(unsigned short group)
+{
+	m_userCollisionGroup = group;
+	if (m_pPhysicsController)
+		m_pPhysicsController->RefreshCollisions();
+}
+void KX_GameObject::SetUserCollisionMask(unsigned short mask)
+{
+	m_userCollisionMask = mask;
+	if (m_pPhysicsController)
+		m_pPhysicsController->RefreshCollisions();
+}
+
+unsigned short KX_GameObject::GetUserCollisionGroup()
+{
+	return m_userCollisionGroup;
+}
+unsigned short KX_GameObject::GetUserCollisionMask()
+{
+	return m_userCollisionMask;
+}
+
+bool KX_GameObject::CheckCollision(KX_GameObject* other)
+{
+	return this->m_userCollisionGroup & other->m_userCollisionMask;
+}
+
+bool KX_GameObject::IsDynamic() const
+{
+	if (m_pPhysicsController) {
+		return m_pPhysicsController->IsDynamic();
+	}
+	return false;
+}
+
+bool KX_GameObject::IsDynamicsSuspended() const
+{
+	if (m_pPhysicsController)
+		return m_pPhysicsController->IsDynamicsSuspended();
+	return false;
+}
+
+struct KX_GameObject::RayCastData
+{
+	RayCastData(std::string prop, bool xray, unsigned int mask)
+		:m_prop(prop),
+		m_xray(xray),
+		m_mask(mask),
+		m_hitObject(nullptr)
+	{
+	}
+
+	std::string m_prop;
+	bool m_xray;
+	unsigned int m_mask;
+	KX_GameObject *m_hitObject;
+};
+
+bool KX_GameObject::RayHit(KX_ClientObjectInfo *client, KX_RayCast *result, RayCastData *rayData)
+{
+	KX_GameObject* hitKXObj = client->m_gameobject;
+
+	// if X-ray option is selected, the unwnted objects were not tested, so get here only with true hit
+	// if not, all objects were tested and the front one may not be the correct one.
+	if ((rayData->m_xray || rayData->m_prop.size() == 0 || hitKXObj->GetProperty(rayData->m_prop) != nullptr) &&
+		hitKXObj->GetUserCollisionGroup() & rayData->m_mask)
+	{
+		rayData->m_hitObject = hitKXObj;
+		return true;
+	}
+	// return true to stop RayCast::RayTest from looping, the above test was decisive
+	// We would want to loop only if we want to get more than one hit point
+	return true;
+}
+
+/* this function is used to pre-filter the object before casting the ray on them.
+* This is useful for "X-Ray" option when we want to see "through" unwanted object.
+*/
+bool KX_GameObject::NeedRayCast(KX_ClientObjectInfo *client, RayCastData *rayData)
+{
+	KX_GameObject* hitKXObj = client->m_gameobject;
+
+	if (client->m_type > KX_ClientObjectInfo::ACTOR)
+	{
+		// Unknown type of object, skip it.
+		// Should not occur as the sensor objects are filtered in RayTest()
+		CM_Error("invalid client type " << client->m_type << " found in ray casting");
+		return false;
+	}
+
+	// if X-Ray option is selected, skip object that don't match the criteria as we see through them
+	// if not, test all objects because we don't know yet which one will be on front
+	if ((!rayData->m_xray || rayData->m_prop.size() == 0 || hitKXObj->GetProperty(rayData->m_prop) != nullptr) &&
+		hitKXObj->GetUserCollisionGroup() & rayData->m_mask)
+	{
+		return true;
+	}
+	// skip the object
+	return false;
+}
+
+void KX_GameObject::UpdateTransform()
+{
+	// HACK: saves function call for dynamic object, they are handled differently
+	if (m_pPhysicsController && !m_pPhysicsController->IsDynamic())
+		m_pPhysicsController->SetTransform();
+	if (m_pGraphicController)
+		// update the culling tree
+		m_pGraphicController->SetGraphicTransform();
+
+}
+
+static void setGraphicController_recursive(SG_Node* node)
+{
+	NodeList& children = node->GetSGChildren();
+
+	for (NodeList::iterator childit = children.begin(); !(childit == children.end()); ++childit)
+	{
+		SG_Node* childnode = (*childit);
+		KX_GameObject *clientgameobj = static_cast<KX_GameObject*>((*childit)->GetSGClientObject());
+		if (clientgameobj != nullptr) // This is a GameObject
+			clientgameobj->ActivateGraphicController(false);
+
+		// if the childobj is nullptr then this may be an inverse parent link
+		// so a non recursive search should still look down this node.
+		setGraphicController_recursive(childnode);
+	}
+}
+
+void KX_GameObject::ActivateGraphicController(bool recurse)
+{
+	if (m_pGraphicController)
+	{
+		m_pGraphicController->Activate(m_bVisible);
+	}
+	if (recurse)
+	{
+		setGraphicController_recursive(GetSGNode());
+	}
+}
+
+void KX_GameObject::RegisterCollisionCallbacks()
+{
+	if (!GetPhysicsController()) {
+		CM_Warning("trying to register collision callbacks for object without collisions: " << GetName());
+		return;
+	}
+
+	// Register from callbacks
+	KX_Scene* scene = GetScene();
+	PHY_IPhysicsEnvironment* pe = scene->GetPhysicsEnvironment();
+	PHY_IPhysicsController* spc = GetPhysicsController();
+	// If we are the first to register on this physics controller
+	if (pe->RequestCollisionCallback(spc)) {
+		// If we are a sensor object
+		if (m_pClient_info->isSensor())
+			// Add sensor body to physics world
+			pe->AddSensor(spc);
+	}
+}
+
+void KX_GameObject::UnregisterCollisionCallbacks()
+{
+	if (!GetPhysicsController()) {
+		CM_Warning("trying to unregister collision callbacks for object without collisions: " << GetName());
+		return;
+	}
+
+	// Unregister from callbacks
+	KX_Scene* scene = GetScene();
+	PHY_IPhysicsEnvironment* pe = scene->GetPhysicsEnvironment();
+	PHY_IPhysicsController* spc = GetPhysicsController();
+	// If we are the last to unregister on this physics controller
+	if (pe->RemoveCollisionCallback(spc)) {
+		// If we are a sensor object
+		if (m_pClient_info->isSensor())
+			// Remove sensor body from physics world
+			pe->RemoveSensor(spc);
+	}
+}
+
+void KX_GameObject::RunCollisionCallbacks(KX_GameObject *collider, KX_CollisionContactPointList& contactPointList)
+{
+#ifdef WITH_PYTHON
+	if (!m_collisionCallbacks || PyList_GET_SIZE(m_collisionCallbacks) == 0) {
+		return;
+	}
+
+	CListWrapper *listWrapper = contactPointList.GetListWrapper();
+	PyObject *args[] = { collider->GetProxy(),
+		PyObjectFrom(contactPointList.GetCollData()->GetWorldPoint(0, contactPointList.GetFirstObject())),
+		PyObjectFrom(contactPointList.GetCollData()->GetNormal(0, contactPointList.GetFirstObject())),
+		listWrapper->GetProxy() };
+	RunPythonCallBackList(m_collisionCallbacks, args, 1, ARRAY_SIZE(args));
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(args); ++i) {
+		Py_DECREF(args[i]);
+	}
+
+	// Invalidate the collison contact point to avoid acces to it in next frame
+	listWrapper->InvalidateProxy();
+	delete listWrapper;
+#endif
+}
+
+/*************************************End of PHYSICS**********************************/
+
 float *KX_GameObject::GetGameObjectMatrix()
 {
 	return m_gameobjMatrix;
@@ -562,7 +1121,6 @@ RAS_BoundingBox *KX_GameObject::GetBoundingBox() const
 {
 	return m_boundingBox;
 }
-/*****End of Move RAS_MeshUser API in KX_GameObject*****/
 
 KX_GameObject* KX_GameObject::GetClientObject(KX_ClientObjectInfo *info)
 {
@@ -587,71 +1145,11 @@ void KX_GameObject::SetName(const std::string& name)
 	m_name = name;
 }
 
-PHY_IPhysicsController* KX_GameObject::GetPhysicsController()
-{
-	return m_pPhysicsController;
-}
-
-KX_GameObject* KX_GameObject::GetDupliGroupObject()
-{ 
-	return m_pDupliGroupObject;
-}
-
-CListValue<KX_GameObject> *KX_GameObject::GetInstanceObjects()
-{ 
-	return m_pInstanceObjects;
-}
-
-void KX_GameObject::AddInstanceObjects(KX_GameObject* obj)
-{
-	if (!m_pInstanceObjects)
-		m_pInstanceObjects = new CListValue<KX_GameObject>();
-
-	obj->AddRef();
-	m_pInstanceObjects->Add(obj);
-}
-
-void KX_GameObject::RemoveInstanceObject(KX_GameObject* obj)
-{
-	BLI_assert(m_pInstanceObjects);
-	m_pInstanceObjects->RemoveValue(obj);
-	obj->Release();
-}
-
-void KX_GameObject::RemoveDupliGroupObject()
-{
-	if (m_pDupliGroupObject) {
-		m_pDupliGroupObject->Release();
-		m_pDupliGroupObject = nullptr;
-	}
-}
-
-void KX_GameObject::SetDupliGroupObject(KX_GameObject* obj)
-{
-	obj->AddRef();
-	m_pDupliGroupObject = obj;
-}
-
-void KX_GameObject::AddConstraint(bRigidBodyJointConstraint *cons)
-{
-	m_constraints.push_back(cons);
-}
-
-std::vector<bRigidBodyJointConstraint*> KX_GameObject::GetConstraints()
-{
-	return m_constraints;
-}
-
-void KX_GameObject::ClearConstraints()
-{
-	m_constraints.clear();
-}
-
 KX_GameObject* KX_GameObject::GetParent()
 {
 	KX_GameObject* result = nullptr;
 	SG_Node* node = m_pSGNode;
-	
+
 	while (node && !result)
 	{
 		node = node->GetSGParent();
@@ -660,7 +1158,6 @@ KX_GameObject* KX_GameObject::GetParent()
 	}
 
 	return result;
-	
 }
 
 void KX_GameObject::SetParent(KX_GameObject* obj, bool addToCompound, bool ghost)
@@ -778,76 +1275,6 @@ void KX_GameObject::RemoveParent()
 	}
 }
 
-BL_ActionManager* KX_GameObject::GetActionManager()
-{
-	// We only want to create an action manager if we need it
-	if (!m_actionManager) {
-		GetScene()->AddAnimatedObject(this);
-		m_actionManager = new BL_ActionManager(this);
-	}
-	return m_actionManager;
-}
-
-bool KX_GameObject::PlayAction(const std::string& name,
-								float start,
-								float end,
-								short layer,
-								short priority,
-								float blendin,
-								short play_mode,
-								float layer_weight,
-								short ipo_flags,
-								float playback_speed,
-								short blend_mode)
-{
-	return GetActionManager()->PlayAction(name, start, end, layer, priority, blendin, play_mode, layer_weight, ipo_flags, playback_speed, blend_mode);
-}
-
-void KX_GameObject::StopAction(short layer)
-{
-	GetActionManager()->StopAction(layer);
-}
-
-void KX_GameObject::RemoveTaggedActions()
-{
-	GetActionManager()->RemoveTaggedActions();
-}
-
-bool KX_GameObject::IsActionDone(short layer)
-{
-	return GetActionManager()->IsActionDone(layer);
-}
-
-void KX_GameObject::UpdateActionManager(float curtime, bool applyToObject)
-{
-	GetActionManager()->Update(curtime, applyToObject);
-}
-
-float KX_GameObject::GetActionFrame(short layer)
-{
-	return GetActionManager()->GetActionFrame(layer);
-}
-
-const std::string KX_GameObject::GetActionName(short layer)
-{
-	return GetActionManager()->GetActionName(layer);
-}
-
-void KX_GameObject::SetActionFrame(short layer, float frame)
-{
-	GetActionManager()->SetActionFrame(layer, frame);
-}
-
-bAction *KX_GameObject::GetCurrentAction(short layer)
-{
-	return GetActionManager()->GetCurrentAction(layer);
-}
-
-void KX_GameObject::SetPlayMode(short layer, short mode)
-{
-	GetActionManager()->SetPlayMode(layer, mode);
-}
-
 void KX_GameObject::ProcessReplica()
 {
 	SCA_IObject::ProcessReplica();
@@ -879,63 +1306,6 @@ void KX_GameObject::ProcessReplica()
 #endif
 }
 
-static void setGraphicController_recursive(SG_Node* node)
-{
-	NodeList& children = node->GetSGChildren();
-
-	for (NodeList::iterator childit = children.begin();!(childit==children.end());++childit)
-	{
-		SG_Node* childnode = (*childit);
-		KX_GameObject *clientgameobj = static_cast<KX_GameObject*>( (*childit)->GetSGClientObject());
-		if (clientgameobj != nullptr) // This is a GameObject
-			clientgameobj->ActivateGraphicController(false);
-		
-		// if the childobj is nullptr then this may be an inverse parent link
-		// so a non recursive search should still look down this node.
-		setGraphicController_recursive(childnode);
-	}
-}
-
-
-void KX_GameObject::ActivateGraphicController(bool recurse)
-{
-	if (m_pGraphicController)
-	{
-		m_pGraphicController->Activate(m_bVisible);
-	}
-	if (recurse)
-	{
-		setGraphicController_recursive(GetSGNode());
-	}
-}
-
-void KX_GameObject::SetUserCollisionGroup(unsigned short group)
-{
-	m_userCollisionGroup = group;
-	if (m_pPhysicsController)
-		m_pPhysicsController->RefreshCollisions();
-}
-void KX_GameObject::SetUserCollisionMask(unsigned short mask)
-{
-	m_userCollisionMask = mask;
-	if (m_pPhysicsController)
-		m_pPhysicsController->RefreshCollisions();
-}
-
-unsigned short KX_GameObject::GetUserCollisionGroup()
-{
-	return m_userCollisionGroup;
-}
-unsigned short KX_GameObject::GetUserCollisionMask()
-{
-	return m_userCollisionMask;
-}
-
-bool KX_GameObject::CheckCollision(KX_GameObject* other)
-{
-	return this->m_userCollisionGroup & other->m_userCollisionMask;
-}
-
 CValue* KX_GameObject::GetReplica()
 {
 	KX_GameObject* replica = new KX_GameObject(*this);
@@ -944,94 +1314,6 @@ CValue* KX_GameObject::GetReplica()
 	replica->ProcessReplica();
 
 	return replica;
-}
-
-bool KX_GameObject::IsDynamic() const
-{
-	if (m_pPhysicsController) {
-		return m_pPhysicsController->IsDynamic();
-	}
-	return false;
-}
-
-bool KX_GameObject::IsDynamicsSuspended() const
-{
-	if (m_pPhysicsController)
-		return m_pPhysicsController->IsDynamicsSuspended();
-	return false;
-}
-
-float KX_GameObject::getLinearDamping() const
-{
-	if (m_pPhysicsController)
-		return m_pPhysicsController->GetLinearDamping();
-	return 0;
-}
-
-float KX_GameObject::getAngularDamping() const
-{
-	if (m_pPhysicsController)
-		return m_pPhysicsController->GetAngularDamping();
-	return 0;
-}
-
-void KX_GameObject::setLinearDamping(float damping)
-{
-	if (m_pPhysicsController)
-		m_pPhysicsController->SetLinearDamping(damping);
-}
-
-
-void KX_GameObject::setAngularDamping(float damping)
-{
-	if (m_pPhysicsController)
-		m_pPhysicsController->SetAngularDamping(damping);
-}
-
-
-void KX_GameObject::setDamping(float linear, float angular)
-{
-	if (m_pPhysicsController)
-		m_pPhysicsController->SetDamping(linear, angular);
-}
-
-
-void KX_GameObject::ApplyForce(const MT_Vector3& force,bool local)
-{
-	if (m_pPhysicsController)
-		m_pPhysicsController->ApplyForce(force,local);
-}
-
-
-
-void KX_GameObject::ApplyTorque(const MT_Vector3& torque,bool local)
-{
-	if (m_pPhysicsController)
-		m_pPhysicsController->ApplyTorque(torque,local);
-}
-
-
-
-void KX_GameObject::ApplyMovement(const MT_Vector3& dloc,bool local)
-{
-	if (m_pPhysicsController) // (IsDynamic())
-	{
-		m_pPhysicsController->RelativeTranslate(dloc,local);
-	}
-	GetSGNode()->RelativeTranslate(dloc,GetSGNode()->GetSGParent(),local);
-	NodeUpdateGS(0.0f);
-}
-
-void KX_GameObject::ApplyRotation(const MT_Vector3& drot,bool local)
-{
-	MT_Matrix3x3 rotmat(drot);
-
-	GetSGNode()->RelativeRotate(rotmat,local);
-
-	if (m_pPhysicsController) { // (IsDynamic())
-		m_pPhysicsController->RelativeRotate(rotmat,local);
-	}
-	NodeUpdateGS(0.0f);
 }
 
 void KX_GameObject::UpdateBlenderObjectMatrix(Object* blendobj)
@@ -1153,17 +1435,6 @@ void KX_GameObject::UpdateLod(const MT_Vector3& cam_pos, float lodfactor)
 	}
 }
 
-void KX_GameObject::UpdateTransform()
-{
-	// HACK: saves function call for dynamic object, they are handled differently
-	if (m_pPhysicsController && !m_pPhysicsController->IsDynamic())
-		m_pPhysicsController->SetTransform();
-	if (m_pGraphicController)
-		// update the culling tree
-		m_pGraphicController->SetGraphicTransform();
-
-}
-
 void KX_GameObject::UpdateTransformFunc(SG_Node* node, void* gameobj, void* scene)
 {
 	((KX_GameObject*)gameobj)->UpdateTransform();
@@ -1183,33 +1454,7 @@ void KX_GameObject::SynchronizeTransformFunc(SG_Node* node, void* gameobj, void*
 	((KX_GameObject*)gameobj)->SynchronizeTransform();
 }
 
-void KX_GameObject::InitIPO(bool ipo_as_force,
-                            bool ipo_add,
-                            bool ipo_local)
-{
-	SGControllerList::iterator it = GetSGNode()->GetSGControllerList().begin();
-
-	while (it != GetSGNode()->GetSGControllerList().end()) {
-		(*it)->SetOption(SG_Controller::SG_CONTR_IPO_RESET, true);
-		(*it)->SetOption(SG_Controller::SG_CONTR_IPO_IPO_AS_FORCE, ipo_as_force);
-		(*it)->SetOption(SG_Controller::SG_CONTR_IPO_IPO_ADD, ipo_add);
-		(*it)->SetOption(SG_Controller::SG_CONTR_IPO_LOCAL, ipo_local);
-		it++;
-	}
-} 
-
-void KX_GameObject::UpdateIPO(float curframetime,
-							  bool recurse) 
-{
-	// just the 'normal' update procedure.
-	GetSGNode()->SetSimulatedTimeThread(curframetime,recurse);
-	GetSGNode()->UpdateWorldDataThread(curframetime);
-}
-
-bool
-KX_GameObject::GetVisible(
-	void
-	)
+bool KX_GameObject::GetVisible()
 {
 	return m_bVisible;
 }
@@ -1231,9 +1476,7 @@ static void setVisible_recursive(SG_Node* node, bool v)
 	}
 }
 
-
-void
-KX_GameObject::SetVisible(
+void KX_GameObject::SetVisible(
 	bool v,
 	bool recursive
 	)
@@ -1262,8 +1505,7 @@ static void setOccluder_recursive(SG_Node* node, bool v)
 	}
 }
 
-void
-KX_GameObject::SetOccluder(
+void KX_GameObject::SetOccluder(
 	bool v,
 	bool recursive
 	)
@@ -1310,73 +1552,14 @@ void KX_GameObject::SetUseDebugProperties( bool debug, bool recursive )
 		setDebug_recursive(scene, GetSGNode(), debug);
 }
 
-void
-KX_GameObject::SetLayer(
-	int l
-	)
+void KX_GameObject::SetLayer(int l)
 {
 	m_layer = l;
 }
 
-int
-KX_GameObject::GetLayer(
-	void
-	)
+int KX_GameObject::GetLayer()
 {
 	return m_layer;
-}
-
-void KX_GameObject::addLinearVelocity(const MT_Vector3& lin_vel,bool local)
-{
-	if (m_pPhysicsController)
-	{
-		MT_Vector3 lv = local ? NodeGetWorldOrientation() * lin_vel : lin_vel;
-		m_pPhysicsController->SetLinearVelocity(lv + m_pPhysicsController->GetLinearVelocity(), 0);
-	}
-}
-
-
-
-void KX_GameObject::setLinearVelocity(const MT_Vector3& lin_vel,bool local)
-{
-	if (m_pPhysicsController)
-		m_pPhysicsController->SetLinearVelocity(lin_vel,local);
-}
-
-
-
-void KX_GameObject::setAngularVelocity(const MT_Vector3& ang_vel,bool local)
-{
-	if (m_pPhysicsController)
-		m_pPhysicsController->SetAngularVelocity(ang_vel,local);
-}
-
-
-void KX_GameObject::ResolveCombinedVelocities(
-	const MT_Vector3 & lin_vel,
-	const MT_Vector3 & ang_vel,
-	bool lin_vel_local,
-	bool ang_vel_local
-) {
-	if (m_pPhysicsController)
-	{
-
-		MT_Vector3 lv = lin_vel_local ? NodeGetWorldOrientation() * lin_vel : lin_vel;
-		MT_Vector3 av = ang_vel_local ? NodeGetWorldOrientation() * ang_vel : ang_vel;
-		m_pPhysicsController->ResolveCombinedVelocities(
-			lv.x(),lv.y(),lv.z(),av.x(),av.y(),av.z());
-	}
-}
-
-
-void KX_GameObject::SetObjectColor(const MT_Vector4& rgbavec)
-{
-	m_objectColor = rgbavec;
-}
-
-const MT_Vector4& KX_GameObject::GetObjectColor()
-{
-	return m_objectColor;
 }
 
 void KX_GameObject::AlignAxisToVect(const MT_Vector3& dir, int axis, float fac)
@@ -1475,72 +1658,6 @@ void KX_GameObject::AlignAxisToVect(const MT_Vector3& dir, int axis, float fac)
 	else {
 		NodeSetLocalOrientation(orimat);
 	}
-}
-
-MT_Scalar KX_GameObject::GetMass()
-{
-	if (m_pPhysicsController)
-	{
-		return m_pPhysicsController->GetMass();
-	}
-	return 0.0f;
-}
-
-MT_Vector3 KX_GameObject::GetLocalInertia()
-{
-	MT_Vector3 local_inertia(0.0f,0.0f,0.0f);
-	if (m_pPhysicsController)
-	{
-		local_inertia = m_pPhysicsController->GetLocalInertia();
-	}
-	return local_inertia;
-}
-
-MT_Vector3 KX_GameObject::GetLinearVelocity(bool local)
-{
-	MT_Vector3 velocity(0.0f,0.0f,0.0f), locvel;
-	MT_Matrix3x3 ori;
-	if (m_pPhysicsController)
-	{
-		velocity = m_pPhysicsController->GetLinearVelocity();
-		
-		if (local)
-		{
-			ori = GetSGNode()->GetWorldOrientation();
-			
-			locvel = velocity * ori;
-			return locvel;
-		}
-	}
-	return velocity;
-}
-
-MT_Vector3 KX_GameObject::GetAngularVelocity(bool local)
-{
-	MT_Vector3 velocity(0.0f,0.0f,0.0f), locvel;
-	MT_Matrix3x3 ori;
-	if (m_pPhysicsController)
-	{
-		velocity = m_pPhysicsController->GetAngularVelocity();
-		
-		if (local)
-		{
-			ori = GetSGNode()->GetWorldOrientation();
-			
-			locvel = velocity * ori;
-			return locvel;
-		}
-	}
-	return velocity;
-}
-
-MT_Vector3 KX_GameObject::GetVelocity(const MT_Vector3& point)
-{
-	if (m_pPhysicsController)
-	{
-		return m_pPhysicsController->GetVelocity(point);
-	}
-	return MT_Vector3(0.0f,0.0f,0.0f);
 }
 
 // scenegraph node stuff
@@ -1743,98 +1860,6 @@ void KX_GameObject::GetBoundsAabb(MT_Vector3 &aabbMin, MT_Vector3 &aabbMax) cons
 KX_CullingNode *KX_GameObject::GetCullingNode()
 {
 	return &m_cullingNode;
-}
-
-void KX_GameObject::UnregisterCollisionCallbacks()
-{
-	if (!GetPhysicsController()) {
-		CM_Warning("trying to unregister collision callbacks for object without collisions: " << GetName());
-		return;
-	}
-
-	// Unregister from callbacks
-	KX_Scene* scene = GetScene();
-	PHY_IPhysicsEnvironment* pe = scene->GetPhysicsEnvironment();
-	PHY_IPhysicsController* spc = GetPhysicsController();
-	// If we are the last to unregister on this physics controller
-	if (pe->RemoveCollisionCallback(spc)) {
-		// If we are a sensor object
-		if (m_pClient_info->isSensor())
-			// Remove sensor body from physics world
-			pe->RemoveSensor(spc);
-	}
-}
-
-void KX_GameObject::RegisterCollisionCallbacks()
-{
-	if (!GetPhysicsController()) {
-		CM_Warning("trying to register collision callbacks for object without collisions: " << GetName());
-		return;
-	}
-
-	// Register from callbacks
-	KX_Scene* scene = GetScene();
-	PHY_IPhysicsEnvironment* pe = scene->GetPhysicsEnvironment();
-	PHY_IPhysicsController* spc = GetPhysicsController();
-	// If we are the first to register on this physics controller
-	if (pe->RequestCollisionCallback(spc)) {
-		// If we are a sensor object
-		if (m_pClient_info->isSensor())
-			// Add sensor body to physics world
-			pe->AddSensor(spc);
-	}
-}
-void KX_GameObject::RunCollisionCallbacks(KX_GameObject *collider, KX_CollisionContactPointList& contactPointList)
-{
-#ifdef WITH_PYTHON
-	if (!m_collisionCallbacks || PyList_GET_SIZE(m_collisionCallbacks) == 0) {
-		return;
-	}
-
-	CListWrapper *listWrapper = contactPointList.GetListWrapper();
-	PyObject *args[] = {collider->GetProxy(),
-						PyObjectFrom(contactPointList.GetCollData()->GetWorldPoint(0, contactPointList.GetFirstObject())),
-						PyObjectFrom(contactPointList.GetCollData()->GetNormal(0, contactPointList.GetFirstObject())),
-						listWrapper->GetProxy()};
-	RunPythonCallBackList(m_collisionCallbacks, args, 1, ARRAY_SIZE(args));
-
-	for (unsigned int i = 0; i < ARRAY_SIZE(args); ++i) {
-		Py_DECREF(args[i]);
-	}
-
-	// Invalidate the collison contact point to avoid acces to it in next frame
-	listWrapper->InvalidateProxy();
-	delete listWrapper;
-#endif
-}
-
-/* Suspend/ resume: for the dynamic behavior, there is a simple
- * method. For the residual motion, there is not. I wonder what the
- * correct solution is for Sumo. Remove from the motion-update tree?
- *
- * So far, only switch the physics and logic.
- * */
-
-void KX_GameObject::Resume(void)
-{
-	if (m_suspended) {
-		SCA_IObject::Resume();
-		// Child objects must be static, so we block changing to dynamic
-		if (GetPhysicsController() && !GetParent())
-			GetPhysicsController()->RestoreDynamics();
-
-		m_suspended = false;
-	}
-}
-
-void KX_GameObject::Suspend()
-{
-	if ((!m_ignore_activity_culling) && (!m_suspended)) {
-		SCA_IObject::Suspend();
-		if (GetPhysicsController())
-			GetPhysicsController()->SuspendDynamics();
-		m_suspended = true;
-	}
 }
 
 static void walk_children(SG_Node* node, CListValue<KX_GameObject> *list, bool recursive)
@@ -3965,65 +3990,6 @@ KX_PYMETHODDEF_DOC_O(KX_GameObject, getVectTo,
 		PyTuple_SET_ITEM(returnValue, 2, PyObjectFrom(locToDir));
 	}
 	return returnValue;
-}
-
-struct KX_GameObject::RayCastData
-{
-	RayCastData(std::string prop, bool xray, unsigned int mask)
-		:m_prop(prop),
-		m_xray(xray),
-		m_mask(mask),
-		m_hitObject(nullptr)
-	{
-	}
-
-	std::string m_prop;
-	bool m_xray;
-	unsigned int m_mask;
-	KX_GameObject *m_hitObject;
-};
-
-bool KX_GameObject::RayHit(KX_ClientObjectInfo *client, KX_RayCast *result, RayCastData *rayData)
-{
-	KX_GameObject* hitKXObj = client->m_gameobject;
-
-	// if X-ray option is selected, the unwnted objects were not tested, so get here only with true hit
-	// if not, all objects were tested and the front one may not be the correct one.
-	if ((rayData->m_xray || rayData->m_prop.size() == 0 || hitKXObj->GetProperty(rayData->m_prop) != nullptr) && 
-		hitKXObj->GetUserCollisionGroup() & rayData->m_mask)
-	{
-		rayData->m_hitObject = hitKXObj;
-		return true;
-	}
-	// return true to stop RayCast::RayTest from looping, the above test was decisive
-	// We would want to loop only if we want to get more than one hit point
-	return true;
-}
-
-/* this function is used to pre-filter the object before casting the ray on them.
- * This is useful for "X-Ray" option when we want to see "through" unwanted object.
- */
-bool KX_GameObject::NeedRayCast(KX_ClientObjectInfo *client, RayCastData *rayData)
-{
-	KX_GameObject* hitKXObj = client->m_gameobject;
-
-	if (client->m_type > KX_ClientObjectInfo::ACTOR)
-	{
-		// Unknown type of object, skip it.
-		// Should not occur as the sensor objects are filtered in RayTest()
-		CM_Error("invalid client type " << client->m_type << " found in ray casting");
-		return false;
-	}
-	
-	// if X-Ray option is selected, skip object that don't match the criteria as we see through them
-	// if not, test all objects because we don't know yet which one will be on front
-	if ((!rayData->m_xray || rayData->m_prop.size() == 0 || hitKXObj->GetProperty(rayData->m_prop) != nullptr) && 
-		hitKXObj->GetUserCollisionGroup() & rayData->m_mask)
-	{
-		return true;
-	}
-	// skip the object
-	return false;
 }
 
 KX_PYMETHODDEF_DOC(KX_GameObject, rayCastTo,
