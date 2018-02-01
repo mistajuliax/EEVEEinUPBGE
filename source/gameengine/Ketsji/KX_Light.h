@@ -50,6 +50,8 @@ protected:
 
 	bool m_showShadowFrustum;
 
+	float m_savedShadowId;
+
 public:
 	KX_LightObject(void *sgReplicationInfo, SG_Callbacks callbacks, RAS_ILightObject *lightobj);
 	virtual ~KX_LightObject();
@@ -106,6 +108,8 @@ public:
 	static int pyattr_set_type(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value);
 	static PyObject *pyattr_get_static_shadow(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
 	static int pyattr_set_static_shadow(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value);
+	static PyObject *pyattr_get_cast_shadow(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef);
+	static int pyattr_set_cast_shadow(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value);
 #endif
 };
 

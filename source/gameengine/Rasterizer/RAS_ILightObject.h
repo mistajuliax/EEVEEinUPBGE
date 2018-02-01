@@ -116,6 +116,8 @@ public:
 	bool m_staticShadow;
 	bool m_requestShadowUpdate;
 
+	bool m_castShadow;
+
 	virtual ~RAS_ILightObject() {}
 	virtual RAS_ILightObject* Clone() = 0;
 

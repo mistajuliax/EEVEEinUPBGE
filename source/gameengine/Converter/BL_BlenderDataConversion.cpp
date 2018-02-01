@@ -933,6 +933,8 @@ static KX_LightObject *gamelight_from_blamp(Object *ob, Lamp *la, unsigned int l
 
 	lightobj->m_areaSize = MT_Vector2(la->area_size, la->area_sizey);
 
+	lightobj->m_castShadow = true;
+
 	static RAS_ILightObject::LightType convertTypeTable[] = {
 		RAS_ILightObject::LIGHT_NORMAL, // LA_LOCAL
 		RAS_ILightObject::LIGHT_SUN, // LA_SUN

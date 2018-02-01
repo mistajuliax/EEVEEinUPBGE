@@ -52,12 +52,19 @@
 
 #include "BLI_math.h"
 
+extern "C" {
+#  include "eevee_private.h"
+}
+
+#include "KX_Globals.h"
+
 KX_LightObject::KX_LightObject(void *sgReplicationInfo, SG_Callbacks callbacks,
-                               RAS_ILightObject *lightobj)
+	RAS_ILightObject *lightobj)
 	:KX_GameObject(sgReplicationInfo, callbacks),
 	m_lightobj(lightobj),
 	m_showShadowFrustum(false)
 {
+	m_savedShadowId = -2;
 }
 
 KX_LightObject::~KX_LightObject()
@@ -180,6 +187,7 @@ PyAttributeDef KX_LightObject::Attributes[] = {
 	KX_PYATTRIBUTE_RO_FUNCTION("HEMI", KX_LightObject, pyattr_get_typeconst),
 	KX_PYATTRIBUTE_RW_FUNCTION("type", KX_LightObject, pyattr_get_type, pyattr_set_type),
 	KX_PYATTRIBUTE_RW_FUNCTION("staticShadow", KX_LightObject, pyattr_get_static_shadow, pyattr_set_static_shadow),
+	KX_PYATTRIBUTE_RW_FUNCTION("castShadows", KX_LightObject, pyattr_get_cast_shadow, pyattr_set_cast_shadow),
 	KX_PYATTRIBUTE_NULL // Sentinel
 };
 
@@ -492,6 +500,45 @@ int KX_LightObject::pyattr_set_static_shadow(PyObjectPlus *self_v, const KX_PYAT
 	}
 
 	self->m_lightobj->m_staticShadow = param;
+	return PY_SET_ATTR_SUCCESS;
+}
+
+PyObject *KX_LightObject::pyattr_get_cast_shadow(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef)
+{
+	KX_LightObject *self = static_cast<KX_LightObject *>(self_v);
+	return PyBool_FromLong(self->m_lightobj->m_castShadow);
+}
+
+int KX_LightObject::pyattr_set_cast_shadow(PyObjectPlus *self_v, const KX_PYATTRIBUTE_DEF *attrdef, PyObject *value)
+{
+	KX_LightObject *self = static_cast<KX_LightObject *>(self_v);
+	int param = PyObject_IsTrue(value);
+	if (param == -1) {
+		PyErr_SetString(PyExc_AttributeError, "light.castShadow = val: KX_LightObject, expected True or False");
+		return PY_SET_ATTR_FAIL;
+	}
+
+	self->m_lightobj->m_castShadow = param;
+	KX_GameObject *light = static_cast<KX_GameObject *>(self);
+	Object *oblamp = light->GetBlenderObject();
+	EEVEE_LampEngineData *led = EEVEE_lamp_data_ensure(oblamp);
+
+	if (oblamp && self->m_savedShadowId == -2) {
+		self->m_savedShadowId = led->data.ld.shadow_id;
+	}
+
+	if (!param) {
+		led->data.ld.shadow_id = -1.0f;
+	}
+
+	if (param) {
+		led->data.ld.shadow_id = self->m_savedShadowId;
+	}
+
+	KX_Scene *scene = KX_GetActiveScene();
+	scene->ResetTaaSamples();
+
+
 	return PY_SET_ATTR_SUCCESS;
 }
 #endif // WITH_PYTHON
