@@ -2533,8 +2533,7 @@ uint hash(int kx, int ky, int kz)
 
 float bits_to_01(uint bits)
 {
-	float x = float(bits) * (1.0 / float(0xffffffffu));
-	return x;
+	return (float(bits) / 4294967295.0);
 }
 
 float cellnoise(vec3 p)
@@ -2979,7 +2978,9 @@ void node_bsdf_refraction(vec4 color, float roughness, float ior, vec3 N, out Cl
 	color.rgb *= (refractionDepth > 0.0) ? color.rgb : vec3(1.0); /* Simulate 2 absorption event. */
 	roughness = sqrt(roughness);
 	eevee_closure_refraction(N, roughness, ior, out_refr);
+	vec3 vN = normalize(mat3(ViewMatrix) * N);
 	result = CLOSURE_DEFAULT;
+	result.ssr_normal = normal_encode(vN, viewCameraVec);
 	result.radiance = out_refr * color.rgb;
 	result.ssr_id = REFRACT_CLOSURE_FLAG;
 #else
@@ -3004,7 +3005,7 @@ void node_ambient_occlusion(vec4 color, out Closure result)
 
 /* emission */
 
-void node_emission(vec4 color, float strength, vec3 N, out Closure result)
+void node_emission(vec4 color, float strength, vec3 vN, out Closure result)
 {
 #ifndef VOLUMETRICS
 	color *= strength;
@@ -3012,7 +3013,7 @@ void node_emission(vec4 color, float strength, vec3 N, out Closure result)
 	result = CLOSURE_DEFAULT;
 	result.radiance = color.rgb;
 	result.opacity = color.a;
-	result.ssr_normal = normal_encode(N, viewCameraVec);
+	result.ssr_normal = normal_encode(vN, viewCameraVec);
 #else
 	result = Closure(color.rgb, color.a);
 #endif
@@ -3657,17 +3658,29 @@ float noise_perlin(float x, float y, float z)
 	float v = noise_fade(fy);
 	float w = noise_fade(fz);
 
-	float result;
+	float noise_u[2], noise_v[2];
 
-	result = noise_nerp(w, noise_nerp(v, noise_nerp(u, noise_grad(hash(X, Y, Z), fx, fy, fz),
-	                                                noise_grad(hash(X + 1, Y, Z), fx - 1.0, fy, fz)),
-	                                  noise_nerp(u, noise_grad(hash(X, Y + 1, Z), fx, fy - 1.0, fz),
-	                                             noise_grad(hash(X + 1, Y + 1, Z), fx - 1.0, fy - 1.0, fz))),
-	                    noise_nerp(v, noise_nerp(u, noise_grad(hash(X, Y, Z + 1), fx, fy, fz - 1.0),
-	                                             noise_grad(hash(X + 1, Y, Z + 1), fx - 1.0, fy, fz - 1.0)),
-	                               noise_nerp(u, noise_grad(hash(X, Y + 1, Z + 1), fx, fy - 1.0, fz - 1.0),
-	                                          noise_grad(hash(X + 1, Y + 1, Z + 1), fx - 1.0, fy - 1.0, fz - 1.0))));
-	return noise_scale3(result);
+	noise_u[0] = noise_nerp(u,
+	        noise_grad(hash(X, Y, Z), fx, fy, fz),
+	        noise_grad(hash(X + 1, Y, Z), fx - 1.0, fy, fz));
+
+	noise_u[1] = noise_nerp(u,
+	        noise_grad(hash(X, Y + 1, Z), fx, fy - 1.0, fz),
+	        noise_grad(hash(X + 1, Y + 1, Z), fx - 1.0, fy - 1.0, fz));
+
+	noise_v[0] = noise_nerp(v, noise_u[0], noise_u[1]);
+
+	noise_u[0] = noise_nerp(u,
+	        noise_grad(hash(X, Y, Z + 1), fx, fy, fz - 1.0),
+	        noise_grad(hash(X + 1, Y, Z + 1), fx - 1.0, fy, fz - 1.0));
+
+	noise_u[1] = noise_nerp(u,
+	        noise_grad(hash(X, Y + 1, Z + 1), fx, fy - 1.0, fz - 1.0),
+	        noise_grad(hash(X + 1, Y + 1, Z + 1), fx - 1.0, fy - 1.0, fz - 1.0));
+
+	noise_v[1] = noise_nerp(v, noise_u[0], noise_u[1]);
+
+	return noise_scale3(noise_nerp(w, noise_v[0], noise_v[1]));
 }
 
 float noise(vec3 p)

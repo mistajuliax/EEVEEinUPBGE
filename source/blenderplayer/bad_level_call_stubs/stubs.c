@@ -260,6 +260,7 @@ void RE_engine_active_view_set(struct RenderEngine *engine, const char *viewname
 void RE_engine_get_camera_model_matrix(struct RenderEngine *engine, struct Object *camera, int use_spherical_stereo, float *r_modelmat) RET_NONE
 float RE_engine_get_camera_shift_x(struct RenderEngine *engine, struct Object *camera, int use_spherical_stereo) RET_ZERO
 int RE_engine_get_spherical_stereo(struct RenderEngine *engine, struct Object *camera) RET_ZERO
+const char *RE_GetActiveRenderView(struct Render *re) RET_NULL
 void RE_SetActiveRenderView(struct Render *re, const char *viewname) RET_NONE
 void RE_GetCameraWindow(struct Render *re, struct Object *camera, int frame, float mat[4][4]) RET_NONE
 void RE_GetCameraModelMatrix(struct Render *re, struct Object *camera, float r_mat[4][4]) RET_NONE
@@ -558,7 +559,7 @@ eV3DProjStatus ED_view3d_project_short_ex(const struct ARegion *ar, float perspm
                                           const float co[3], short r_co[2], const eV3DProjTest flag) RET_ZERO
 void ED_view3d_update_viewmat(const struct EvaluationContext *eval_ctx, struct Scene *scene, struct View3D *v3d, struct ARegion *ar, float viewmat[4][4], float winmat[4][4], const struct rcti *rect) RET_NONE
 float ED_view3d_grid_scale(struct Scene *scene, struct View3D *v3d, const char **grid_unit) RET_ZERO
-void ED_view3d_shade_update(struct Main *bmain, struct Scene *scene, struct View3D *v3d, struct ScrArea *sa) RET_NONE
+void ED_view3d_shade_update(struct Main *bmain, struct View3D *v3d, struct ScrArea *sa) RET_NONE
 void ED_view3d_clipping_calc_from_boundbox(float clip[6][4], const struct BoundBox *clipbb, const bool is_flip) RET_NONE
 void ED_view3d_clipping_calc(struct BoundBox *bb, float planes[4][4],
 	const struct ARegion *ar, const struct Object *ob, const struct rcti *rect) RET_NONE

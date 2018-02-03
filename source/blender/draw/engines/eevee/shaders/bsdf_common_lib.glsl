@@ -325,7 +325,7 @@ vec2 get_uvs_from_view(vec3 view)
 vec3 get_view_space_from_depth(vec2 uvcoords, float depth)
 {
 	if (ProjectionMatrix[3][3] == 0.0) {
-		return (viewVecs[0].xyz + vec3(uvcoords, 0.0) * viewVecs[1].xyz) * get_view_z_from_depth(depth);
+		return vec3(viewVecs[0].xy + uvcoords * viewVecs[1].xy, 1.0) * get_view_z_from_depth(depth);
 	}
 	else {
 		return viewVecs[0].xyz + vec3(uvcoords, depth) * viewVecs[1].xyz;
@@ -418,19 +418,19 @@ float get_btdf_lut(sampler2DArray btdf_lut_tex, float NV, float roughness, float
  * Using Method #4: Spheremap Transform */
 vec2 normal_encode(vec3 n, vec3 view)
 {
-    float p = sqrt(n.z * 8.0 + 8.0);
-    return n.xy / p + 0.5;
+	float p = sqrt(n.z * 8.0 + 8.0);
+	return n.xy / p + 0.5;
 }
 
 vec3 normal_decode(vec2 enc, vec3 view)
 {
-    vec2 fenc = enc * 4.0 - 2.0;
-    float f = dot(fenc, fenc);
-    float g = sqrt(1.0 - f / 4.0);
-    vec3 n;
-    n.xy = fenc*g;
-    n.z = 1 - f / 2;
-    return n;
+	vec2 fenc = enc * 4.0 - 2.0;
+	float f = dot(fenc, fenc);
+	float g = sqrt(1.0 - f / 4.0);
+	vec3 n;
+	n.xy = fenc*g;
+	n.z = 1 - f / 2;
+	return n;
 }
 
 /* ---- RGBM (shared multiplier) encoding ---- */

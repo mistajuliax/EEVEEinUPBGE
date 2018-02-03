@@ -79,6 +79,7 @@
 #include "IMB_colormanagement.h"
 
 #include "RE_engine.h"
+#include "RE_pipeline.h"
 
 #include "UI_interface.h"
 #include "UI_resources.h"
@@ -1119,6 +1120,7 @@ void DRW_shgroup_state_disable(DRWShadingGroup *shgroup, DRWState state)
 
 void DRW_shgroup_stencil_mask(DRWShadingGroup *shgroup, unsigned int mask)
 {
+	BLI_assert(mask <= 255);
 	shgroup->stencil_mask = mask;
 }
 
@@ -1699,6 +1701,11 @@ static void draw_geometry_prepare(
 	float mvp[4][4], mv[4][4], mi[4][4], mvi[4][4], pi[4][4], n[3][3], wn[3][3];
 	float orcofacs[2][3] = {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}};
 	float eye[3] = { 0.0f, 0.0f, 1.0f }; /* looking into the screen */
+	float viewcamtexcofac[4] = { 1.0f, 1.0f, 0.0f, 0.0f };
+
+	if (rv3d != NULL) {
+		copy_v4_v4(viewcamtexcofac, rv3d->viewcamtexcofac);
+	}
 
 	bool do_pi = (interface->projectioninverse != -1);
 	bool do_mvp = (interface->modelviewprojection != -1);
@@ -1791,7 +1798,7 @@ static void draw_geometry_prepare(
 	GPU_shader_uniform_vector(shgroup->shader, interface->modelviewinverse, 16, 1, (float *)mvi);
 	GPU_shader_uniform_vector(shgroup->shader, interface->normal, 9, 1, (float *)n);
 	GPU_shader_uniform_vector(shgroup->shader, interface->worldnormal, 9, 1, (float *)wn);
-	GPU_shader_uniform_vector(shgroup->shader, interface->camtexfac, 4, 1, (float *)rv3d->viewcamtexcofac);
+	GPU_shader_uniform_vector(shgroup->shader, interface->camtexfac, 4, 1, (float *)viewcamtexcofac);
 	GPU_shader_uniform_vector(shgroup->shader, interface->orcotexfac, 3, 2, (float *)orcofacs);
 	GPU_shader_uniform_vector(shgroup->shader, interface->eye, 3, 1, (float *)eye);
 	GPU_shader_uniform_vector(shgroup->shader, interface->clipplanes, 4, DST.num_clip_planes, (float *)DST.clip_planes_eq);
@@ -3613,10 +3620,13 @@ void DRW_render_to_image(RenderEngine *re, struct Depsgraph *depsgraph)
 	RenderEngineType *engine_type = re->type;
 	DrawEngineType *draw_engine_type = engine_type->draw_engine;
 	RenderData *r = &scene->r;
+	Render *render = re->re;
 
 	/* Reset before using it. */
 	memset(&DST, 0x0, sizeof(DST));
 	DST.options.is_image_render = true;
+	DST.options.is_scene_render = true;
+	DST.options.draw_background = scene->r.alphamode == R_ADDSKY;
 
 	DST.draw_ctx = (DRWContextState){
 	    NULL, NULL, NULL, scene, view_layer, OBACT(view_layer), engine_type, depsgraph, NULL
@@ -3635,7 +3645,19 @@ void DRW_render_to_image(RenderEngine *re, struct Depsgraph *depsgraph)
 	glDisable(GL_SCISSOR_TEST);
 	glViewport(0, 0, size[0], size[1]);
 
-	engine_type->draw_engine->render_to_image(data, re, depsgraph);
+	if ((r->scemode & R_MULTIVIEW) != 0) {
+		for (SceneRenderView *srv = r->views.first; srv; srv = srv->next) {
+			if (BKE_scene_multiview_is_render_view_active(r, srv) == false)
+				continue;
+
+			RE_SetActiveRenderView(render, srv->name);
+
+			engine_type->draw_engine->render_to_image(data, re, depsgraph);
+		}
+	}
+	else {
+		engine_type->draw_engine->render_to_image(data, re, depsgraph);
+	}
 
 	/* TODO grease pencil */
 

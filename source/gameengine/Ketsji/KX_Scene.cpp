@@ -447,11 +447,14 @@ void KX_Scene::EEVEE_draw_scene()
 			BLI_halton_3D(primes, offset, stl->effects->taa_current_sample, r);
 			/* Set jitter offset */
 			EEVEE_update_noise(psl, fbl, r);
+			EEVEE_volumes_set_jitter(sldata, stl->effects->taa_current_sample - 1);
+			EEVEE_materials_init(sldata, stl, fbl);
 		}
 
 		/* Refresh Probes */
 		DRW_stats_group_start("Probes Refresh");
 		EEVEE_lightprobes_refresh(sldata, vedata);
+		EEVEE_lightprobes_refresh_planar(sldata, vedata);
 		DRW_stats_group_end();
 
 		DRW_viewport_matrix_override_set(stl->effects->overide_persmat, DRW_MAT_PERS);
