@@ -839,10 +839,7 @@ void KX_Scene::EeveePostProcessingHackBegin(const KX_CullingNodeList& nodes)
 
 			BLI_halton_2D(ht_primes, ht_offset, effects->taa_current_sample - 1, ht_point);
 
-			window_translate_m4(
-				effects->overide_winmat, persmat,
-				((float)(ht_point[0]) * 2.0f - 1.0f) / viewport_size[0],
-				((float)(ht_point[1]) * 2.0f - 1.0f) / viewport_size[1]);
+			EEVEE_temporal_sampling_matrices_calc(effects, viewmat, persmat, ht_point);
 
 			m_doingTAA = true;
 		}
