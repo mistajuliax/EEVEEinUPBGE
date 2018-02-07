@@ -422,12 +422,17 @@ void KX_Scene::EEVEE_draw_scene()
 	EEVEE_Data *vedata = EEVEE_engine_data_get();
 
 	EEVEE_PassList *psl = ((EEVEE_Data *)vedata)->psl;
+	EEVEE_TextureList *txl = ((EEVEE_Data *)vedata)->txl;
 	EEVEE_StorageList *stl = ((EEVEE_Data *)vedata)->stl;
 	EEVEE_FramebufferList *fbl = ((EEVEE_Data *)vedata)->fbl;
 	EEVEE_ViewLayerData *sldata = EEVEE_view_layer_data_ensure();
 
 	/* Default framebuffer and texture */
 	DefaultTextureList *dtxl = DRW_viewport_texture_list_get();
+	DefaultFramebufferList *dfbl = DRW_viewport_framebuffer_list_get();
+
+	/* Sort transparents before the loop. */
+	DRW_pass_sort_shgroup_z(psl->transparent_pass);
 
 	/* Number of iteration: needed for all temporal effect (SSR, TAA)
 	* when using opengl render. */
@@ -438,14 +443,10 @@ void KX_Scene::EEVEE_draw_scene()
 		double offset[3] = { 0.0, 0.0, 0.0 };
 		double r[3];
 
-		if (DRW_state_is_image_render()) {
+		if (DRW_state_is_image_render() ||
+			((stl->effects->enabled_effects & EFFECT_TAA) != 0))
+		{
 			BLI_halton_3D(primes, offset, stl->effects->taa_current_sample, r);
-			/* Set jitter offset */
-			EEVEE_update_noise(psl, fbl, r);
-		}
-		else if ((stl->effects->enabled_effects & EFFECT_TAA) != 0) {
-			BLI_halton_3D(primes, offset, stl->effects->taa_current_sample, r);
-			/* Set jitter offset */
 			EEVEE_update_noise(psl, fbl, r);
 			EEVEE_volumes_set_jitter(sldata, stl->effects->taa_current_sample - 1);
 			EEVEE_materials_init(sldata, stl, fbl);
@@ -456,9 +457,6 @@ void KX_Scene::EEVEE_draw_scene()
 		EEVEE_lightprobes_refresh(sldata, vedata);
 		EEVEE_lightprobes_refresh_planar(sldata, vedata);
 		DRW_stats_group_end();
-
-		DRW_viewport_matrix_override_set(stl->effects->overide_persmat, DRW_MAT_PERS);
-		DRW_viewport_matrix_override_set(stl->effects->overide_persinv, DRW_MAT_PERSINV);
 
 		/* Update common buffer after probe rendering. */
 		DRW_uniformbuffer_update(sldata->common_ubo, &sldata->common_data);
@@ -481,20 +479,15 @@ void KX_Scene::EEVEE_draw_scene()
 			DRW_framebuffer_clear(true, true, true, clear_col, 1.0f);
 		}
 
-		DRW_viewport_matrix_override_set(stl->effects->overide_winmat, DRW_MAT_WIN);
-		DRW_viewport_matrix_override_set(stl->effects->overide_wininv, DRW_MAT_WININV);
-
-		/* BGE SPECIFIC CODE */
-		if (m_doingProbeUpdate) {
-			float viewmat[4][4], viewinv[4][4];
-			KX_Camera *cam = GetActiveCamera();
-			cam->GetModelviewMatrix().getValue(&viewmat[0][0]);
-			invert_m4_m4(viewinv, viewmat);
-			DRW_viewport_matrix_override_set(viewmat, DRW_MAT_VIEW);
-			DRW_viewport_matrix_override_set(viewinv, DRW_MAT_VIEWINV);
-			m_doingProbeUpdate = false;
+		if (((stl->effects->enabled_effects & EFFECT_TAA) != 0) &&
+			(stl->effects->taa_current_sample > 1) &&
+			!DRW_state_is_image_render())
+		{
+			DRW_viewport_matrix_override_set(stl->effects->overide_persmat, DRW_MAT_PERS);
+			DRW_viewport_matrix_override_set(stl->effects->overide_persinv, DRW_MAT_PERSINV);
+			DRW_viewport_matrix_override_set(stl->effects->overide_winmat, DRW_MAT_WIN);
+			DRW_viewport_matrix_override_set(stl->effects->overide_wininv, DRW_MAT_WININV);
 		}
-		/* End of BGE SPECIFIC CODE */
 
 		/* Depth prepass */
 		DRW_stats_group_start("Prepass");
@@ -538,29 +531,36 @@ void KX_Scene::EEVEE_draw_scene()
 		EEVEE_volumes_resolve(sldata, vedata);
 
 		/* Transparent */
-		DRW_pass_sort_shgroup_z(psl->transparent_pass);
 		DRW_draw_pass(psl->transparent_pass);
 
-		/* BGE SPECIFIC CODE */
-		DRW_state_reset();
+
 		RenderFonts();
-		/* End of BGE SPECIFIC CODE */
 
 		/* Post Process */
 		DRW_stats_group_start("Post FX");
 		EEVEE_draw_effects(sldata, vedata);
 		DRW_stats_group_end();
 
-		DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
-		DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
-		DRW_viewport_matrix_override_unset(DRW_MAT_WIN);
-		DRW_viewport_matrix_override_unset(DRW_MAT_WININV);
+		if ((stl->effects->taa_current_sample > 1) && !DRW_state_is_image_render()) {
+			DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
+			DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
+			DRW_viewport_matrix_override_unset(DRW_MAT_WIN);
+			DRW_viewport_matrix_override_unset(DRW_MAT_WININV);
+		}
 	}
+
+	/* Restore default framebuffer */
+	DRW_framebuffer_texture_attach(dfbl->default_fb, dtxl->depth, 0, 0);
+	DRW_framebuffer_bind(dfbl->default_fb);
+
+	/* Tonemapping */
+	DRW_transform_to_display(stl->effects->final_tx);
 
 	EEVEE_volumes_free_smoke_textures();
 
 	stl->g_data->view_updated = false;
 }
+
 /*************************End of EEVEE SCENE DRAWING*********************/
 
 /*****************************TAA UTILS**********************************/

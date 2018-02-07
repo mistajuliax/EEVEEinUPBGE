@@ -1235,6 +1235,13 @@ static void render_scene_to_planar(
 	invert_m4_m4(viewinv, viewmat);
 	invert_m4_m4(persinv, persmat);
 
+	float prev_viewmat[4][4], prev_viewinv[4][4]; // Game engine transition (easier bge maintenance)
+	float prev_persmat[4][4], prev_persinv[4][4]; // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_get(prev_viewmat, DRW_MAT_VIEW); // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_get(prev_viewinv, DRW_MAT_VIEWINV); // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_get(prev_persmat, DRW_MAT_PERS); // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_get(prev_persinv, DRW_MAT_PERSINV); // Game engine transition (easier bge maintenance)
+
 	DRW_viewport_matrix_override_set(persmat, DRW_MAT_PERS);
 	DRW_viewport_matrix_override_set(persinv, DRW_MAT_PERSINV);
 	DRW_viewport_matrix_override_set(viewmat, DRW_MAT_VIEW);
@@ -1289,10 +1296,15 @@ static void render_scene_to_planar(
 	/* Restore */
 	txl->planar_pool = tmp_planar_pool;
 	txl->planar_depth = tmp_planar_depth;
-	DRW_viewport_matrix_override_unset(DRW_MAT_PERS);
-	DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV);
-	DRW_viewport_matrix_override_unset(DRW_MAT_VIEW);
-	DRW_viewport_matrix_override_unset(DRW_MAT_VIEWINV);
+	/*DRW_viewport_matrix_override_unset(DRW_MAT_PERS); // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_override_unset(DRW_MAT_PERSINV); // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_override_unset(DRW_MAT_VIEW); // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_override_unset(DRW_MAT_VIEWINV);*/ // Game engine transition (easier bge maintenance)
+
+	DRW_viewport_matrix_override_set(prev_viewmat, DRW_MAT_VIEW); // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_override_set(prev_viewinv, DRW_MAT_VIEWINV); // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_override_set(prev_persmat, DRW_MAT_PERS); // Game engine transition (easier bge maintenance)
+	DRW_viewport_matrix_override_set(prev_persinv, DRW_MAT_PERSINV); // Game engine transition (easier bge maintenance)
 
 	DRW_framebuffer_texture_detach(txl->planar_pool);
 	DRW_framebuffer_texture_detach(txl->planar_depth);
