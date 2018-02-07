@@ -67,7 +67,7 @@ extern "C" {
 #include "DNA_scene_types.h"
 #include "DNA_texture_types.h"
 #include "DNA_world_types.h"
-#include "DNA_object_force.h"
+#include "DNA_object_force_types.h"
 
 #include "BKE_action.h"
 #include "BKE_armature.h"
@@ -194,7 +194,6 @@ static bool particle_system_depends_on_time(ParticleSystem *psys)
 
 static bool object_particles_depends_on_time(Object *object)
 {
-	return true;
 	BLI_LISTBASE_FOREACH (ParticleSystem *, psys, &object->particlesystem) {
 		if (particle_system_depends_on_time(psys)) {
 			return true;
@@ -1533,7 +1532,11 @@ void DepsgraphRelationBuilder::build_particles(Object *object)
 	ComponentKey transform_key(&object->id, DEG_NODE_TYPE_TRANSFORM);
 	add_relation(transform_key, obdata_ubereval_key, "Partcile Eval");
 
-	/* TODO(sergey): Do we need a point cache operations here? */
+	OperationKey point_cache_reset_key(&object->id,
+	                                   DEG_NODE_TYPE_CACHE,
+	                                   DEG_OPCODE_POINT_CACHE_RESET);
+	add_relation(transform_key, point_cache_reset_key, "Object Transform -> Point Cache Reset");
+	add_relation(point_cache_reset_key, obdata_ubereval_key, "Point Cache Reset -> UberEval");
 }
 
 void DepsgraphRelationBuilder::build_particle_settings(ParticleSettings *part)
@@ -2101,6 +2104,22 @@ void DepsgraphRelationBuilder::build_copy_on_write_relations(IDDepsNode *id_node
 		{
 			if (op_node->inlinks.size() == 0) {
 				graph_->add_new_relation(op_cow, op_node, "CoW Dependency");
+			}
+			else {
+				bool has_same_id_dependency = false;
+				foreach (DepsRelation *rel, op_node->inlinks) {
+					if (rel->from->type != DEG_NODE_TYPE_OPERATION) {
+						continue;
+					}
+					OperationDepsNode *op_node_from = (OperationDepsNode *)rel->from;
+					if (op_node_from->owner->owner == op_node->owner->owner) {
+						has_same_id_dependency = true;
+						break;
+					}
+				}
+				if (!has_same_id_dependency) {
+					graph_->add_new_relation(op_cow, op_node, "CoW Dependency");
+				}
 			}
 		}
 		GHASH_FOREACH_END();

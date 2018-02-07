@@ -92,6 +92,7 @@ void depsgraph_geometry_tag_to_component(const ID *id,
 				case OB_CURVE:
 				case OB_SURF:
 				case OB_FONT:
+				case OB_LATTICE:
 				case OB_MBALL:
 					*component_type = DEG_NODE_TYPE_GEOMETRY;
 					break;
@@ -437,8 +438,12 @@ void deg_graph_on_visible_update(Main *bmain, Depsgraph *graph)
 	     scene_iter = scene_iter->set)
 	{
 		IDDepsNode *scene_id_node = graph->find_id_node(&scene_iter->id);
-		BLI_assert(scene_id_node != NULL);
-		scene_id_node->tag_update(graph);
+		if (scene_id_node != NULL) {
+			scene_id_node->tag_update(graph);
+		}
+		else {
+			BLI_assert(graph->need_update);
+		}
 	}
 }
 
