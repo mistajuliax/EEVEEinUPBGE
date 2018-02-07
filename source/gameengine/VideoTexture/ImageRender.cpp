@@ -101,7 +101,7 @@ ImageRender::~ImageRender (void)
 
 int ImageRender::GetColorBindCode() const
 {
-	return GPU_texture_opengl_bindcode(EEVEE_engine_data_get()->stl->effects->source_buffer);
+	return GPU_texture_opengl_bindcode(EEVEE_engine_data_get()->stl->effects->final_tx);
 }
 
 // capture image from viewport
@@ -124,7 +124,7 @@ void ImageRender::calcViewport (unsigned int texId, double ts, unsigned int form
 
 	GPU_framebuffer_restore();
 
-	DRW_transform_to_display(EEVEE_engine_data_get()->stl->effects->source_buffer);
+	DRW_transform_to_display(EEVEE_engine_data_get()->stl->effects->final_tx);
 }
 
 bool ImageRender::Render()
