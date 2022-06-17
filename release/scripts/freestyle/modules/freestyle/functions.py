@@ -198,9 +198,8 @@ class CurveMaterialF0D(UnaryFunction0DMaterial):
             return None
         if fe.is_smooth:
             return fe.material
-        else:
-            right, left = fe.material_right, fe.material_left
-            return right if (right.priority > left.priority) else left
+        right, left = fe.material_right, fe.material_left
+        return right if (right.priority > left.priority) else left
 
 
 class pyInverseCurvature2DAngleF0D(UnaryFunction0DDouble):
@@ -302,8 +301,12 @@ class pyDensityAnisotropyF1D(UnaryFunction1DDouble):
         self._sampling = sampling
 
     def __call__(self, inter):
-        v = integrate(self._func, inter.points_begin(self._sampling), inter.points_end(self._sampling), self._integration)
-        return v
+        return integrate(
+            self._func,
+            inter.points_begin(self._sampling),
+            inter.points_end(self._sampling),
+            self._integration,
+        )
 
 
 class pyViewMapGradientNormF1D(UnaryFunction1DDouble):
@@ -314,5 +317,9 @@ class pyViewMapGradientNormF1D(UnaryFunction1DDouble):
         self._sampling = sampling
 
     def __call__(self, inter):
-        v = integrate(self._func, inter.points_begin(self._sampling), inter.points_end(self._sampling), self._integration)
-        return v
+        return integrate(
+            self._func,
+            inter.points_begin(self._sampling),
+            inter.points_end(self._sampling),
+            self._integration,
+        )

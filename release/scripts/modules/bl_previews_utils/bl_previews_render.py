@@ -254,7 +254,7 @@ def do_previews(do_objects, do_groups, do_scenes, do_data_intern):
         # Take group instances into account (including linked one in this case).
         if ob.type == 'EMPTY' and ob.dupli_type == 'GROUP':
             grp_objects = tuple((ob.name, ob.library.filepath if ob.library else None) for ob in ob.dupli_group.objects)
-            if (len(grp_objects) == 0):
+            if not grp_objects:
                 ob_bbox = ob.bound_box
             else:
                 coords = objects_bbox_calc(ob_space, grp_objects,
@@ -289,17 +289,32 @@ def do_previews(do_objects, do_groups, do_scenes, do_data_intern):
         # Our bbox has been generated in camera local space, bring it back in world one
         bbox[0][:] = camera.matrix_world * bbox[0]
         bbox[1][:] = camera.matrix_world * bbox[1]
-        cos = (
-            bbox[0].x, bbox[0].y, bbox[0].z,
-            bbox[0].x, bbox[0].y, bbox[1].z,
-            bbox[0].x, bbox[1].y, bbox[0].z,
-            bbox[0].x, bbox[1].y, bbox[1].z,
-            bbox[1].x, bbox[0].y, bbox[0].z,
-            bbox[1].x, bbox[0].y, bbox[1].z,
-            bbox[1].x, bbox[1].y, bbox[0].z,
-            bbox[1].x, bbox[1].y, bbox[1].z,
+        return (
+            bbox[0].x,
+            bbox[0].y,
+            bbox[0].z,
+            bbox[0].x,
+            bbox[0].y,
+            bbox[1].z,
+            bbox[0].x,
+            bbox[1].y,
+            bbox[0].z,
+            bbox[0].x,
+            bbox[1].y,
+            bbox[1].z,
+            bbox[1].x,
+            bbox[0].y,
+            bbox[0].z,
+            bbox[1].x,
+            bbox[0].y,
+            bbox[1].z,
+            bbox[1].x,
+            bbox[1].y,
+            bbox[0].z,
+            bbox[1].x,
+            bbox[1].y,
+            bbox[1].z,
         )
-        return cos
 
     def preview_render_do(render_context, item_container, item_name, objects, offset_matrix=None):
         scene = bpy.data.scenes[render_context.scene, None]
@@ -478,7 +493,7 @@ def do_clear_previews(do_objects, do_groups, do_scenes, do_data_intern):
         for scene in ids_nolib(bpy.data.scenes):
             scene.preview.image_size = (0, 0)
 
-    print("Saving %s..." % bpy.data.filepath)
+    print(f"Saving {bpy.data.filepath}...")
     bpy.ops.wm.save_mainfile()
 
 
@@ -530,7 +545,7 @@ def main():
 
 
 if __name__ == "__main__":
-    print("\n\n *** Running {} *** \n".format(__file__))
-    print(" *** Blend file {} *** \n".format(bpy.data.filepath))
+    print(f"\n\n *** Running {__file__} *** \n")
+    print(f" *** Blend file {bpy.data.filepath} *** \n")
     main()
     bpy.ops.wm.quit_blender()

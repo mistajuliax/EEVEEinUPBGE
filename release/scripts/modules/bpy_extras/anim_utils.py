@@ -185,16 +185,12 @@ def bake_action_iter(
             def obj_frame_info(obj):
                 parent = obj.parent
                 matrix = obj.matrix_basis
-                if parent:
-                    return parent.matrix_world * matrix
-                else:
-                    return matrix.copy()
+                return parent.matrix_world * matrix if parent else matrix.copy()
     else:
         if do_visual_keying:
             def obj_frame_info(obj):
-                parent = obj.parent
                 matrix = obj.matrix_world
-                if parent:
+                if parent := obj.parent:
                     return parent.matrix_world.inverted_safe() * matrix
                 else:
                     return matrix.copy()

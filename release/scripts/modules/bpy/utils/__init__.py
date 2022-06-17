@@ -124,8 +124,7 @@ def modules_from_path(path, loaded_modules):
     modules = []
 
     for mod_name, mod_path in _bpy.path.module_names(path):
-        mod = _test_import(mod_name, loaded_modules)
-        if mod:
+        if mod := _test_import(mod_name, loaded_modules):
             modules.append(mod)
 
     return modules
@@ -171,8 +170,7 @@ def load_scripts(reload_scripts=False, refresh_scripts=False):
         _bpy_types.TypeMap.clear()
 
     def register_module_call(mod):
-        register = getattr(mod, "register", None)
-        if register:
+        if register := getattr(mod, "register", None):
             try:
                 register()
             except:
@@ -184,8 +182,7 @@ def load_scripts(reload_scripts=False, refresh_scripts=False):
                   mod.__file__)
 
     def unregister_module_call(mod):
-        unregister = getattr(mod, "unregister", None)
-        if unregister:
+        if unregister := getattr(mod, "unregister", None):
             try:
                 unregister()
             except:
@@ -338,11 +335,7 @@ def script_paths(subdir=None, user_pref=True, check_all=False, use_user=True):
 
     if check_all:
         # All possible paths, no duplicates, keep order.
-        if use_user:
-            test_paths = ('LOCAL', 'USER', 'SYSTEM')
-        else:
-            test_paths = ('LOCAL', 'SYSTEM')
-
+        test_paths = ('LOCAL', 'USER', 'SYSTEM') if use_user else ('LOCAL', 'SYSTEM')
         base_paths = (
             *(path for path in (
                 _os.path.join(resource_path(res), "scripts")
@@ -411,8 +404,7 @@ def app_template_paths(subdir=None):
             ('LOCAL', "bl_app_templates_system"),
             ('SYSTEM', "bl_app_templates_system"),
     ):
-        path = resource_path(resource_type)
-        if path:
+        if path := resource_path(resource_type):
             path = _os.path.join(
                 *(path, "scripts", "startup", module_name, *subdir_tuple))
             if _os.path.isdir(path):
@@ -553,11 +545,15 @@ def preset_find(name, preset_path, display_name=False, ext=".py"):
     for directory in preset_paths(preset_path):
 
         if display_name:
-            filename = ""
-            for fn in _os.listdir(directory):
-                if fn.endswith(ext) and name == _bpy.path.display_name(fn):
-                    filename = fn
-                    break
+            filename = next(
+                (
+                    fn
+                    for fn in _os.listdir(directory)
+                    if fn.endswith(ext) and name == _bpy.path.display_name(fn)
+                ),
+                "",
+            )
+
         else:
             filename = name + ext
 
@@ -604,8 +600,7 @@ def keyconfig_set(filepath, report=None):
         # remove duplicates
         name = splitext(basename(filepath))[0]
         while True:
-            kc_dupe = keyconfigs.get(name)
-            if kc_dupe:
+            if kc_dupe := keyconfigs.get(name):
                 keyconfigs.remove(kc_dupe)
             else:
                 break
@@ -632,20 +627,18 @@ def user_resource(resource_type, path="", create=False):
 
     target_path = _user_resource(resource_type, path)
 
-    if create:
-        # should always be true.
-        if target_path:
-            # create path if not existing.
-            if not _os.path.exists(target_path):
-                try:
-                    _os.makedirs(target_path)
-                except:
-                    import traceback
-                    traceback.print_exc()
-                    target_path = ""
-            elif not _os.path.isdir(target_path):
-                print("Path %r found but isn't a directory!" % target_path)
+    if create and target_path:
+        # create path if not existing.
+        if not _os.path.exists(target_path):
+            try:
+                _os.makedirs(target_path)
+            except:
+                import traceback
+                traceback.print_exc()
                 target_path = ""
+        elif not _os.path.isdir(target_path):
+            print("Path %r found but isn't a directory!" % target_path)
+            target_path = ""
 
     return target_path
 
@@ -768,10 +761,9 @@ def register_submodule_factory(module_name, submodule_names):
 # we start with the built-in default mapping
 def _blender_default_map():
     import rna_manual_reference as ref_mod
-    ret = (ref_mod.url_manual_prefix, ref_mod.url_manual_mapping)
     # avoid storing in memory
     del _sys.modules["rna_manual_reference"]
-    return ret
+    return ref_mod.url_manual_prefix, ref_mod.url_manual_mapping
 
 # hooks for doc lookups
 _manual_map = [_blender_default_map]

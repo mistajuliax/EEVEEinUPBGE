@@ -87,15 +87,13 @@ def ui_draw_filter_register(
                     # print("wrapped", attr)
                     ui_test = ui_ignore_operator(args[0])
                     if ui_test is False:
-                        ret = real_func(*args, **kw)
+                        return real_func(*args, **kw)
+                    if ui_test is None:
+                        UILayout.__getattribute__(self, "label")("")
                     else:
-                        if ui_test is None:
-                            UILayout.__getattribute__(self, "label")("")
-                        else:
-                            assert(ui_test is True)
+                        assert(ui_test is True)
                         # may need to be set
-                        ret = OperatorProperties_Fake()
-                    return ret
+                    return OperatorProperties_Fake()
                 return dummy_func
 
             elif attr in {"prop", "prop_enum"}:
@@ -108,14 +106,12 @@ def ui_draw_filter_register(
                     # print("wrapped", attr)
                     ui_test = ui_ignore_property(args[0].__class__.__name__, args[1])
                     if ui_test is False:
-                        ret = real_func(*args, **kw)
+                        return real_func(*args, **kw)
+                    if ui_test is None:
+                        UILayout.__getattribute__(self, "label")("")
                     else:
-                        if ui_test is None:
-                            UILayout.__getattribute__(self, "label")("")
-                        else:
-                            assert(ui_test is True)
-                        ret = None
-                    return ret
+                        assert(ui_test is True)
+                    return None
                 return dummy_func
 
             elif attr == "menu":
@@ -128,14 +124,12 @@ def ui_draw_filter_register(
                     # print("wrapped", attr)
                     ui_test = ui_ignore_menu(args[0])
                     if ui_test is False:
-                        ret = real_func(*args, **kw)
+                        return real_func(*args, **kw)
+                    if ui_test is None:
+                        UILayout.__getattribute__(self, "label")("")
                     else:
-                        if ui_test is None:
-                            UILayout.__getattribute__(self, "label")("")
-                        else:
-                            assert(ui_test is True)
-                        ret = None
-                    return ret
+                        assert(ui_test is True)
+                    return None
                 return dummy_func
 
             elif attr == "label":
@@ -148,14 +142,12 @@ def ui_draw_filter_register(
                     # print("wrapped", attr)
                     ui_test = ui_ignore_label(args[0] if args else kw.get("text", ""))
                     if ui_test is False:
-                        ret = real_func(*args, **kw)
+                        return real_func(*args, **kw)
+                    if ui_test is None:
+                        real_func("")
                     else:
-                        if ui_test is None:
-                            real_func("")
-                        else:
-                            assert(ui_test is True)
-                        ret = None
-                    return ret
+                        assert(ui_test is True)
+                    return None
                 return dummy_func
             else:
                 return UILayout.__getattribute__(self, attr)
@@ -175,17 +167,16 @@ def ui_draw_filter_register(
             def __getattribute__(self, attr):
                 if attr == "layout":
                     return UILayout_Fake(self_real.layout)
-                else:
-                    cls = super()
+                cls = super()
+                try:
+                    return cls.__getattr__(self, attr)
+                except AttributeError:
+                    # class variable
                     try:
-                        return cls.__getattr__(self, attr)
+                        return getattr(cls, attr)
                     except AttributeError:
-                        # class variable
-                        try:
-                            return getattr(cls, attr)
-                        except AttributeError:
-                            # for preset bl_idname access
-                            return getattr(UILayout(self), attr)
+                        # for preset bl_idname access
+                        return getattr(UILayout(self), attr)
 
             @property
             def layout(self):

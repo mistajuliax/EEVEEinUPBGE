@@ -130,13 +130,13 @@ def draw_samples_info(layout, context):
         col.label("Total Samples:")
         col.separator()
         if integrator == 'PATH':
-            col.label("%s AA" % aa)
+            col.label(f"{aa} AA")
         else:
-            col.label("%s AA, %s Diffuse, %s Glossy, %s Transmission" %
-                      (aa, d * aa, g * aa, t * aa))
+            col.label(f"{aa} AA, {d * aa} Diffuse, {g * aa} Glossy, {t * aa} Transmission")
             col.separator()
-            col.label("%s AO, %s Mesh Light, %s Subsurface, %s Volume" %
-                      (ao * aa, ml * aa, sss * aa, vol * aa))
+            col.label(
+                f"{ao * aa} AO, {ml * aa} Mesh Light, {sss * aa} Subsurface, {vol * aa} Volume"
+            )
 
 
 class CYCLES_RENDER_PT_sampling(CyclesButtonsPanel, Panel):
@@ -251,7 +251,10 @@ class CYCLES_RENDER_PT_geometry(CyclesButtonsPanel, Panel):
         col.prop(ccscene, "primitive", text="Primitive")
         col.prop(ccscene, "shape", text="Shape")
 
-        if not (ccscene.primitive in {'CURVE_SEGMENTS', 'LINE_SEGMENTS'} and ccscene.shape == 'RIBBONS'):
+        if (
+            ccscene.primitive not in {'CURVE_SEGMENTS', 'LINE_SEGMENTS'}
+            or ccscene.shape != 'RIBBONS'
+        ):
             col.prop(ccscene, "cull_backfacing", text="Cull back-faces")
 
         if ccscene.primitive == 'TRIANGLES' and ccscene.shape == 'THICK':
@@ -554,8 +557,8 @@ class CYCLES_RENDER_PT_views(CyclesButtonsPanel, Panel):
         row = layout.row()
         row.prop(rd, "views_format", expand=True)
 
+        row = layout.row()
         if basic_stereo:
-            row = layout.row()
             row.template_list("VIEWLAYER_UL_renderviews", "name", rd, "stereo_views", rd.views, "active_index", rows=2)
 
             row = layout.row()
@@ -563,7 +566,6 @@ class CYCLES_RENDER_PT_views(CyclesButtonsPanel, Panel):
             row.prop(rv, "file_suffix", text="")
 
         else:
-            row = layout.row()
             row.template_list("VIEWLAYER_UL_renderviews", "name", rd, "views", rd.views, "active_index", rows=2)
 
             col = row.column(align=True)
@@ -727,10 +729,7 @@ class CYCLES_PT_context_material(CyclesButtonsPanel, Panel):
 
         if ob:
             is_sortable = len(ob.material_slots) > 1
-            rows = 1
-            if (is_sortable):
-                rows = 4
-
+            rows = 4 if is_sortable else 1
             row = layout.row()
 
             row.template_list("MATERIAL_UL_matslots", "", ob, "material_slots", ob, "active_material_index", rows=rows)
@@ -777,11 +776,11 @@ class CYCLES_OBJECT_PT_motion_blur(CyclesButtonsPanel, Panel):
     def poll(cls, context):
         ob = context.object
         if CyclesButtonsPanel.poll(context) and ob:
-            if ob.type in {'MESH', 'CURVE', 'CURVE', 'SURFACE', 'FONT', 'META'}:
+            if ob.type in {'MESH', 'CURVE', 'SURFACE', 'FONT', 'META'}:
                 return True
             if ob.dupli_type == 'GROUP' and ob.dupli_group:
                 return True
-            # TODO(sergey): More duplicator types here?
+                # TODO(sergey): More duplicator types here?
         return False
 
     def draw_header(self, context):
@@ -893,10 +892,8 @@ def panel_node_draw(layout, id_data, output_types, input_name):
 
     ntree = id_data.node_tree
 
-    node = find_output_node(ntree, output_types)
-    if node:
-        input = find_node_input(node, input_name)
-        if input:
+    if node := find_output_node(ntree, output_types):
+        if input := find_node_input(node, input_name):
             layout.template_node_view(ntree, node, input)
         else:
             layout.label(text="Incompatible output node")
@@ -1098,11 +1095,10 @@ class CYCLES_WORLD_PT_mist(CyclesButtonsPanel, Panel):
 
     @classmethod
     def poll(cls, context):
-        if CyclesButtonsPanel.poll(context):
-            if context.world:
-                for view_layer in context.scene.view_layers:
-                    if view_layer.use_pass_mist:
-                        return True
+        if CyclesButtonsPanel.poll(context) and context.world:
+            for view_layer in context.scene.view_layers:
+                if view_layer.use_pass_mist:
+                    return True
 
         return False
 
@@ -1710,13 +1706,13 @@ def draw_device(self, context):
 
 
 def draw_pause(self, context):
-    layout = self.layout
-    scene = context.scene
-
     if context.engine == "CYCLES":
         view = context.space_data
 
+        scene = context.scene
+
         cscene = scene.cycles
+        layout = self.layout
         layout.prop(cscene, "preview_pause", icon="PAUSE", text="")
 
 
@@ -1770,13 +1766,13 @@ def get_panels():
         'WORLD_PT_world'
         }
 
-    panels = []
-    for panel in bpy.types.Panel.__subclasses__():
-        if hasattr(panel, 'COMPAT_ENGINES') and 'BLENDER_RENDER' in panel.COMPAT_ENGINES:
-            if panel.__name__ not in exclude_panels:
-                panels.append(panel)
-
-    return panels
+    return [
+        panel
+        for panel in bpy.types.Panel.__subclasses__()
+        if hasattr(panel, 'COMPAT_ENGINES')
+        and 'BLENDER_RENDER' in panel.COMPAT_ENGINES
+        and panel.__name__ not in exclude_panels
+    ]
 
 
 classes = (

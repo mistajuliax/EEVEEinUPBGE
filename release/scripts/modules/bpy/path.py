@@ -78,16 +78,15 @@ def abspath(path, start=None, library=None):
                 if start is None else start,
                 path[2:],
             )
-    else:
-        if path.startswith("//"):
-            if library:
-                start = _os.path.dirname(
-                    abspath(library.filepath))
-            return _os.path.join(
-                _os.path.dirname(_bpy.data.filepath)
-                if start is None else start,
-                path[2:],
-            )
+    elif path.startswith("//"):
+        if library:
+            start = _os.path.dirname(
+                abspath(library.filepath))
+        return _os.path.join(
+            _os.path.dirname(_bpy.data.filepath)
+            if start is None else start,
+            path[2:],
+        )
 
     return path
 
@@ -107,11 +106,10 @@ def relpath(path, start=None):
             if start is None:
                 start = _os.path.dirname(_getattr_bytes(_bpy.data, "filepath"))
             return b"//" + _os.path.relpath(path, start)
-    else:
-        if not path.startswith("//"):
-            if start is None:
-                start = _os.path.dirname(_bpy.data.filepath)
-            return "//" + _os.path.relpath(path, start)
+    elif not path.startswith("//"):
+        if start is None:
+            start = _os.path.dirname(_bpy.data.filepath)
+        return f"//{_os.path.relpath(path, start)}"
 
     return path
 
@@ -272,27 +270,18 @@ def resolve_ncase(path):
             if not found:
                 return path, False
 
-        # at this point, the directory exists but not the file
-
-        # we are expecting 'dirpath' to be a directory, but it could be a file
-        if _os.path.isdir(dirpath):
-            try:
-                files = _os.listdir(dirpath)
-            except PermissionError:
-                # We might not have the permission to list dirpath...
-                return path, False
-        else:
+        if not _os.path.isdir(dirpath):
             return path, False
 
+        try:
+            files = _os.listdir(dirpath)
+        except PermissionError:
+            # We might not have the permission to list dirpath...
+            return path, False
         filename_low = filename.lower()
-        f_iter_nocase = None
-
-        for f_iter in files:
-            if f_iter.lower() == filename_low:
-                f_iter_nocase = f_iter
-                break
-
-        if f_iter_nocase:
+        if f_iter_nocase := next(
+            (f_iter for f_iter in files if f_iter.lower() == filename_low), None
+        ):
             return _os.path.join(dirpath, f_iter_nocase) + suffix, True
         else:
             # cant find the right one, just return the path as is.
@@ -316,9 +305,8 @@ def ensure_ext(filepath, ext, case_sensitive=False):
     if case_sensitive:
         if filepath.endswith(ext):
             return filepath
-    else:
-        if filepath[-len(ext):].lower().endswith(ext.lower()):
-            return filepath
+    elif filepath[-len(ext):].lower().endswith(ext.lower()):
+        return filepath
 
     return filepath + ext
 
@@ -341,20 +329,20 @@ def module_names(path, recursive=False):
 
     for filename in sorted(_os.listdir(path)):
         if filename == "modules":
-            pass  # XXX, hard coded exception.
-        elif filename.endswith(".py") and filename != "__init__.py":
+            continue
+        if filename.endswith(".py") and filename != "__init__.py":
             fullpath = join(path, filename)
-            modules.append((filename[0:-3], fullpath))
+            modules.append((filename[:-3], fullpath))
         elif "." not in filename:
             directory = join(path, filename)
             fullpath = join(directory, "__init__.py")
             if isfile(fullpath):
                 modules.append((filename, fullpath))
                 if recursive:
-                    for mod_name, mod_path in module_names(directory, True):
-                        modules.append(("%s.%s" % (filename, mod_name),
-                                        mod_path,
-                                        ))
+                    modules.extend(
+                        (f"{filename}.{mod_name}", mod_path)
+                        for mod_name, mod_path in module_names(directory, True)
+                    )
 
     return modules
 
@@ -376,18 +364,19 @@ def native_pathsep(path):
         if _os.sep == "/":
             return path.replace("\\", "/")
         else:
-            if path.startswith("//"):
-                return "//" + path[2:].replace("/", "\\")
-            else:
-                return path.replace("/", "\\")
-    else:  # bytes
-        if _os.sep == "/":
-            return path.replace(b"\\", b"/")
+            return (
+                "//" + path[2:].replace("/", "\\")
+                if path.startswith("//")
+                else path.replace("/", "\\")
+            )
+
+    elif _os.sep == "/":
+        return path.replace(b"\\", b"/")
+    else:
+        if path.startswith(b"//"):
+            return b"//" + path[2:].replace(b"/", b"\\")
         else:
-            if path.startswith(b"//"):
-                return b"//" + path[2:].replace(b"/", b"\\")
-            else:
-                return path.replace(b"/", b"\\")
+            return path.replace(b"/", b"\\")
 
 
 def reduce_dirs(dirs):

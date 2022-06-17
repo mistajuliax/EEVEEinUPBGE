@@ -103,18 +103,17 @@ def region_2d_to_origin_3d(region, rv3d, coord, clamp=None):
                         (persinv.col[1].xyz * dy) +
                         persinv.translation)
 
-        if clamp != 0.0:
-            if rv3d.view_perspective != 'CAMERA':
-                # this value is scaled to the far clip already
-                origin_offset = persinv.col[2].xyz
-                if clamp is not None:
-                    if clamp < 0.0:
-                        origin_offset.negate()
-                        clamp = -clamp
-                    if origin_offset.length > clamp:
-                        origin_offset.length = clamp
+        if clamp != 0.0 and rv3d.view_perspective != 'CAMERA':
+            # this value is scaled to the far clip already
+            origin_offset = persinv.col[2].xyz
+            if clamp is not None:
+                if clamp < 0.0:
+                    origin_offset.negate()
+                    clamp = -clamp
+                if origin_offset.length > clamp:
+                    origin_offset.length = clamp
 
-                origin_start -= origin_offset
+            origin_start -= origin_offset
 
     return origin_start
 
@@ -180,12 +179,11 @@ def location_3d_to_region_2d(region, rv3d, coord, default=None):
     from mathutils import Vector
 
     prj = rv3d.perspective_matrix * Vector((coord[0], coord[1], coord[2], 1.0))
-    if prj.w > 0.0:
-        width_half = region.width / 2.0
-        height_half = region.height / 2.0
-
-        return Vector((width_half + width_half * (prj.x / prj.w),
-                       height_half + height_half * (prj.y / prj.w),
-                       ))
-    else:
+    if prj.w <= 0.0:
         return default
+    width_half = region.width / 2.0
+    height_half = region.height / 2.0
+
+    return Vector((width_half + width_half * (prj.x / prj.w),
+                   height_half + height_half * (prj.y / prj.w),
+                   ))

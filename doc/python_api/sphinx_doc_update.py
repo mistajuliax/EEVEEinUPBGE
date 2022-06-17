@@ -94,7 +94,7 @@ def main():
 
     args = argparse_create().parse_args()
 
-    rsync_base = "rsync://%s@%s:%s" % (args.user, args.rsync_server, args.rsync_root)
+    rsync_base = f"rsync://{args.user}@{args.rsync_server}:{args.rsync_root}"
 
     blenver = blenver_zip = ""
     api_name = ""
@@ -107,9 +107,20 @@ def main():
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         # II) Generate doc source in temp dir.
-        doc_gen_cmd = (args.blender, "--background", "-noaudio", "--factory-startup", "--python-exit-code", "1",
-                       "--python", "%s/doc/python_api/sphinx_doc_gen.py" % args.source_dir, "--",
-                       "--output", tmp_dir)
+        doc_gen_cmd = (
+            args.blender,
+            "--background",
+            "-noaudio",
+            "--factory-startup",
+            "--python-exit-code",
+            "1",
+            "--python",
+            f"{args.source_dir}/doc/python_api/sphinx_doc_gen.py",
+            "--",
+            "--output",
+            tmp_dir,
+        )
+
         subprocess.run(doc_gen_cmd)
 
         # III) Get Blender version info.
@@ -149,7 +160,7 @@ def main():
         os.rename(os.path.join(tmp_dir, "sphinx-out"), api_dir)
 
     # VI) Create zip archive.
-    zip_name = "blender_python_reference_%s" % blenver_zip  # We can't use 'release' postfix here...
+    zip_name = f"blender_python_reference_{blenver_zip}"
     zip_path = os.path.join(args.mirror_dir, zip_name)
     with zipfile.ZipFile(zip_path, 'w') as zf:
         for dirname, _, filenames in os.walk(api_dir):
@@ -157,14 +168,14 @@ def main():
                 filepath = os.path.join(dirname, filename)
                 zip_filepath = os.path.join(zip_name, os.path.relpath(filepath, api_dir))
                 zf.write(filepath, arcname=zip_filepath)
-    os.rename(zip_path, os.path.join(api_dir, "%s.zip" % zip_name))
+    os.rename(zip_path, os.path.join(api_dir, f"{zip_name}.zip"))
 
     # VII) Create symlinks and html redirects.
     os.symlink("./contents.html", os.path.join(api_dir, "index.html"))
     if is_release:
         symlink = os.path.join(args.mirror_dir, "current")
         os.remove(symlink)
-        os.symlink("./%s" % api_name, symlink)
+        os.symlink(f"./{api_name}", symlink)
         with open(os.path.join(args.mirror_dir, "250PythonDoc/index.html"), 'w') as f:
             f.write("<html><head><title>Redirecting...</title><meta http-equiv=\"REFRESH\""
                     "content=\"0;url=../%s/\"></head><body>Redirecting...</body></html>" % api_name)

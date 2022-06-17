@@ -60,7 +60,7 @@ def get_root_modules():
     """
     global ROOT_MODULES
     modules = []
-    if not(ROOT_MODULES is None):
+    if ROOT_MODULES is not None:
         return ROOT_MODULES
     from time import time
     t = time()
@@ -105,7 +105,7 @@ def module_list(path):
     elif path.endswith('.egg'):
         from zipimport import zipimporter
         try:
-            folder_list = [f for f in zipimporter(path)._files]
+            folder_list = list(zipimporter(path)._files)
         except:
             folder_list = []
     else:
@@ -149,7 +149,7 @@ def complete(line):
             if only_modules:
                 return inspect.ismodule(getattr(module, attr))
             else:
-                return not(attr[:2] == '__' and attr[-2:] == '__')
+                return attr[:2] != '__' or attr[-2:] != '__'
 
         try:
             m = __import__(mod)

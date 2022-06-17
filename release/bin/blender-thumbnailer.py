@@ -95,7 +95,7 @@ def blend_extract_thumb(path):
 
     head = blendfile.read(12)
 
-    if head[0:2] == b'\x1f\x8b':  # gzip magic
+    if head[:2] == b'\x1f\x8b':  # gzip magic
         import gzip
         blendfile.close()
         blendfile = gzip.GzipFile('', 'rb', 0, open_wrapper(path, 'rb'))
@@ -116,7 +116,7 @@ def blend_extract_thumb(path):
 
     sizeof_bhead = 24 if is_64_bit else 20
     int_endian = '>i' if is_big_endian else '<i'
-    int_endian_pair = int_endian + 'i'
+    int_endian_pair = f'{int_endian}i'
 
     while True:
         bhead = blendfile.read(sizeof_bhead)
@@ -184,9 +184,8 @@ def main():
         if buf:
             file_out = sys.argv[-1]
 
-            f = open(file_out, "wb")
-            f.write(write_png(buf, width, height))
-            f.close()
+            with open(file_out, "wb") as f:
+                f.write(write_png(buf, width, height))
 
 
 if __name__ == '__main__':

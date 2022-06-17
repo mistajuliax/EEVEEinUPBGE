@@ -39,8 +39,7 @@ def parse_header_file(filename, define):
     regex = re.compile("^#\s*define\s+%s\s+(.*)" % define)
     with open(filename, "r") as file:
         for l in file:
-            match = regex.match(l)
-            if match:
+            if match := regex.match(l):
                 return match.group(1)
     return None
 
@@ -72,9 +71,13 @@ if 'cmake' in builder:
         # Set up OSX architecture
         if builder.endswith('x86_64_10_9_cmake'):
             cmake_extra_options.append('-DCMAKE_OSX_ARCHITECTURES:STRING=x86_64')
-        cmake_extra_options.append('-DCMAKE_OSX_DEPLOYMENT_TARGET=10.9')
-        cmake_extra_options.append('-DCUDA_HOST_COMPILER=/usr/local/cuda-hack/clang')
-        cmake_extra_options.append('-DCUDA_NVCC_EXECUTABLE=/usr/local/cuda-hack/nvcc')
+        cmake_extra_options.extend(
+            (
+                '-DCMAKE_OSX_DEPLOYMENT_TARGET=10.9',
+                '-DCUDA_HOST_COMPILER=/usr/local/cuda-hack/clang',
+                '-DCUDA_NVCC_EXECUTABLE=/usr/local/cuda-hack/nvcc',
+            )
+        )
 
     elif builder.startswith('win'):
         if builder.endswith('_vc2015'):
@@ -95,18 +98,18 @@ if 'cmake' in builder:
     elif builder.startswith('linux'):
         tokens = builder.split("_")
         glibc = tokens[1]
-        if glibc == 'glibc219':
-            deb_name = "jessie"
-        elif glibc == 'glibc211':
+        if glibc == 'glibc211':
             deb_name = "squeeze"
+        elif glibc == 'glibc219':
+            deb_name = "jessie"
         cmake_config_file = "build_files/buildbot/config/blender_linux.cmake"
         cmake_player_config_file = "build_files/buildbot/config/blender_linux_player.cmake"
         if builder.endswith('x86_64_cmake'):
-            chroot_name = 'buildbot_' + deb_name + '_x86_64'
+            chroot_name = f'buildbot_{deb_name}_x86_64'
             targets = ['player', 'blender']
         elif builder.endswith('i686_cmake'):
             bits = 32
-            chroot_name = 'buildbot_' + deb_name + '_i686'
+            chroot_name = f'buildbot_{deb_name}_i686'
             cuda_chroot_name = 'buildbot_' + deb_name + '_x86_64'
             targets = ['player', 'blender', 'cuda']
         cmake_extra_options.extend(["-DCMAKE_C_COMPILER=/usr/bin/gcc-7",
@@ -114,9 +117,14 @@ if 'cmake' in builder:
 
     cmake_options.append("-C" + os.path.join(blender_dir, cmake_config_file))
 
-    # Prepare CMake options needed to configure cuda binaries compilation.
-    cuda_cmake_options.append("-DWITH_CYCLES_CUDA_BINARIES=%s" % ('ON' if build_cubins else 'OFF'))
-    cuda_cmake_options.append("-DCYCLES_CUDA_BINARIES_ARCH=sm_20;sm_21;sm_30;sm_35;sm_37;sm_50;sm_52;sm_60;sm_61")
+    cuda_cmake_options.extend(
+        (
+            "-DWITH_CYCLES_CUDA_BINARIES=%s"
+            % ('ON' if build_cubins else 'OFF'),
+            "-DCYCLES_CUDA_BINARIES_ARCH=sm_20;sm_21;sm_30;sm_35;sm_37;sm_50;sm_52;sm_60;sm_61",
+        )
+    )
+
     if build_cubins or 'cuda' in targets:
         if bits == 32:
             cuda_cmake_options.append("-DCUDA_64_BIT_DEVICE_CODE=OFF")
@@ -132,10 +140,7 @@ if 'cmake' in builder:
     cmake_options += cmake_extra_options
 
     # Prepare chroot command prefix if needed
-    if chroot_name:
-        chroot_prefix = ['schroot', '-c', chroot_name, '--']
-    else:
-        chroot_prefix = []
+    chroot_prefix = ['schroot', '-c', chroot_name, '--'] if chroot_name else []
     if cuda_chroot_name:
         cuda_chroot_prefix = ['schroot', '-c', cuda_chroot_name, '--']
     else:

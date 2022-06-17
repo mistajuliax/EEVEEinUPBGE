@@ -47,8 +47,7 @@ class ProgressReport:
     __slots__ = ('wm', 'running', 'steps', 'curr_step', 'start_time')
 
     def __init__(self, wm=None):
-        self_wm = getattr(self, 'wm', None)
-        if self_wm:
+        if self_wm := getattr(self, 'wm', None):
             self.finalize()
         self.running = False
 

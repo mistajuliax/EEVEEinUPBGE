@@ -48,12 +48,12 @@ class BPyOps:
 
     def __dir__(self):
 
-        submodules = set()
+        submodules = {
+            id_name
+            for id_name in dir(self.__class__)
+            if not id_name.startswith('__')
+        }
 
-        # add this classes functions
-        for id_name in dir(self.__class__):
-            if not id_name.startswith('__'):
-                submodules.add(id_name)
 
         for id_name in op_dir():
             id_split = id_name.split('_OT_', 1)
@@ -125,7 +125,7 @@ class BPyOpsSubModOp:
 
         is_dict = is_exec = is_undo = False
 
-        for i, arg in enumerate(args):
+        for arg in args:
             if is_dict is False and isinstance(arg, dict):
                 if is_exec is True or is_undo is True:
                     raise ValueError("dict arg must come first")
@@ -146,8 +146,7 @@ class BPyOpsSubModOp:
 
     @staticmethod
     def _scene_update(context):
-        scene = context.scene
-        if scene:  # None in background mode
+        if scene := context.scene:
             scene.update()
         else:
             import bpy
@@ -166,11 +165,11 @@ class BPyOpsSubModOp:
 
     def idname(self):
         # submod.foo -> SUBMOD_OT_foo
-        return self._module.upper() + "_OT_" + self._func
+        return f"{self._module.upper()}_OT_{self._func}"
 
     def idname_py(self):
         # submod.foo -> SUBMOD_OT_foo
-        return self._module + "." + self._func
+        return f"{self._module}.{self._func}"
 
     def __call__(self, *args, **kw):
         import bpy
@@ -216,8 +215,8 @@ class BPyOpsSubModOp:
         # every __doc__ to save time on load.
         if not descr:
             descr = op_class.__doc__
-            if not descr:
-                descr = ""
+        if not descr:
+            descr = ""
 
         return "# %s\n%s" % (descr, as_string)
 

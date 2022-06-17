@@ -79,7 +79,6 @@ class ImagePreviewCollection(dict):
                 "<%s id=%s[%d]>: left open, remove with "
                 "'bpy.utils.previews.remove()'" %
                 (self.__class__.__name__, self._uuid, len(self)))
-        self.close()
 
     def _gen_key(self, name):
         return ":".join((self._uuid, name))

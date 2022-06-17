@@ -26,11 +26,7 @@ __all__ = (
 
 # XXX Names are not unique. Returns the first match.
 def find_node_input(node, name):
-    for input in node.inputs:
-        if input.name == name:
-            return input
-
-    return None
+    return next((input for input in node.inputs if input.name == name), None)
 
 # Return the output node to display in the UI. In case multiple node types are
 # specified, node types earlier in the list get priority.

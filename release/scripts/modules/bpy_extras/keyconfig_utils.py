@@ -217,10 +217,7 @@ def addon_keymap_unregister(wm, keymaps_description):
 # Utility functions
 
 def km_exists_in(km, export_keymaps):
-    for km2, kc in export_keymaps:
-        if km2.name == km.name:
-            return True
-    return False
+    return any(km2.name == km.name for km2, kc in export_keymaps)
 
 
 def keyconfig_merge(kc1, kc2):
@@ -298,55 +295,43 @@ def _kmistr(kmi, is_modal):
 
 def keyconfig_export(wm, kc, filepath):
 
-    f = open(filepath, "w")
+    with open(filepath, "w") as f:
+        f.write("import bpy\n")
+        f.write("import os\n\n")
+        f.write("def kmi_props_setattr(kmi_props, attr, value):\n"
+                "    try:\n"
+                "        setattr(kmi_props, attr, value)\n"
+                "    except AttributeError:\n"
+                "        print(\"Warning: property '%s' not found in keymap item '%s'\" %\n"
+                "              (attr, kmi_props.__class__.__name__))\n"
+                "    except Exception as e:\n"
+                "        print(\"Warning: %r\" % e)\n\n")
+        f.write("wm = bpy.context.window_manager\n")
+        # keymap must be created by caller
+        f.write("kc = wm.keyconfigs.new(os.path.splitext(os.path.basename(__file__))[0])\n\n")
 
-    f.write("import bpy\n")
-    f.write("import os\n\n")
-    f.write("def kmi_props_setattr(kmi_props, attr, value):\n"
-            "    try:\n"
-            "        setattr(kmi_props, attr, value)\n"
-            "    except AttributeError:\n"
-            "        print(\"Warning: property '%s' not found in keymap item '%s'\" %\n"
-            "              (attr, kmi_props.__class__.__name__))\n"
-            "    except Exception as e:\n"
-            "        print(\"Warning: %r\" % e)\n\n")
-    f.write("wm = bpy.context.window_manager\n")
-    # keymap must be created by caller
-    f.write("kc = wm.keyconfigs.new(os.path.splitext(os.path.basename(__file__))[0])\n\n")
+        class FakeKeyConfig:
+            keymaps = []
+        edited_kc = FakeKeyConfig()
+        for km in wm.keyconfigs.user.keymaps:
+            if km.is_user_modified:
+                edited_kc.keymaps.append(km)
+        # merge edited keymaps with non-default keyconfig, if it exists
+        if kc != wm.keyconfigs.default:
+            export_keymaps = keyconfig_merge(edited_kc, kc)
+        else:
+            export_keymaps = keyconfig_merge(edited_kc, edited_kc)
 
-    # Generate a list of keymaps to export:
-    #
-    # First add all user_modified keymaps (found in keyconfigs.user.keymaps list),
-    # then add all remaining keymaps from the currently active custom keyconfig.
-    #
-    # This will create a final list of keymaps that can be used as a "diff" against
-    # the default blender keyconfig, recreating the current setup from a fresh blender
-    # without needing to export keymaps which haven't been edited.
+        for km, kc_x in export_keymaps:
 
-    class FakeKeyConfig:
-        keymaps = []
-    edited_kc = FakeKeyConfig()
-    for km in wm.keyconfigs.user.keymaps:
-        if km.is_user_modified:
-            edited_kc.keymaps.append(km)
-    # merge edited keymaps with non-default keyconfig, if it exists
-    if kc != wm.keyconfigs.default:
-        export_keymaps = keyconfig_merge(edited_kc, kc)
-    else:
-        export_keymaps = keyconfig_merge(edited_kc, edited_kc)
+            km = km.active()
 
-    for km, kc_x in export_keymaps:
-
-        km = km.active()
-
-        f.write("# Map %s\n" % km.name)
-        f.write("km = kc.keymaps.new('%s', space_type='%s', region_type='%s', modal=%s)\n\n" %
-                (km.name, km.space_type, km.region_type, km.is_modal))
-        for kmi in km.keymap_items:
-            f.write(_kmistr(kmi, km.is_modal))
-        f.write("\n")
-
-    f.close()
+            f.write("# Map %s\n" % km.name)
+            f.write("km = kc.keymaps.new('%s', space_type='%s', region_type='%s', modal=%s)\n\n" %
+                    (km.name, km.space_type, km.region_type, km.is_modal))
+            for kmi in km.keymap_items:
+                f.write(_kmistr(kmi, km.is_modal))
+            f.write("\n")
 
 
 def keyconfig_test(kc):
@@ -356,9 +341,7 @@ def keyconfig_test(kc):
 
         idname, spaceid, regionid, children = entry
 
-        km = kc.keymaps.find(idname, space_type=spaceid, region_type=regionid)
-
-        if km:
+        if km := kc.keymaps.find(idname, space_type=spaceid, region_type=regionid):
             km = km.active()
             is_modal = km.is_modal
 

@@ -79,12 +79,9 @@ def add_object_align_init(context, operator):
             if properties.is_property_set("rotation"):
                 # ugh, 'view_align' callback resets
                 value = properties.rotation[:]
-                properties.view_align = view_align
                 properties.rotation = value
                 del value
-            else:
-                properties.view_align = view_align
-
+            properties.view_align = view_align
     if operator and (properties.is_property_set("rotation") and
                      not view_align_force):
 
@@ -144,19 +141,17 @@ def object_data_add(context, obdata, operator=None, name=None):
 
     # XXX
     # caused because entering edit-mode does not add a empty undo slot!
-    if context.user_preferences.edit.use_enter_edit_mode:
-        if not (obj_act and
-                obj_act.mode == 'EDIT' and
-                obj_act.type == obj_new.type):
-
-            _obdata = bpy.data.meshes.new(name)
-            obj_act = bpy.data.objects.new(_obdata.name, _obdata)
-            obj_act.matrix_world = obj_new.matrix_world
-            scene_collection.objects.link(obj_act)
-            layer.objects.active = obj_act
-            bpy.ops.object.mode_set(mode='EDIT')
-            # need empty undo step
-            bpy.ops.ed.undo_push(message="Enter Editmode")
+    if context.user_preferences.edit.use_enter_edit_mode and not (
+        obj_act and obj_act.mode == 'EDIT' and obj_act.type == obj_new.type
+    ):
+        _obdata = bpy.data.meshes.new(name)
+        obj_act = bpy.data.objects.new(_obdata.name, _obdata)
+        obj_act.matrix_world = obj_new.matrix_world
+        scene_collection.objects.link(obj_act)
+        layer.objects.active = obj_act
+        bpy.ops.object.mode_set(mode='EDIT')
+        # need empty undo step
+        bpy.ops.ed.undo_push(message="Enter Editmode")
     # XXX
 
     if obj_act and obj_act.mode == 'EDIT' and obj_act.type == obj_new.type:
@@ -209,7 +204,7 @@ class AddObjectHelper:
             )
 
     @classmethod
-    def poll(self, context):
+    def poll(cls, context):
         return context.scene.library is None
 
 
@@ -250,10 +245,9 @@ def object_image_guess(obj, bm=None):
     """
     # TODO, cycles/nodes materials
     me = obj.data
-    if bm is None:
-        if obj.mode == 'EDIT':
-            import bmesh
-            bm = bmesh.from_edit_mesh(me)
+    if bm is None and obj.mode == 'EDIT':
+        import bmesh
+        bm = bmesh.from_edit_mesh(me)
 
     if bm is not None:
         tex_layer = bm.faces.layers.tex.active

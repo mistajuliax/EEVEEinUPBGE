@@ -1403,15 +1403,19 @@ class CyclesPreferences(bpy.types.AddonPreferences):
     devices = bpy.props.CollectionProperty(type=CyclesDeviceSettings)
 
     def find_existing_device_entry(self, device):
-        for device_entry in self.devices:
-            if device_entry.id == device[2] and device_entry.type == device[1]:
-                return device_entry
-        return None
+        return next(
+            (
+                device_entry
+                for device_entry in self.devices
+                if device_entry.id == device[2] and device_entry.type == device[1]
+            ),
+            None,
+        )
 
 
     def update_device_entries(self, device_list):
         for device in device_list:
-            if not device[1] in {'CUDA', 'OPENCL', 'CPU'}:
+            if device[1] not in {'CUDA', 'OPENCL', 'CPU'}:
                 continue
             # Try to find existing Device entry
             entry = self.find_existing_device_entry(device)

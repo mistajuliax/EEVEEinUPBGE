@@ -146,9 +146,7 @@ class WindowManager(bpy_types.ID):
 
     def popup_menu_pie(self, event, draw_func, title="", icon='NONE'):
         import bpy
-        pie = self.piemenu_begin__internal(title, icon, event)
-
-        if pie:
+        if pie := self.piemenu_begin__internal(title, icon, event):
             try:
                 draw_func(pie, bpy.context)
             finally:
@@ -219,8 +217,7 @@ class _GenericBone:
         parent = self.parent
 
         while parent:
-            if parent:
-                parent_list.append(parent)
+            parent_list.append(parent)
 
             parent = parent.parent
 
@@ -261,8 +258,7 @@ class _GenericBone:
         """A list of all children from this bone."""
         bones_children = []
         for bone in self._other_bones:
-            index = bone.parent_index(self)
-            if index:
+            if index := bone.parent_index(self):
                 bones_children.append((index, bone))
 
         # sort by distance to parent
@@ -310,10 +306,7 @@ class _GenericBone:
         if id_data_type == bpy_types.Object:
             bones = id_data.pose.bones
         elif id_data_type == bpy_types.Armature:
-            bones = id_data.edit_bones
-            if not bones:  # not in edit mode
-                bones = id_data.bones
-
+            bones = id_data.edit_bones or id_data.bones
         return bones
 
 
@@ -377,9 +370,7 @@ class EditBone(StructRNA, _GenericBone, metaclass=StructMetaPropGroup):
 
 
 def ord_ind(i1, i2):
-    if i1 < i2:
-        return i1, i2
-    return i2, i1
+    return (i1, i2) if i1 < i2 else (i2, i1)
 
 
 class Mesh(bpy_types.ID):
@@ -558,8 +549,8 @@ class RNAMeta(type):
         return result
 
     @property
-    def is_registered(cls):
-        return "bl_rna" in cls.__dict__
+    def is_registered(self):
+        return "bl_rna" in self.__dict__
 
 
 class OrderedDictMini(dict):
@@ -584,11 +575,11 @@ class RNAMetaPropGroup(StructMetaPropGroup, RNAMeta):
 
 class OrderedMeta(RNAMeta):
 
-    def __init__(cls, name, bases, attributes):
+    def __init__(self, name, bases, attributes):
         if attributes.__class__ is OrderedDictMini:
-            cls.order = attributes.order
+            self.order = attributes.order
 
-    def __prepare__(name, bases, **kwargs):
+    def __prepare__(self, bases, **kwargs):
         return OrderedDictMini()  # collections.OrderedDict()
 
 
@@ -732,9 +723,9 @@ class Macro(StructRNA, metaclass=OrderedMeta):
     __slots__ = ()
 
     @classmethod
-    def define(self, opname):
+    def define(cls, opname):
         from _bpy import ops
-        return ops.macro_define(self, opname)
+        return ops.macro_define(cls, opname)
 
 
 class PropertyGroup(StructRNA, metaclass=RNAMetaPropGroup):

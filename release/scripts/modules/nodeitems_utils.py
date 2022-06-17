@@ -57,25 +57,21 @@ class NodeItem:
     def label(self):
         if self._label:
             return self._label
-        else:
-            # if no custom label is defined, fall back to the node type UI name
-            bl_rna = bpy.types.Node.bl_rna_get_subclass(self.nodetype)
-            if bl_rna is not None:
-                return bl_rna.name
-            else:
-                return "Unknown"
+        # if no custom label is defined, fall back to the node type UI name
+        bl_rna = bpy.types.Node.bl_rna_get_subclass(self.nodetype)
+        return bl_rna.name if bl_rna is not None else "Unknown"
 
     @property
     def translation_context(self):
         if self._label:
             return bpy.app.translations.contexts.default
-        else:
-            # if no custom label is defined, fall back to the node type UI name
-            bl_rna = bpy.types.Node.bl_rna_get_subclass(self.nodetype)
-            if bl_rna is not None:
-                return bl_rna.translation_context
-            else:
-                return bpy.app.translations.contexts.default
+        # if no custom label is defined, fall back to the node type UI name
+        bl_rna = bpy.types.Node.bl_rna_get_subclass(self.nodetype)
+        return (
+            bl_rna.translation_context
+            if bl_rna is not None
+            else bpy.app.translations.contexts.default
+        )
 
     # NB: is a staticmethod because called with an explicit self argument
     # NodeItemCustom sets this as a variable attribute in __init__
@@ -143,7 +139,7 @@ def register_node_categories(identifier, cat_list):
 
         for cat in cat_list:
             if cat.poll(context):
-                layout.menu("NODE_MT_category_%s" % cat.identifier)
+                layout.menu(f"NODE_MT_category_{cat.identifier}")
 
     # stores: (categories list, menu draw function, submenu types, panel types)
     _node_categories[identifier] = (cat_list, draw_add_menu, menu_types, panel_types)
@@ -158,8 +154,7 @@ def node_categories_iter(context):
 
 def node_items_iter(context):
     for cat in node_categories_iter(context):
-        for item in cat.items(context):
-            yield item
+        yield from cat.items(context)
 
 
 def unregister_node_cat_types(cats):
@@ -172,8 +167,7 @@ def unregister_node_cat_types(cats):
 def unregister_node_categories(identifier=None):
     # unregister existing UI classes
     if identifier:
-        cat_types = _node_categories.get(identifier, None)
-        if cat_types:
+        if cat_types := _node_categories.get(identifier, None):
             unregister_node_cat_types(cat_types)
         del _node_categories[identifier]
 

@@ -9,7 +9,7 @@ def parseNotes(notes, bpm, basefreq, rate = 44100,
 	durationchars = "2345678"
 	position = 0
 	sequence = aud.Sequence()
- 
+
 	while pos < len(notes):
 		char = notes[pos]
 		mod = None
@@ -21,19 +21,19 @@ def parseNotes(notes, bpm, basefreq, rate = 44100,
 			elif notes[pos] in durationchars:
 				dur = notes[pos]
 			pos += 1
- 
+
 		freq = notechars.find(char)
 		if mod == '#':
 			freq += 1
 		elif mod == 'b':
 			freq -= 1
- 
+
 		freq = math.pow(2, freq/12)*basefreq
 		length = float(dur)*60/bpm
 
 		if char != 'p':
 			note = aud.Sound.square(freq, rate).fadein(0, fadelength).fadeout(length - fadelength, fadelength)
- 
+
 			sequence.add(note, position, position + length, 0)
 
 		position += length

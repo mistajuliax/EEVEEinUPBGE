@@ -4,11 +4,7 @@ is_ntsc = (bpy.context.scene.render.fps != 25)
 bpy.context.scene.render.ffmpeg.format = "MKV"
 bpy.context.scene.render.ffmpeg.codec = "H264"
 
-if is_ntsc:
-    bpy.context.scene.render.ffmpeg.gopsize = 18
-else:
-    bpy.context.scene.render.ffmpeg.gopsize = 15
-
+bpy.context.scene.render.ffmpeg.gopsize = 18 if is_ntsc else 15
 bpy.context.scene.render.ffmpeg.video_bitrate = 6000
 bpy.context.scene.render.ffmpeg.maxrate = 9000
 bpy.context.scene.render.ffmpeg.minrate = 0

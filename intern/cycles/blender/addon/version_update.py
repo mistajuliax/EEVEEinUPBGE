@@ -43,21 +43,23 @@ def check_is_new_shading_ntree(node_tree):
 
 
 def check_is_new_shading_material(material):
-    if not material.node_tree:
-        return False
-    return check_is_new_shading_ntree(material.node_tree)
+    return (
+        check_is_new_shading_ntree(material.node_tree)
+        if material.node_tree
+        else False
+    )
 
 
 def check_is_new_shading_world(world):
-    if not world.node_tree:
-        return False
-    return check_is_new_shading_ntree(world.node_tree)
+    return (
+        check_is_new_shading_ntree(world.node_tree)
+        if world.node_tree
+        else False
+    )
 
 
 def check_is_new_shading_lamp(lamp):
-    if not lamp.node_tree:
-        return False
-    return check_is_new_shading_ntree(lamp.node_tree)
+    return check_is_new_shading_ntree(lamp.node_tree) if lamp.node_tree else False
 
 
 def foreach_notree_node(nodetree, callback, traversed):
@@ -99,12 +101,13 @@ def displacement_node_insert(material, nodetree, traversed):
             displacement_node_insert(material, node.node_tree, traversed)
 
     # Gather links to replace
-    displacement_links = []
-    for link in nodetree.links:
-        if link.to_node.bl_idname == 'ShaderNodeOutputMaterial' and \
-           link.from_node.bl_idname != 'ShaderNodeDisplacement' and \
-           link.to_socket.identifier == 'Displacement':
-           displacement_links.append(link)
+    displacement_links = [
+        link
+        for link in nodetree.links
+        if link.to_node.bl_idname == 'ShaderNodeOutputMaterial'
+        and link.from_node.bl_idname != 'ShaderNodeDisplacement'
+        and link.to_socket.identifier == 'Displacement'
+    ]
 
     # Replace links with displacement node
     for link in displacement_links:
@@ -131,9 +134,8 @@ def displacement_nodes_insert():
             displacement_node_insert(material, material.node_tree, traversed)
 
 def displacement_node_space(node):
-    if node.bl_idname == 'ShaderNodeDisplacement':
-        if node.space != 'WORLD':
-            node.space = 'OBJECT'
+    if node.bl_idname == 'ShaderNodeDisplacement' and node.space != 'WORLD':
+        node.space = 'OBJECT'
 
 
 def mapping_node_order_flip(node):

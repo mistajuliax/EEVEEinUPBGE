@@ -125,11 +125,13 @@ def modules_refresh(module_cache=addons_fake_modules):
 
         if ast_data:
             for body in ast_data.body:
-                if body.__class__ == ast.Assign:
-                    if len(body.targets) == 1:
-                        if getattr(body.targets[0], "id", "") == "bl_info":
-                            body_info = body
-                            break
+                if (
+                    body.__class__ == ast.Assign
+                    and len(body.targets) == 1
+                    and getattr(body.targets[0], "id", "") == "bl_info"
+                ):
+                    body_info = body
+                    break
 
         if body_info:
             try:
@@ -138,7 +140,7 @@ def modules_refresh(module_cache=addons_fake_modules):
                 mod.__file__ = mod_path
                 mod.__time__ = os.path.getmtime(mod_path)
             except:
-                print("AST error parsing bl_info for %s" % mod_name)
+                print(f"AST error parsing bl_info for {mod_name}")
                 import traceback
                 traceback.print_exc()
                 raise
@@ -258,8 +260,7 @@ def _addon_remove(module_name):
     addons = _user_preferences.addons
 
     while module_name in addons:
-        addon = addons.get(module_name)
-        if addon:
+        if addon := addons.get(module_name):
             addons.remove(addon)
 
 
@@ -439,8 +440,7 @@ def reset_all(*, reload_scripts=False):
             # first check if reload is needed before changing state.
             if reload_scripts:
                 import importlib
-                mod = sys.modules.get(mod_name)
-                if mod:
+                if mod := sys.modules.get(mod_name):
                     importlib.reload(mod)
 
             if is_enabled == is_loaded:

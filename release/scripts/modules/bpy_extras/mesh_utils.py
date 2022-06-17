@@ -61,19 +61,13 @@ def mesh_linked_uv_islands(mesh):
     poly_tag = [0] * len(poly_loops)
 
     while True:
-        poly_index = -1
-        for i in range(len(poly_loops)):
-            if poly_tag[i] == 0:
-                poly_index = i
-                break
-
-        if poly_index != -1:
-            island = [poly_index]
-            poly_tag[poly_index] = 1
-            poly_islands.append(island)
-        else:
+        poly_index = next((i for i in range(len(poly_loops)) if poly_tag[i] == 0), -1)
+        if poly_index == -1:
             break  # we're done
 
+        island = [poly_index]
+        poly_tag[poly_index] = 1
+        poly_islands.append(island)
         added = True
         while added:
             added = False
@@ -102,7 +96,7 @@ def mesh_linked_tessfaces(mesh):
     """
 
     # Build vert face connectivity
-    vert_faces = [[] for i in range(len(mesh.vertices))]
+    vert_faces = [[] for _ in range(len(mesh.vertices))]
     for f in mesh.tessfaces:
         for v in f.vertices:
             vert_faces[v].append(f)
@@ -117,7 +111,7 @@ def mesh_linked_tessfaces(mesh):
     while ok:
         ok = False
 
-        for i, f in enumerate(mesh.tessfaces):
+        for f in mesh.tessfaces:
             mapped_index = face_mapping[f.index]
             mapped_group = face_groups[mapped_index]
 
@@ -221,11 +215,7 @@ def edge_loops_from_tessfaces(mesh, tessfaces=None, seams=()):
             # Seek the first edge
             context_loop = [edkey, ed_adj[0]]
             edge_loops.append(context_loop)
-            if len(ed_adj) == 2:
-                other_dir = ed_adj[1]
-            else:
-                other_dir = None
-
+            other_dir = ed_adj[1] if len(ed_adj) == 2 else None
             del ed_adj[:]
 
             flipped = False
@@ -354,10 +344,7 @@ def ngon_tessellate(from_data, indices, fix_loops=True):
         return v, vector_to_tuple(v, 6), i, mlen(v)
 
     def ed_key_mlen(v1, v2):
-        if v1[3] > v2[3]:
-            return v2[1], v1[1]
-        else:
-            return v1[1], v2[1]
+        return (v2[1], v1[1]) if v1[3] > v2[3] else (v1[1], v2[1])
 
     if not fix_loops:
         """
@@ -431,9 +418,7 @@ def ngon_tessellate(from_data, indices, fix_loops=True):
         def join_seg(s1, s2):
             if s2[-1][1] == s1[0][1]:
                 s1, s2 = s2, s1
-            elif s1[-1][1] == s2[0][1]:
-                pass
-            else:
+            elif s1[-1][1] != s2[0][1]:
                 return False
 
             # If were stuill here s1 and s2 are 2 segments in the same polyline
@@ -529,13 +514,9 @@ def face_random_points(num_points, tessfaces):
     # Split all quads into 2 tris, tris remain unchanged
     tri_faces = []
     for f in tessfaces:
-        tris = []
         verts = f.id_data.vertices
         fv = f.vertices[:]
-        tris.append((verts[fv[0]].co,
-                     verts[fv[1]].co,
-                     verts[fv[2]].co,
-                     ))
+        tris = [(verts[fv[0]].co, verts[fv[1]].co, verts[fv[2]].co)]
         if len(fv) == 4:
             tris.append((verts[fv[0]].co,
                          verts[fv[3]].co,

@@ -211,7 +211,10 @@ def config_video(obj, format, pixel, is3D=False, mat=0, card=0):
         shader.setUniformEyef("eye")
         shader.setUniform1f("stereo", 0.5 if is3D else 1.0)
     tex = vt.Texture(obj, mat)
-    tex.source = vt.VideoDeckLink(format + "/" + pixel + ("/3D" if is3D else ""), card)
+    tex.source = vt.VideoDeckLink(
+        f"{format}/{pixel}" + ("/3D" if is3D else ""), card
+    )
+
     print("frame rate: ", tex.source.framerate)
     tex.source.play()
     obj["video"] = tex

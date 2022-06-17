@@ -137,7 +137,7 @@ def import_from_path(path, ignore_not_found=False):
     import os
     from importlib import import_module
     base_module, template_id = path.rsplit(os.sep, 2)[-2:]
-    module_name = base_module + "." + template_id
+    module_name = f"{base_module}.{template_id}"
 
     try:
         return import_module(module_name)
@@ -150,16 +150,18 @@ def import_from_path(path, ignore_not_found=False):
 def import_from_id(template_id, ignore_not_found=False):
     import os
     path = next(iter(_bpy.utils.app_template_paths(template_id)), None)
-    if path is None:
-        if ignore_not_found:
-            return None
-        else:
-            raise Exception("%r template not found!" % template_id)
+    if path is not None:
+        return (
+            None
+            if ignore_not_found
+            and not os.path.exists(os.path.join(path, "__init__.py"))
+            else import_from_path(path, ignore_not_found=ignore_not_found)
+        )
+
+    if ignore_not_found:
+        return None
     else:
-        if ignore_not_found:
-            if not os.path.exists(os.path.join(path, "__init__.py")):
-                return None
-        return import_from_path(path, ignore_not_found=ignore_not_found)
+        raise Exception("%r template not found!" % template_id)
 
 
 def activate(template_id=None):

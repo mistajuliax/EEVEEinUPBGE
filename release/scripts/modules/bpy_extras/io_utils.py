@@ -79,10 +79,11 @@ class ExportHelper:
         import os
         if not self.filepath:
             blend_filepath = context.blend_data.filepath
-            if not blend_filepath:
-                blend_filepath = "untitled"
-            else:
-                blend_filepath = os.path.splitext(blend_filepath)[0]
+            blend_filepath = (
+                os.path.splitext(blend_filepath)[0]
+                if blend_filepath
+                else "untitled"
+            )
 
             self.filepath = blend_filepath + self.filename_ext
 
@@ -137,8 +138,9 @@ def orientation_helper_factory(name, axis_forward='Y', axis_up='Z'):
 
     def _update_axis_forward(self, context):
         if self.axis_forward[-1] == self.axis_up[-1]:
-            self.axis_up = (self.axis_up[0:-1] +
-                    'XYZ'[('XYZ'.index(self.axis_up[-1]) + 1) % 3])
+            self.axis_up = (
+                self.axis_up[:-1] + 'XYZ'[('XYZ'.index(self.axis_up[-1]) + 1) % 3]
+            )
 
     members['axis_forward'] = EnumProperty(
             name="Forward",
@@ -155,8 +157,10 @@ def orientation_helper_factory(name, axis_forward='Y', axis_up='Z'):
 
     def _update_axis_up(self, context):
         if self.axis_up[-1] == self.axis_forward[-1]:
-            self.axis_forward = (self.axis_forward[0:-1] +
-                    'XYZ'[('XYZ'.index(self.axis_forward[-1]) + 1) % 3])
+            self.axis_forward = (
+                self.axis_forward[:-1]
+                + 'XYZ'[('XYZ'.index(self.axis_forward[-1]) + 1) % 3]
+            )
 
     members['axis_up'] = EnumProperty(
             name="Up",
@@ -331,7 +335,7 @@ def axis_conversion_ensure(operator, forward_attr, up_attr):
     """
     def validate(axis_forward, axis_up):
         if axis_forward[-1] == axis_up[-1]:
-            axis_up = axis_up[0:-1] + 'XYZ'[('XYZ'.index(axis_up[-1]) + 1) % 3]
+            axis_up = axis_up[:-1] + 'XYZ'[('XYZ'.index(axis_up[-1]) + 1) % 3]
 
         return axis_forward, axis_up
 
@@ -353,11 +357,10 @@ def create_derived_objects(scene, ob):
     if ob.parent and ob.parent.dupli_type in {'VERTS', 'FACES'}:
         return False, None
 
-    if ob.dupli_type != 'NONE':
-        ob.dupli_list_create(scene)
-        return True, [(dob.object, dob.matrix) for dob in ob.dupli_list]
-    else:
+    if ob.dupli_type == 'NONE':
         return False, [(ob, ob.matrix_world)]
+    ob.dupli_list_create(scene)
+    return True, [(dob.object, dob.matrix) for dob in ob.dupli_list]
 
 
 def free_derived_objects(ob):
@@ -382,9 +385,8 @@ def unpack_face_list(list_of_tuples):
         if len(t) == 3:
             if t[2] == 0:
                 t = t[1], t[2], t[0]
-        else:  # assume quad
-            if t[3] == 0 or t[2] == 0:
-                t = t[2], t[3], t[0], t[1]
+        elif t[3] == 0 or t[2] == 0:
+            t = t[2], t[3], t[0], t[1]
 
         flat_ls[i:i + len(t)] = t
         i += 4
@@ -500,9 +502,9 @@ def path_reference_copy(copy_set, report=print):
     for file_src, file_dst in copy_set:
         if not os.path.exists(file_src):
             report("missing %r, not copying" % file_src)
-        elif os.path.exists(file_dst) and os.path.samefile(file_src, file_dst):
-            pass
-        else:
+        elif not os.path.exists(file_dst) or not os.path.samefile(
+            file_src, file_dst
+        ):
             dir_to = os.path.dirname(file_dst)
 
             try:

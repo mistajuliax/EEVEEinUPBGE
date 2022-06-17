@@ -713,7 +713,7 @@ class pyDiffusion2Shader(StrokeShader):
         self._curvatureInfo = Curvature2DAngleF0D()
 
     def shade(self, stroke):
-        for i in range (1, self._nbIter):
+        for _ in range (1, self._nbIter):
             it = Interface0DIterator(stroke)
             for svert in it:
                 svert.point += self._normalInfo(it) * self._lambda * self._curvatureInfo(it)
@@ -891,7 +891,7 @@ class pyBluePrintCirclesShader(StrokeShader):
 
         it = iter(stroke)
 
-        for j in range(self.__turns):
+        for _ in range(self.__turns):
             prev_radius = radius
             prev_center = center
             radius += randint(-R, R)
@@ -932,7 +932,7 @@ class pyBluePrintEllipsesShader(StrokeShader):
         # for description of the line below, see pyBluePrintCirclesShader
         directions = phase_to_direction(sv_nb)
         it = iter(stroke)
-        for j in range(self.__turns):
+        for _ in range(self.__turns):
             prev_radius = radius
             prev_center = center
             radius = radius + Vector((randint(-R, R), randint(-R, R)))
@@ -1010,8 +1010,8 @@ class pyBluePrintSquaresShader(StrokeShader):
         old_vecs = tuple(next(it) - current for current in it)
 
         it = iter(stroke)
-        verticesToRemove = list()
-        for j in range(self.__turns):
+        verticesToRemove = []
+        for _ in range(self.__turns):
             for i, svert in zip(range(num_segments), it):
                 if i < first:
                     svert.point = points[0] + old_vecs[0] * i / (first - 1)
@@ -1032,7 +1032,7 @@ class pyBluePrintSquaresShader(StrokeShader):
         # remove excess vertices (if any)
         if not it.is_end:
             it.increment()
-            verticesToRemove += [svert for svert in it]
+            verticesToRemove += list(it)
             for sv in verticesToRemove:
                 stroke.remove_vertex(sv)
         stroke.update_length()
@@ -1101,8 +1101,8 @@ class pyBluePrintDirectedSquaresShader(StrokeShader):
             )
 
         it = iter(stroke)
-        verticesToRemove = list()
-        for j in range(self.__turns):
+        verticesToRemove = []
+        for _ in range(self.__turns):
             for i, svert in zip(range(num_segments), it):
                 if i < first:
                     svert.point = points[0] + old_vecs[0] * i / (first - 1)
@@ -1123,7 +1123,7 @@ class pyBluePrintDirectedSquaresShader(StrokeShader):
         # remove excess vertices
         if not it.is_end:
             it.increment()
-            verticesToRemove += [svert for svert in it]
+            verticesToRemove += list(it)
             for sv in verticesToRemove:
                 stroke.remove_vertex(sv)
         stroke.update_length()
